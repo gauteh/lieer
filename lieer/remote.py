@@ -11,6 +11,25 @@ class Remote:
   CLIENT_SECRET_FILE = None
   authorized         = False
 
+  special_labels = [  'INBOX',
+                      'SPAM',
+                      'TRASH',
+                      'UNREAD',
+                      'STARRED',
+                      'IMPORTANT',
+                      'SENT',
+                      'DRAFT',
+                      'CATEGORY_PERSONAL',
+                      'CATEGORY_SOCIAL',
+                      'CATEGORY_PROMOTIONS',
+                      'CATEGORY_UPDATES',
+                      'CATEGORY_FORUMS'
+                    ]
+
+  # these cannot be changed manually
+  read_only_labels = [ 'SENT', 'DRAFT' ]
+
+
   def __init__ (self, g):
     self.gmailieer = g
     self.CLIENT_SECRET_FILE = g.credentials_file
@@ -29,6 +48,12 @@ class Remote:
 
     return [l['name'] for l in labels]
 
+  @require_auth
+  def get_messages (self):
+    results = self.service.users ().messages ().list (userId = 'me').execute ()
+    msgs = results.get ('messages', [])
+
+    return msgs
 
   def authorize (self):
     self.credentials = self.get_credentials ()
