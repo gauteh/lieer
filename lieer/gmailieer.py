@@ -22,8 +22,8 @@ class Gmailieer:
     parser = argparse.ArgumentParser ('Gmailieer', parents = [tools.argparser])
     self.parser = parser
 
-    parser.add_argument ('action', choices = ['pull', 'push', 'auth'],
-        help = 'pull: get new e-mail and remote tag-changes, push: push local tag-changes, auth: authorize gmailieer with account')
+    parser.add_argument ('action', choices = ['pull', 'push', 'auth', 'init'],
+        help = 'pull: get new e-mail and remote tag-changes, push: push local tag-changes, auth: authorize gmailieer with account, init: initialize local repository')
 
     parser.add_argument ('-c', '--credentials', type = str, default = 'client_secret.json',
         help = 'credentials file for google api (default: client_secret.json)')
@@ -32,13 +32,13 @@ class Gmailieer:
         help = 'do not make any changes')
 
     parser.add_argument ('-t', '--list-labels', action='store_true', default = False,
-        help = 'list all remote labels')
+        help = 'list all remote labels (pull)')
 
     parser.add_argument ('-a', '--account', type = str, default = 'me',
         help = 'GMail account to use (default: me, currently logged in user)')
 
     parser.add_argument ('-f', '--force', action = 'store_true', default = False,
-        help = 'Force action')
+        help = 'Force action (auth)')
 
     args        = parser.parse_args (sys.argv[1:])
     self.args   = args
@@ -56,6 +56,7 @@ class Gmailieer:
     if self.dry_run:
       print ("dry-run: ", self.dry_run)
 
+    self.local  = Local (self)
     self.remote = Remote (self)
 
     if self.action == 'pull':
@@ -67,6 +68,10 @@ class Gmailieer:
 
     elif self.action == 'push':
       raise NotImplmentedError ()
+
+
+    elif self.action == 'init':
+      self.local.initialize_repository ()
 
 
 

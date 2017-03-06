@@ -1,2 +1,4 @@
 *.pyc
 client_secret.json
+.gmailieer.json
+mail
