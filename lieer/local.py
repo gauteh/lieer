@@ -1,6 +1,5 @@
 import os
 import json
-import mailbox
 import base64
 
 class Local:
@@ -47,7 +46,7 @@ class Local:
     self.state_f = os.path.join (self.wd, '.gmailieer.json')
 
     # mail store
-    self.md = os.path.join (self.wd, 'mail')
+    self.md = os.path.join (self.wd, 'mail', 'cur')
 
   def load_repository (self):
     """
@@ -61,6 +60,13 @@ class Local:
       raise Local.RepositoryException ('could not find mail dir')
 
     self.state = Local.State (self.state_f)
+
+    self.files = []
+    for (dp, dirnames, fnames) in os.walk (self.md):
+      self.files.extend (fnames)
+      break
+
+    self.mids  = [f.split(':')[0] for f in self.files]
 
   def initialize_repository (self):
     """
@@ -80,7 +86,27 @@ class Local:
     os.makedirs (self.md)
 
   def has (self, m):
-    return os.path.exists (os.path.join (self.md, m))
+    return m in self.mids
+
+  def __make_maildir_name__ (self, m, labels):
+    # http://cr.yp.to/proto/maildir.html
+    p = m + ':'
+    info = '2,'
+
+    # must be ascii sorted
+    if 'DRAFT' in labels:
+      info += 'D'
+
+    if 'IMPORTANT' in labels:
+      info += 'F'
+
+    if 'TRASH' in labels:
+      info += 'T'
+
+    if not 'UNREAD' in labels:
+      info += 'S'
+
+    return p + info
 
   def store (self, m):
     """
@@ -90,7 +116,9 @@ class Local:
     mid     = m['id']
     msg_str = base64.urlsafe_b64decode(m['raw'].encode ('ASCII'))
 
-    p = os.path.join (self.md, mid)
+    labels  = m['labelIds']
+
+    p = os.path.join (self.md, self.__make_maildir_name__(mid, labels))
     if os.path.exists (p):
       raise Local.RepositoryException ("local file already exists: %s" % p)
 

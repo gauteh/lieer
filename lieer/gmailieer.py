@@ -50,9 +50,6 @@ class Gmailieer:
     self.account          = args.account
     self.force            = args.force
 
-    self.dry_run = True # during early dev
-
-    print ("action:  ", self.action)
     if self.dry_run:
       print ("dry-run: ", self.dry_run)
 
@@ -83,7 +80,11 @@ class Gmailieer:
 
     self.local.load_repository ()
 
-    if self.local.state.last_historyId == 0:
+    if self.force:
+      print ("full synchronizatoin (forced)")
+      self.full_pull ()
+
+    elif self.local.state.last_historyId == 0:
       print ("full synchronization (no previous synchronization state)")
       self.full_pull ()
 
@@ -134,7 +135,8 @@ class Gmailieer:
 
       def _got_msg (rid, resp, excep):
         bar.update (1)
-        self.local.store (resp)
+        if not self.dry_run:
+          self.local.store (resp)
 
       self.remote.get_content (need_content, _got_msg)
 
