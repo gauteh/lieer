@@ -33,6 +33,7 @@ class Remote:
   def __init__ (self, g):
     self.gmailieer = g
     self.CLIENT_SECRET_FILE = g.credentials_file
+    self.account = g.account
 
   def __require_auth__ (func):
     def func_wrap (self, *args, **kwargs):
@@ -43,19 +44,27 @@ class Remote:
 
   @__require_auth__
   def get_labels (self):
-    results = self.service.users ().labels ().list (userId = 'me').execute ()
+    results = self.service.users ().labels ().list (userId = self.account).execute ()
     labels = results.get ('labels', [])
 
     return [l['name'] for l in labels]
 
   @__require_auth__
   def get_messages (self):
-    results = self.service.users ().messages ().list (userId = 'me').execute ()
+    results = self.service.users ().messages ().list (userId = self.account).execute ()
     msgs = results.get ('messages', [])
 
     return msgs
 
-  def authorize (self):
+  def authorize (self, reauth = False):
+    if reauth:
+      credential_dir = os.path.join(self.gmailieer.home, 'credentials')
+      credential_path = os.path.join(credential_dir,
+          'gmailieer.json')
+      if os.path.exists (credential_path):
+        print ("reauthorizing..")
+        os.unlink (credential_path)
+
     self.credentials = self.__get_credentials__ ()
     http = self.credentials.authorize (httplib2.Http())
     self.service = discovery.build ('gmail', 'v1', http = http)
@@ -71,8 +80,7 @@ class Remote:
     Returns:
         Credentials, the obtained credential.
     """
-    home_dir       = os.path.expanduser('~')
-    credential_dir = os.path.join(home_dir, '.credentials')
+    credential_dir = os.path.join(self.gmailieer.home, 'credentials')
     if not os.path.exists(credential_dir):
       os.makedirs(credential_dir)
 
