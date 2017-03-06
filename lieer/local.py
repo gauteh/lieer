@@ -2,8 +2,11 @@ import os
 import json
 import base64
 
+import notmuch
+
 class Local:
   wd = None
+  notmuch = None
 
 
   translate_labels = {
@@ -18,7 +21,11 @@ class Local:
                       'CHAT'  : 'chat'
                       }
 
+  labels_translate = { v: k for k, v in translate_labels.items () }
+
   replace_slash_with_dot = True
+
+  ignore_labels = set (['attachment', 'encrypted', 'signed', 'new'])
 
   class RepositoryException (Exception):
     pass
@@ -30,6 +37,9 @@ class Local:
     # sync.
     last_historyId = 0
 
+    # this is the last modification id of the notmuch db when the previous push was completed.
+    lastmod = 0
+
     def __init__ (self, state_f):
       self.state_f = state_f
 
@@ -40,17 +50,23 @@ class Local:
         self.json = {}
 
       self.last_historyId = self.json.get ('last_historyId', 0)
+      self.lastmod = self.json.get ('lastmod', 0)
 
     def write (self):
       self.json = {}
 
       self.json['last_historyId'] = self.last_historyId
+      self.json['lastmod'] = self.lastmod
 
       with open (self.state_f, 'w') as fd:
         json.dump (self.json, fd)
 
     def set_last_history_id (self, hid):
       self.last_historyId = hid
+      self.write ()
+
+    def set_lastmod (self, m):
+      self.lastmod = m
       self.write ()
 
   def __init__ (self, g):
@@ -85,7 +101,25 @@ class Local:
       self.files.extend (fnames)
       break
 
-    self.mids  = [f.split(':')[0] for f in self.files]
+    self.mids = {}
+    for f in self.files:
+      m = f.split (':')[0]
+      self.mids[m] = f
+
+    ## Check if we are in the notmuch db
+    self.notmuch = notmuch.Database ()
+    try:
+      self.nm_dir  = self.notmuch.get_directory (os.path.abspath(os.path.join (self.md, '..'))).path
+
+      self.nm_relative = self.nm_dir[len(self.notmuch.get_path ())+1:]
+
+      self.has_notmuch = True
+    except notmuch.errors.FileError:
+      print ("error: local mail repository not in notmuch db")
+      self.has_notmuch = False
+
+    self.notmuch.close ()
+    self.notmuch = None
 
   def initialize_repository (self):
     """
@@ -141,7 +175,7 @@ class Local:
 
     bname = self.__make_maildir_name__(mid, labels)
     self.files.append (bname)
-    self.mids.append (mid)
+    self.mids[mid] = bname
 
     p = os.path.join (self.md, bname)
     if os.path.exists (p):
@@ -151,12 +185,12 @@ class Local:
       with open (p, 'wb') as fd:
         fd.write (msg_str)
 
-
     # add to notmuch
-    self.update_tags (m)
+    self.update_tags (m, p)
 
-  def update_tags (self, m):
+  def update_tags (self, m, fname = None):
     # make sure notmuch tags reflect gmail labels
+    mid = m['id']
     labels = m['labelIds']
 
     # translate labels. Remote.get_labels () must have been called first
@@ -165,8 +199,7 @@ class Local:
     labels = set(labels)
 
     # remove ignored labels
-    ignore_labels = set (self.gmailieer.remote.ignore_labels)
-    labels = list(labels - ignore_labels)
+    labels = list(labels - self.gmailieer.remote.ignore_labels)
 
     # translate to notmuch tags
     labels = [self.translate_labels.get (l, l) for l in labels]
@@ -175,5 +208,45 @@ class Local:
     if self.replace_slash_with_dot:
       labels = [l.replace ('/', '.') for l in labels]
 
-    # print (labels)
+    if fname is None:
+      # this file probably already exists and just needs it tags updated,
+      # let's try to find its name in the mid to fname table.
+      fname = self.mids[mid]
+
+    fname = os.path.join (self.md, fname)
+    if self.notmuch is None:
+      db = notmuch.Database(mode = notmuch.Database.MODE.READ_WRITE)
+    else:
+      db = self.notmuch
+    nmsg = db.find_message_by_filename (fname)
+
+    if nmsg is None:
+      if self.dry_run:
+        print ("(dry-run) adding message: %s: %s, with tags: %s" % (mid, fname, str(labels)))
+      else:
+        (nmsg, stat) = db.add_message (fname, True)
+        nmsg.freeze ()
+
+        # adding initial tags
+        for t in labels:
+          nmsg.add_tag (t, True)
+
+        nmsg.thaw ()
+
+    else:
+      # message is already in db, set local tags to match remote tags
+      otags = nmsg.get_tags ()
+      if set(otags) != set (labels):
+        if not self.dry_run:
+          nmsg.freeze ()
+          nmsg.remove_all_tags ()
+          for t in labels:
+            nmsg.add_tag (t, False)
+          nmsg.thaw ()
+          nmsg.tags_to_maildir_flags ()
+        else:
+          print ("(dry-run) changing tags on message: %s from: %s to: %s" % (mid, str(otags), str(labels)))
+
+    if self.notmuch is None:
+      db.close ()
 

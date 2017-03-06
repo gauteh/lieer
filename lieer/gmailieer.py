@@ -8,6 +8,7 @@ import  os, sys
 import  argparse
 from    oauth2client import tools
 import  googleapiclient
+import  notmuch
 
 from tqdm import tqdm, tqdm_gui
 
@@ -42,7 +43,7 @@ class Gmailieer:
         help = 'Force action (auth)')
 
     parser.add_argument ('--limit', type = int, default = None,
-        help = 'Maximum number of messages to synchronize')
+        help = 'Maximum number of messages to synchronize (soft limit, gmail may return more)')
 
     args        = parser.parse_args (sys.argv[1:])
     self.args   = args
@@ -69,12 +70,56 @@ class Gmailieer:
       self.remote.authorize (self.force)
 
     elif self.action == 'push':
-      raise NotImplmentedError ()
+      self.push ()
 
     elif self.action == 'init':
       self.local.initialize_repository ()
 
+  def push (self):
+    self.remote.get_labels ()
+    self.local.load_repository ()
 
+    # check if remote repository has changed
+    try:
+      cur_hist = self.remote.get_current_history_id (self.local.state.last_historyId)
+    except googleapiclient.errors.HttpError:
+      print ("historyId is too old, full pull required.")
+      return
+
+    if cur_hist > self.local.state.last_historyId or cur_hist == -1:
+      print ("push: remote has changed, changes may be overwritten (%d > %d)" % (cur_hist, self.local.state.last_historyId))
+      if not self.force:
+        return
+
+    # loading local changes
+    self.local.notmuch = notmuch.Database ()
+    (rev, uuid) = self.local.notmuch.get_revision ()
+
+    if rev == self.local.state.lastmod:
+      print ("everything is up-to-date.")
+      return
+
+    qry = "path:%s/** and lastmod:%d..%d" % (self.local.nm_relative, self.local.state.lastmod, rev)
+
+    # print ("collecting changes..: %s" % qry)
+    query = notmuch.Query (self.local.notmuch, qry)
+    total = query.count_messages () # might be destructive here as well
+    query = notmuch.Query (self.local.notmuch, qry)
+
+    messages = list(query.search_messages ())
+    if self.limit is not None and len(messages) > self.limit:
+      messages = messages[:self.limit]
+
+    # push changes
+    bar = tqdm (leave = True, total = len(messages), desc = 'pushing changes')
+    for m in messages:
+      self.remote.update (m)
+      bar.update (1)
+
+    bar.close ()
+
+    if not self.dry_run:
+      self.local.state.set_lastmod (rev)
 
   def pull (self):
     if self.list_labels:
@@ -133,7 +178,8 @@ class Gmailieer:
       # get historyId
       mm = self.remote.get_message (message_ids[0])
       last_id = int(mm['historyId'])
-      self.local.state.set_last_history_id (last_id)
+      if not self.dry_run:
+        self.local.state.set_last_history_id (last_id)
 
       # get content for new messages
       updated = self.get_content (message_ids)
@@ -177,7 +223,8 @@ class Gmailieer:
       # get historyId
       mm = self.remote.get_message (message_ids[0])
       last_id = int(mm['historyId'])
-      self.local.state.set_last_history_id (last_id)
+      if not self.dry_run:
+        self.local.state.set_last_history_id (last_id)
 
       # get content for new messages
       updated = self.get_content (message_ids)
@@ -203,7 +250,10 @@ class Gmailieer:
         bar.update (1)
         self.local.update_tags (m)
 
+      self.local.notmuch = notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE)
       self.remote.get_messages (msgids, _got_msg, 'minimal')
+      self.local.notmuch.close ()
+      self.local.notmuch = None
 
       bar.close ()
 

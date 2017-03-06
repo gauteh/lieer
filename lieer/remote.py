@@ -6,7 +6,7 @@ from oauth2client import tools
 from oauth2client.file import Storage
 
 class Remote:
-  SCOPES = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.labels'
+  SCOPES = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/gmail.modify'
   APPLICATION_NAME   = 'Gmailieer'
   CLIENT_SECRET_FILE = None
   authorized         = False
@@ -30,12 +30,12 @@ class Remote:
   # these cannot be changed manually
   read_only_labels = [ 'SENT', 'DRAFT' ]
 
-  ignore_labels = [   'CATEGORY_PERSONAL',
-                      'CATEGORY_SOCIAL',
-                      'CATEGORY_PROMOTIONS',
-                      'CATEGORY_UPDATES',
-                      'CATEGORY_FORUMS'
-                   ]
+  ignore_labels = set([ 'CATEGORY_PERSONAL',
+                        'CATEGORY_SOCIAL',
+                        'CATEGORY_PROMOTIONS',
+                        'CATEGORY_UPDATES',
+                        'CATEGORY_FORUMS'
+                      ])
 
   class BatchException (Exception):
     pass
@@ -44,6 +44,7 @@ class Remote:
     self.gmailieer = g
     self.CLIENT_SECRET_FILE = g.credentials_file
     self.account = g.account
+    self.dry_run = g.dry_run
 
   def __require_auth__ (func):
     def func_wrap (self, *args, **kwargs):
@@ -62,6 +63,17 @@ class Remote:
       self.labels[l['id']] = l['name']
 
     return self.labels
+
+  @__require_auth__
+  def get_current_history_id (self, start):
+    """
+    Get the current history id of the mailbox
+    """
+    results = self.service.users ().history ().list (userId = self.account, startHistoryId = start).execute ()
+    if 'history' in results:
+      return int(results['historyId'])
+    else:
+      return start
 
   @__require_auth__
   def get_messages_since (self, start):
@@ -141,7 +153,7 @@ class Remote:
           print ("reducing batch request size to: %d" % max_req)
         else:
           raise Remote.BatchException ("cannot reduce request any further")
-        
+
 
   @__require_auth__
   def get_message (self, mid, format = 'minimal'):
@@ -192,4 +204,73 @@ class Remote:
       credentials = tools.run_flow(flow, store, flags = self.gmailieer.args)
       print('Storing credentials to ' + credential_path)
     return credentials
+
+  @__require_auth__
+  def update (self, m):
+    """
+    Gets a message and checks which labels it should add and which to delete.
+    """
+
+    # get gmail id
+    fname = m.get_filename ()
+    mid   = os.path.basename (fname).split (':')[0]
+
+    # first get message and figure out what labels it has now
+    r = self.get_message (mid)
+    labels = r['labelIds']
+    labels = [self.labels[l] for l in labels]
+
+    # remove ignored labels
+    labels = set (labels)
+    labels = labels - self.ignore_labels
+
+    # translate to notmuch tags
+    labels = [self.gmailieer.local.translate_labels.get (l, l) for l in labels]
+
+    # this is my weirdness
+    if self.gmailieer.local.replace_slash_with_dot:
+      labels = [l.replace ('/', '.') for l in labels]
+
+    labels = set(labels)
+
+    # current tags
+    tags = set(m.get_tags ())
+
+    # remove special notmuch tags
+    tags = tags - self.gmailieer.local.ignore_labels
+
+    add = list(tags - labels)
+    rem = list(labels - tags)
+
+    # translate back to gmail labels
+    add = [self.gmailieer.local.labels_translate.get (k, k) for k in add]
+    rem = [self.gmailieer.local.labels_translate.get (k, k) for k in rem]
+
+    if self.gmailieer.local.replace_slash_with_dot:
+      add = [a.replace ('.', '/') for a in add]
+      rem = [r.replace ('.', '/') for r in rem]
+
+    if len(add) > 0 or len(rem) > 0:
+      if self.dry_run:
+        print ("(dry-run) mid: %s: add: %s, remove: %s" % (mid, str(add), str(rem)))
+      else:
+        self.__push_tags__ (mid, add, rem)
+
+  @__require_auth__
+  def __push_tags__ (self, mid, add, rem):
+    """
+    Push message changes (these are currently not batched)"
+    """
+
+    add = [self.labels[a] for a in add]
+    rem = [self.labels[r] for r in rem]
+
+    body = { 'addLabelIds' : add,
+             'removeLabelIds' : rem }
+
+    result = self.service.users ().messages ().modify (userId = self.account,
+        id = mid, body = body).execute ()
+
+    return result
+
 
