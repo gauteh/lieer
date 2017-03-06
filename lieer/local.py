@@ -15,6 +15,7 @@ class Local:
                       'IMPORTANT' : 'important',
                       'SENT' : 'sent',
                       'DRAFT' : 'draft',
+                      'CHAT'  : 'chat'
                       }
 
   class RepositoryException (Exception):
@@ -171,5 +172,5 @@ class Local:
     # this is my weirdness
     labels = [l.replace ('/', '.') for l in labels]
 
-    print (labels)
+    # print (labels)
 

@@ -19,6 +19,7 @@ class Remote:
                       'IMPORTANT',
                       'SENT',
                       'DRAFT',
+                      'CHAT',
                       'CATEGORY_PERSONAL',
                       'CATEGORY_SOCIAL',
                       'CATEGORY_PROMOTIONS',
@@ -36,7 +37,7 @@ class Remote:
                       'CATEGORY_FORUMS'
                    ]
 
-  class BatchException:
+  class BatchException (Exception):
     pass
 
   def __init__ (self, g):
@@ -60,7 +61,7 @@ class Remote:
     for l in labels:
       self.labels[l['id']] = l['name']
 
-    return self.labels 
+    return self.labels
 
   @__require_auth__
   def get_messages_since (self, start):
@@ -105,19 +106,23 @@ class Remote:
     Get the messages
     """
 
+    max_req = 200
+    N       = len (mids)
+    i       = 0
+    j       = 0
+
     def _cb (rid, resp, excep):
+      nonlocal j
       if excep is not None:
-        raise Remote.BatchException (excep)
+        raise Remote.BatchException(excep)
+      else:
+        j += 1
 
       cb (resp)
 
-    # TODO: limit to 1000 requests
-    max_req = 10
-    N       = len (mids)
-    i       = 0
-
     while i < N:
       n = 0
+      j = i
       batch = self.service.new_batch_http_request  (callback = _cb)
 
       while n < max_req and i < N:
@@ -127,7 +132,16 @@ class Remote:
         n += 1
         i += 1
 
-      batch.execute (http = self.http)
+      try:
+        batch.execute (http = self.http)
+      except Remote.BatchException as ex:
+        if max_req > 10:
+          max_req = max_req / 2
+          i = j # reset
+          print ("reducing batch request size to: %d" % max_req)
+        else:
+          raise Remote.BatchException ("cannot reduce request any further")
+        
 
   @__require_auth__
   def get_message (self, mid, format = 'minimal'):

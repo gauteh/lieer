@@ -82,19 +82,18 @@ class Gmailieer:
     self.local.load_repository ()
 
     if self.force:
-      print ("full synchronizatoin (forced)")
+      print ("pull: full synchronizatoin (forced)")
       self.full_pull ()
 
     elif self.local.state.last_historyId == 0:
-      print ("full synchronization (no previous synchronization state)")
+      print ("pull: full synchronization (no previous synchronization state)")
       self.full_pull ()
 
     else:
-      print ("partial synchronization.. (hid: %d)" % self.local.state.last_historyId)
+      print ("pull: partial synchronization.. (hid: %d)" % self.local.state.last_historyId)
       self.partial_pull ()
 
   def partial_pull (self):
-    total = 9e9
     LIMIT = 100
 
     # get history
@@ -107,9 +106,8 @@ class Gmailieer:
         msgs = mset
 
         if bar is None:
-          bar = tqdm (leave = True, total = total, desc = 'fetching changes')
+          bar = tqdm (leave = True, desc = 'fetching changes')
 
-        bar.total = total
         bar.update (len(msgs))
 
         for m in msgs:
@@ -148,11 +146,10 @@ class Gmailieer:
       print ('current historyId: %d' % last_id)
 
   def full_pull (self):
-    total = 9e9
-    LIMIT = 100
+    total = 1
+    LIMIT = 10000
 
-    bar = tqdm (leave = True, total = total)
-    bar.set_description ('fetching messages')
+    bar = tqdm (leave = True, total = total, desc = 'fetching messages')
 
     # NOTE:
     # this list might grow gigantic for large quantities of e-mail, not really sure
@@ -199,8 +196,7 @@ class Gmailieer:
 
     if len (msgids) > 0:
 
-      bar = tqdm (leave = True, total = len(msgids))
-      bar.set_description ('receiving metadata')
+      bar = tqdm (leave = True, total = len(msgids), desc = 'receiving metadata')
 
       def _got_msg (m):
         bar.update (1)
@@ -220,7 +216,7 @@ class Gmailieer:
 
     Returns:
       list of messages which were updated, these have also been updated in Notmuch and
-      does not need to be partiallly upated.
+      does not need to be partially upated.
 
     """
 
@@ -231,8 +227,7 @@ class Gmailieer:
 
     if len (need_content) > 0:
 
-      bar = tqdm (leave = True, total = len(need_content))
-      bar.set_description ('receiving content')
+      bar = tqdm (leave = True, total = len(need_content), desc = 'receiving content')
 
       def _got_msg (m):
         bar.update (1)
