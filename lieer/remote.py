@@ -34,21 +34,21 @@ class Remote:
     self.gmailieer = g
     self.CLIENT_SECRET_FILE = g.credentials_file
 
-  def require_auth (func):
+  def __require_auth__ (func):
     def func_wrap (self, *args, **kwargs):
       if not self.authorized:
         self.authorize ()
       return func (self, *args, **kwargs)
     return func_wrap
 
-  @require_auth
+  @__require_auth__
   def get_labels (self):
     results = self.service.users ().labels ().list (userId = 'me').execute ()
     labels = results.get ('labels', [])
 
     return [l['name'] for l in labels]
 
-  @require_auth
+  @__require_auth__
   def get_messages (self):
     results = self.service.users ().messages ().list (userId = 'me').execute ()
     msgs = results.get ('messages', [])
@@ -56,12 +56,12 @@ class Remote:
     return msgs
 
   def authorize (self):
-    self.credentials = self.get_credentials ()
+    self.credentials = self.__get_credentials__ ()
     http = self.credentials.authorize (httplib2.Http())
     self.service = discovery.build ('gmail', 'v1', http = http)
-    authorized = True
+    self.authorized = True
 
-  def get_credentials (self):
+  def __get_credentials__ (self):
     """
     Gets valid user credentials from storage.
 
