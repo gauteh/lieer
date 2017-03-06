@@ -186,7 +186,7 @@ class Local:
     mid     = m['id']
     msg_str = base64.urlsafe_b64decode(m['raw'].encode ('ASCII'))
 
-    labels  = m['labelIds']
+    labels  = m.get('labelIds', [])
 
     bname = self.__make_maildir_name__(mid, labels)
     self.files.append (bname)
@@ -206,7 +206,7 @@ class Local:
   def update_tags (self, m, fname = None):
     # make sure notmuch tags reflect gmail labels
     mid = m['id']
-    labels = m['labelIds']
+    labels = m.get('labelIds', [])
 
     # translate labels. Remote.get_labels () must have been called first
     labels = [self.gmailieer.remote.labels[l] for l in labels]

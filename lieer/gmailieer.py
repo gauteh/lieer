@@ -156,7 +156,7 @@ class Gmailieer:
     # get history
     bar         = None
     message_ids = []
-    last_id     = 0
+    last_id     = self.remote.get_current_history_id (self.local.state.last_historyId)
 
     try:
       for mset in self.remote.get_messages_since (self.local.state.last_historyId):
@@ -168,7 +168,9 @@ class Gmailieer:
         bar.update (len(msgs))
 
         for m in msgs:
-          message_ids.append (m['id'])
+          labels = m.get('labelIds', [])
+          if not 'CHAT' in labels:
+            message_ids.append (m['id'])
 
         if self.limit is not None and len(message_ids) >= self.limit:
           break
@@ -185,12 +187,6 @@ class Gmailieer:
     message_ids = list(set(message_ids)) # make unique
 
     if len(message_ids) > 0:
-      # get historyId
-      mm = self.remote.get_message (message_ids[0])
-      last_id = int(mm['historyId'])
-      if not self.dry_run:
-        self.local.state.set_last_history_id (last_id)
-
       # get content for new messages
       updated = self.get_content (message_ids)
 
@@ -199,6 +195,9 @@ class Gmailieer:
       self.get_meta (needs_update)
     else:
       print ("everything is up-to-date.")
+
+    if not self.dry_run:
+      self.local.state.set_last_history_id (last_id)
 
     if (last_id > 0):
       print ('current historyId: %d' % last_id)

@@ -36,6 +36,8 @@ class Remote:
                         'CATEGORY_UPDATES',
                         'CATEGORY_FORUMS'
                       ])
+  # query to use
+  query = '-in:chats'
 
   class BatchException (Exception):
     pass
@@ -108,7 +110,7 @@ class Remote:
 
     while 'nextPageToken' in results:
       pt = results['nextPageToken']
-      results = self.service.users ().messages ().list (userId = self.account, pageToken = pt).execute ()
+      results = self.service.users ().messages ().list (userId = self.account, pageToken = pt, q = self.query).execute ()
 
       yield (results['resultSizeEstimate'], results['messages'])
 
