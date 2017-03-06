@@ -41,6 +41,9 @@ class Gmailieer:
     parser.add_argument ('-f', '--force', action = 'store_true', default = False,
         help = 'Force action (auth)')
 
+    parser.add_argument ('--limit', type = int, default = None,
+        help = 'Maximum number of messages to synchronize')
+
     args        = parser.parse_args (sys.argv[1:])
     self.args   = args
 
@@ -50,6 +53,7 @@ class Gmailieer:
     self.list_labels      = args.list_labels
     self.account          = args.account
     self.force            = args.force
+    self.limit            = args.limit
 
     if self.dry_run:
       print ("dry-run: ", self.dry_run)
@@ -94,8 +98,6 @@ class Gmailieer:
       self.partial_pull ()
 
   def partial_pull (self):
-    LIMIT = 100
-
     # get history
     bar         = None
     message_ids = []
@@ -113,7 +115,7 @@ class Gmailieer:
         for m in msgs:
           message_ids.append (m['id'])
 
-        if len(message_ids) >= LIMIT:
+        if self.limit is not None and len(message_ids) >= self.limit:
           break
 
     except googleapiclient.errors.HttpError:
@@ -147,7 +149,6 @@ class Gmailieer:
 
   def full_pull (self):
     total = 1
-    LIMIT = 10000
 
     bar = tqdm (leave = True, total = total, desc = 'fetching messages')
 
@@ -167,7 +168,7 @@ class Gmailieer:
       for m in mids:
         message_ids.append (m['id'])
 
-      if len(message_ids) >= LIMIT:
+      if self.limit is not None and len(message_ids) >= self.limit:
         break
 
     bar.close ()
