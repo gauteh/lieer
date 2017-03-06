@@ -50,11 +50,44 @@ class Remote:
     return [l['name'] for l in labels]
 
   @__require_auth__
-  def get_messages (self):
+  def all_messages (self):
+    """
+    Get a list of all messages
+    """
     results = self.service.users ().messages ().list (userId = self.account).execute ()
-    msgs = results.get ('messages', [])
+    if 'messages' in results:
+      yield (results['resultSizeEstimate'], results['messages'])
 
-    return msgs
+    while 'nextPageToken' in results:
+      pt = results['nextPageToken']
+      results = self.service.users ().messages ().list (userId = self.account, pageToken = pt).execute ()
+
+      yield (results['resultSizeEstimate'], results['messages'])
+
+  @__require_auth__
+  def get_content (self, mids, cb):
+    """
+    Get the content for all mids
+    """
+
+    # TODO: limit to 1000 requests
+    max_req = 10
+    N       = len (mids)
+    i       = 0
+
+    while i < N:
+      n = 0
+      batch = self.service.new_batch_http_request  (callback = cb)
+
+      while n < max_req and i < N:
+        mid = mids[i]
+        batch.add (self.service.users ().messages ().get (userId = self.account,
+          id = mid, format = 'raw'))
+        n += 1
+        i += 1
+
+      batch.execute (http = self.http)
+
 
   def authorize (self, reauth = False):
     if reauth:
@@ -66,8 +99,8 @@ class Remote:
         os.unlink (credential_path)
 
     self.credentials = self.__get_credentials__ ()
-    http = self.credentials.authorize (httplib2.Http())
-    self.service = discovery.build ('gmail', 'v1', http = http)
+    self.http = self.credentials.authorize (httplib2.Http())
+    self.service = discovery.build ('gmail', 'v1', http = self.http)
     self.authorized = True
 
   def __get_credentials__ (self):
