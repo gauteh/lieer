@@ -118,7 +118,12 @@ class Local:
     ## Check if we are in the notmuch db
     self.notmuch = notmuch.Database ()
     try:
-      self.nm_dir  = self.notmuch.get_directory (os.path.abspath(os.path.join (self.md, '..'))).path
+      self.nm_dir  = self.notmuch.get_directory (os.path.abspath(os.path.join (self.md, '..')))
+      if self.nm_dir is not None:
+        self.nm_dir = self.nm_dir.path
+      else:
+        # probably empty dir
+        self.nm_dir = os.path.abspath (os.path.join (self.md, '..'))
 
       self.nm_relative = self.nm_dir[len(self.notmuch.get_path ())+1:]
 
