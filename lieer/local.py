@@ -29,7 +29,7 @@ class Local:
     def write (self):
       self.json = {}
 
-      self.json['last_historyId'] = self.historyId
+      self.json['last_historyId'] = self.last_historyId
 
       with open (self.state_f, 'w') as fd:
         json.dump (self.json, fd)
@@ -41,6 +41,7 @@ class Local:
   def __init__ (self, g):
     self.gmailieer = g
     self.wd = os.getcwd ()
+    self.dry_run = g.dry_run
 
     # state file for local repository
     self.state_f = os.path.join (self.wd, '.gmailieer.json')
@@ -124,6 +125,14 @@ class Local:
     if os.path.exists (p):
       raise Local.RepositoryException ("local file already exists: %s" % p)
 
-    with open (p, 'wb') as fd:
-      fd.write (msg_str)
+    if not self.dry_run:
+      with open (p, 'wb') as fd:
+        fd.write (msg_str)
+
+
+    # add to notmuch
+
+  def update_tags (self, m):
+    # make sure notmuch tags reflect gmail labels
+    print (m)
 

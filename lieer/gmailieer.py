@@ -7,6 +7,7 @@
 import  os, sys
 import  argparse
 from    oauth2client import tools
+import  googleapiclient
 
 from tqdm import tqdm, tqdm_gui
 
@@ -92,15 +93,67 @@ class Gmailieer:
       print ("partial synchronization.. (hid: %d)" % self.local.state.last_historyId)
       self.partial_pull ()
 
+  def partial_pull (self):
+    total = 9e9
+    LIMIT = 100
+
+    # get history
+    bar         = None
+    message_ids = []
+    last_id     = 0
+
+    try:
+      for mset in self.remote.get_messages_since (self.local.state.last_historyId):
+        msgs = mset
+
+        if bar is None:
+          bar = tqdm (leave = True, total = total, desc = 'fetching changes')
+
+        bar.total = total
+        bar.update (len(msgs))
+
+        for m in msgs:
+          message_ids.append (m['id'])
+
+        if len(message_ids) >= LIMIT:
+          break
+    except googleapiclient.errors.HttpError:
+      if bar is not None: bar.close ()
+      print ("historyId is too old, full sync required.")
+      self.full_pull ()
+      return
+
+
+    if bar is not None: bar.close ()
+
+    message_ids = list(set(message_ids)) # make unique
+
+    if len(message_ids) > 0:
+      # get historyId
+      mm = self.remote.get_message (message_ids[0])
+      last_id = int(mm['historyId'])
+      self.local.state.set_last_history_id (last_id)
+
+      updated = self.get_content (message_ids)
+
+      # get updated labels for the rest
+      needs_update = list(set(message_ids) - set(updated))
+      self.get_meta (needs_update)
+    else:
+      print ("everything is up-to-date.")
+
+    if (last_id > 0):
+      print ('current historyId: %d' % last_id)
 
   def full_pull (self):
     total = 9e9
-    LIMIT = 1000
+    LIMIT = 100
 
     bar = tqdm (leave = True, total = total)
     bar.set_description ('fetching messages')
 
     message_ids = []
+    last_id     = 0
 
     for mset in self.remote.all_messages ():
       (total, mids) = mset
@@ -116,11 +169,52 @@ class Gmailieer:
 
     bar.close ()
 
-    self.get_content (message_ids)
+    if len(message_ids) > 0:
+      # get historyId
+      mm = self.remote.get_message (message_ids[0])
+      last_id = int(mm['historyId'])
+      self.local.state.set_last_history_id (last_id)
+
+      updated = self.get_content (message_ids)
+
+      # get updated labels for the rest
+      needs_update = list(set(message_ids) - set(updated))
+      self.get_meta (needs_update)
+    else:
+      print ("no messages.")
+
+    print ('current historyId: %d' % last_id)
+
+  def get_meta (self, msgids):
+    """
+    Only gets the minimal message objects in order to check if labels are up-to-date.
+    """
+
+    if len (msgids) > 0:
+
+      bar = tqdm (leave = True, total = len(msgids))
+      bar.set_description ('receiving metadata')
+
+      def _got_msg (m):
+        bar.update (1)
+        self.local.update_tags (m)
+
+      self.remote.get_messages (msgids, _got_msg, 'minimal')
+
+      bar.close ()
+
+    else:
+      print ("receiving metadata: already up-to-date.")
+
 
   def get_content (self, msgids):
     """
     Get the full email source of the messages that we do not already have
+
+    Returns:
+      list of messages which were updated, these have also been updated in Notmuch and
+      does not need to be partiallly upated.
+
     """
 
     need_content = []
@@ -135,15 +229,16 @@ class Gmailieer:
 
       def _got_msg (m):
         bar.update (1)
-        if not self.dry_run:
-          self.local.store (m)
+        self.local.store (m)
 
-      self.remote.get_content (need_content, _got_msg)
+      self.remote.get_messages (need_content, _got_msg, 'raw')
 
       bar.close ()
 
     else:
       print ("receiving content: already up-to-date.")
+
+    return need_content
 
 
 

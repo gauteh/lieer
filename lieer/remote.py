@@ -52,6 +52,28 @@ class Remote:
     return [l['name'] for l in labels]
 
   @__require_auth__
+  def get_messages_since (self, start):
+    """
+    Get all messages changed since start historyId
+    """
+    results = self.service.users ().history ().list (userId = self.account, startHistoryId = start).execute ()
+    if 'history' in results:
+      msgs = []
+      for h in results['history']:
+        msgs.extend(h['messages'])
+      yield msgs
+
+    while 'nextPageToken' in results:
+      pt = results['nextPageToken']
+      results = self.service.users ().history ().list (userId = self.account, startHistoryId = start, pageToken = pt).execute ()
+
+      msgs = []
+      for h in results['history']:
+        msgs.extend(h['messages'])
+      yield msgs
+
+
+  @__require_auth__
   def all_messages (self):
     """
     Get a list of all messages
@@ -67,9 +89,9 @@ class Remote:
       yield (results['resultSizeEstimate'], results['messages'])
 
   @__require_auth__
-  def get_content (self, mids, cb):
+  def get_messages (self, mids, cb, format):
     """
-    Get the content for all mids
+    Get the messages
     """
 
     def _cb (rid, resp, excep):
@@ -90,11 +112,20 @@ class Remote:
       while n < max_req and i < N:
         mid = mids[i]
         batch.add (self.service.users ().messages ().get (userId = self.account,
-          id = mid, format = 'raw'))
+          id = mid, format = format))
         n += 1
         i += 1
 
       batch.execute (http = self.http)
+
+  @__require_auth__
+  def get_message (self, mid, format = 'minimal'):
+    """
+    Get a single message
+    """
+    result = self.service.users ().messages ().get (userId = self.account,
+        id = mid, format = format).execute ()
+    return result
 
 
   def authorize (self, reauth = False):
