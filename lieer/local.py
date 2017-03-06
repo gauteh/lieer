@@ -18,6 +18,8 @@ class Local:
                       'CHAT'  : 'chat'
                       }
 
+  replace_slash_with_dot = True
+
   class RepositoryException (Exception):
     pass
 
@@ -170,7 +172,8 @@ class Local:
     labels = [self.translate_labels.get (l, l) for l in labels]
 
     # this is my weirdness
-    labels = [l.replace ('/', '.') for l in labels]
+    if self.replace_slash_with_dot:
+      labels = [l.replace ('/', '.') for l in labels]
 
     # print (labels)
 
