@@ -228,7 +228,7 @@ class Remote:
     labels = [self.gmailieer.local.translate_labels.get (l, l) for l in labels]
 
     # this is my weirdness
-    if self.gmailieer.local.replace_slash_with_dot:
+    if self.gmailieer.local.state.replace_slash_with_dot:
       labels = [l.replace ('/', '.') for l in labels]
 
     labels = set(labels)
@@ -246,7 +246,7 @@ class Remote:
     add = [self.gmailieer.local.labels_translate.get (k, k) for k in add]
     rem = [self.gmailieer.local.labels_translate.get (k, k) for k in rem]
 
-    if self.gmailieer.local.replace_slash_with_dot:
+    if self.gmailieer.local.state.replace_slash_with_dot:
       add = [a.replace ('.', '/') for a in add]
       rem = [r.replace ('.', '/') for r in rem]
 
@@ -255,6 +255,10 @@ class Remote:
         print ("(dry-run) mid: %s: add: %s, remove: %s" % (mid, str(add), str(rem)))
       else:
         self.__push_tags__ (mid, add, rem)
+
+      return True
+    else:
+      return False
 
   @__require_auth__
   def __push_tags__ (self, mid, add, rem):

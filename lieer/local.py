@@ -23,9 +23,14 @@ class Local:
 
   labels_translate = { v: k for k, v in translate_labels.items () }
 
-  replace_slash_with_dot = True
-
-  ignore_labels = set (['attachment', 'encrypted', 'signed', 'new'])
+  ignore_labels = set ([
+                        'attachment',
+                        'encrypted',
+                        'signed',
+                        'new',
+                        'passed',
+                        'replied',
+                        ])
 
   class RepositoryException (Exception):
     pass
@@ -40,6 +45,8 @@ class Local:
     # this is the last modification id of the notmuch db when the previous push was completed.
     lastmod = 0
 
+    replace_slash_with_dot = False
+
     def __init__ (self, state_f):
       self.state_f = state_f
 
@@ -51,12 +58,14 @@ class Local:
 
       self.last_historyId = self.json.get ('last_historyId', 0)
       self.lastmod = self.json.get ('lastmod', 0)
+      self.replace_slash_with_dot = self.json.get ('replace_slash_with_dot', False)
 
     def write (self):
       self.json = {}
 
       self.json['last_historyId'] = self.last_historyId
       self.json['lastmod'] = self.lastmod
+      self.json['replace_slash_with_dot'] = self.replace_slash_with_dot
 
       with open (self.state_f, 'w') as fd:
         json.dump (self.json, fd)
@@ -121,7 +130,7 @@ class Local:
     self.notmuch.close ()
     self.notmuch = None
 
-  def initialize_repository (self):
+  def initialize_repository (self, replace_slash_with_dot):
     """
     Sets up a local repository
     """
@@ -135,6 +144,7 @@ class Local:
       raise Local.RepositoryException ("'mail' exists: this repository seems to already be set up!")
 
     self.state = Local.State (self.state_f)
+    self.state.replace_slash_with_dot = replace_slash_with_dot
     self.state.write ()
     os.makedirs (self.md)
     os.makedirs (os.path.join (self.md, '../new'))
@@ -152,7 +162,7 @@ class Local:
     if 'DRAFT' in labels:
       info += 'D'
 
-    if 'IMPORTANT' in labels:
+    if 'STARRED' in labels:
       info += 'F'
 
     if 'TRASH' in labels:
@@ -205,7 +215,7 @@ class Local:
     labels = [self.translate_labels.get (l, l) for l in labels]
 
     # this is my weirdness
-    if self.replace_slash_with_dot:
+    if self.state.replace_slash_with_dot:
       labels = [l.replace ('/', '.') for l in labels]
 
     if fname is None:
@@ -235,7 +245,7 @@ class Local:
 
     else:
       # message is already in db, set local tags to match remote tags
-      otags = nmsg.get_tags ()
+      otags = list(nmsg.get_tags ())
       if set(otags) != set (labels):
         if not self.dry_run:
           nmsg.freeze ()

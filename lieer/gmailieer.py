@@ -45,6 +45,9 @@ class Gmailieer:
     parser.add_argument ('--limit', type = int, default = None,
         help = 'Maximum number of messages to synchronize (soft limit, gmail may return more)')
 
+    parser.add_argument ('--replace-slash-with-dot', action = 'store_true', default = False,
+        help = 'This will replace \'/\' with \'.\' in gmail labels (make sure you know the implications)')
+
     args        = parser.parse_args (sys.argv[1:])
     self.args   = args
 
@@ -55,6 +58,10 @@ class Gmailieer:
     self.account          = args.account
     self.force            = args.force
     self.limit            = args.limit
+    self.replace_slash_with_dot = args.replace_slash_with_dot
+
+    if self.replace_slash_with_dot and self.action != 'init':
+      print ("--replace-slash-with-dot can only be specified with init")
 
     if self.dry_run:
       print ("dry-run: ", self.dry_run)
@@ -73,7 +80,7 @@ class Gmailieer:
       self.push ()
 
     elif self.action == 'init':
-      self.local.initialize_repository ()
+      self.local.initialize_repository (self.replace_slash_with_dot)
 
   def push (self):
     self.remote.get_labels ()
@@ -111,12 +118,15 @@ class Gmailieer:
       messages = messages[:self.limit]
 
     # push changes
-    bar = tqdm (leave = True, total = len(messages), desc = 'pushing changes')
+    bar = tqdm (leave = True, total = len(messages), desc = 'pushing, 0 changed')
+    changed = 0
     for m in messages:
-      self.remote.update (m)
+      if self.remote.update (m): changed += 1
+      bar.set_description ('pushing, %d changed' % changed)
       bar.update (1)
 
     bar.close ()
+    self.local.notmuch.close ()
 
     if not self.dry_run:
       self.local.state.set_lastmod (rev)
