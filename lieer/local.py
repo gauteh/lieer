@@ -84,6 +84,8 @@ class Local:
     self.state = Local.State (self.state_f)
     self.state.write ()
     os.makedirs (self.md)
+    os.makedirs (os.path.join (self.md, '../new'))
+    os.makedirs (os.path.join (self.md, '../tmp'))
 
   def has (self, m):
     return m in self.mids

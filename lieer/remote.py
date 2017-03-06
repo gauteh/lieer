@@ -29,6 +29,8 @@ class Remote:
   # these cannot be changed manually
   read_only_labels = [ 'SENT', 'DRAFT' ]
 
+  class BatchException:
+    pass
 
   def __init__ (self, g):
     self.gmailieer = g
@@ -70,6 +72,12 @@ class Remote:
     Get the content for all mids
     """
 
+    def _cb (rid, resp, excep):
+      if excep is not None:
+        raise Remote.BatchException (excep)
+
+      cb (resp)
+
     # TODO: limit to 1000 requests
     max_req = 10
     N       = len (mids)
@@ -77,7 +85,7 @@ class Remote:
 
     while i < N:
       n = 0
-      batch = self.service.new_batch_http_request  (callback = cb)
+      batch = self.service.new_batch_http_request  (callback = _cb)
 
       while n < max_req and i < N:
         mid = mids[i]

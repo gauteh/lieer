@@ -98,7 +98,7 @@ class Gmailieer:
     LIMIT = 1000
 
     bar = tqdm (leave = True, total = total)
-    bar.set_description ('fetching messages ')
+    bar.set_description ('fetching messages')
 
     message_ids = []
 
@@ -111,7 +111,7 @@ class Gmailieer:
       for m in mids:
         message_ids.append (m['id'])
 
-      if len(message_ids) > LIMIT:
+      if len(message_ids) >= LIMIT:
         break
 
     bar.close ()
@@ -131,19 +131,19 @@ class Gmailieer:
     if len (need_content) > 0:
 
       bar = tqdm (leave = True, total = len(need_content))
-      bar.set_description ('receiving messages')
+      bar.set_description ('receiving content')
 
-      def _got_msg (rid, resp, excep):
+      def _got_msg (m):
         bar.update (1)
         if not self.dry_run:
-          self.local.store (resp)
+          self.local.store (m)
 
       self.remote.get_content (need_content, _got_msg)
 
       bar.close ()
 
     else:
-      print ("all messages have content")
+      print ("receiving content: already up-to-date.")
 
 
 
