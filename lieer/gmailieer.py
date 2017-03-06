@@ -40,10 +40,10 @@ class Gmailieer:
         help = 'GMail account to use (default: me, currently logged in user)')
 
     parser.add_argument ('-f', '--force', action = 'store_true', default = False,
-        help = 'Force action (auth)')
+        help = 'Force action (or perform full pull, push)')
 
     parser.add_argument ('--limit', type = int, default = None,
-        help = 'Maximum number of messages to synchronize (soft limit, gmail may return more)')
+        help = 'Maximum number of messages to synchronize (soft limit, gmail may return more), note that this may upset the tally of syncrhonized messages.')
 
     parser.add_argument ('--replace-slash-with-dot', action = 'store_true', default = False,
         help = 'This will replace \'/\' with \'.\' in gmail labels (make sure you know the implications)')
@@ -244,7 +244,16 @@ class Gmailieer:
     else:
       print ("no messages.")
 
-    print ('current historyId: %d' % last_id)
+    # set notmuch lastmod time, since we have now synced everything from remote
+    # to local
+
+    self.local.notmuch = notmuch.Database ()
+    (rev, uuid) = self.local.notmuch.get_revision ()
+    self.local.notmuch.close ()
+    if not self.dry_run:
+      self.local.state.set_lastmod (rev)
+
+    print ('current historyId: %d, current revision: ' % (last_id, rev))
 
   def get_meta (self, msgids):
     """

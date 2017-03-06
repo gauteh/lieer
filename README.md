@@ -2,8 +2,8 @@
 
 This program can pull email and labels (and changes to labels) from your GMail
 account and store them locally in a maildir with the labels synchronized with a
-[notmuch](https://notmuchmail.org/) database. The changes to tags in the notmuch database may be pushed
-back remotely to your GMail account.
+[notmuch](https://notmuchmail.org/) database. The changes to tags in the
+notmuch database may be pushed back remotely to your GMail account.
 
 It will and can not:
 * Add or delete messages on your remote account
