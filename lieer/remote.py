@@ -29,6 +29,13 @@ class Remote:
   # these cannot be changed manually
   read_only_labels = [ 'SENT', 'DRAFT' ]
 
+  ignore_labels = [   'CATEGORY_PERSONAL',
+                      'CATEGORY_SOCIAL',
+                      'CATEGORY_PROMOTIONS',
+                      'CATEGORY_UPDATES',
+                      'CATEGORY_FORUMS'
+                   ]
+
   class BatchException:
     pass
 

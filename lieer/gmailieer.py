@@ -117,6 +117,7 @@ class Gmailieer:
 
         if len(message_ids) >= LIMIT:
           break
+
     except googleapiclient.errors.HttpError:
       if bar is not None: bar.close ()
       print ("historyId is too old, full sync required.")
@@ -134,6 +135,7 @@ class Gmailieer:
       last_id = int(mm['historyId'])
       self.local.state.set_last_history_id (last_id)
 
+      # get content for new messages
       updated = self.get_content (message_ids)
 
       # get updated labels for the rest
@@ -175,6 +177,7 @@ class Gmailieer:
       last_id = int(mm['historyId'])
       self.local.state.set_last_history_id (last_id)
 
+      # get content for new messages
       updated = self.get_content (message_ids)
 
       # get updated labels for the rest
@@ -204,7 +207,7 @@ class Gmailieer:
       bar.close ()
 
     else:
-      print ("receiving metadata: already up-to-date.")
+      print ("receiving metadata: everything up-to-date.")
 
 
   def get_content (self, msgids):
@@ -236,7 +239,7 @@ class Gmailieer:
       bar.close ()
 
     else:
-      print ("receiving content: already up-to-date.")
+      print ("receiving content: everything up-to-date.")
 
     return need_content
 
