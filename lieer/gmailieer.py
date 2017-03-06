@@ -74,11 +74,11 @@ class Gmailieer:
 
   def pull (self):
     if self.list_labels:
-      for l in self.remote.get_labels ():
+      for l in self.remote.get_labels ().values ():
         print (l)
-
       return
 
+    self.remote.get_labels () # to make sure label map is initialized
     self.local.load_repository ()
 
     if self.force:
@@ -154,6 +154,10 @@ class Gmailieer:
     bar = tqdm (leave = True, total = total)
     bar.set_description ('fetching messages')
 
+    # NOTE:
+    # this list might grow gigantic for large quantities of e-mail, not really sure
+    # about how much memory this will take. this is just a list of some
+    # simple metadata like message ids.
     message_ids = []
     last_id     = 0
 

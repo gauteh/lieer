@@ -5,6 +5,18 @@ import base64
 class Local:
   wd = None
 
+
+  translate_labels = {
+                      'INBOX' : 'inbox',
+                      'SPAM' : 'spam',
+                      'TRASH' : 'trash',
+                      'UNREAD' : 'unread',
+                      'STARRED' : 'flagged',
+                      'IMPORTANT' : 'important',
+                      'SENT' : 'sent',
+                      'DRAFT' : 'draft',
+                      }
+
   class RepositoryException (Exception):
     pass
 
@@ -62,6 +74,9 @@ class Local:
 
     self.state = Local.State (self.state_f)
 
+    # NOTE:
+    # this list is used for .has () to figure out what messages we have
+    # hopefully this won't grow to gigantic with lots of messages.
     self.files = []
     for (dp, dirnames, fnames) in os.walk (self.md):
       self.files.extend (fnames)
@@ -121,7 +136,11 @@ class Local:
 
     labels  = m['labelIds']
 
-    p = os.path.join (self.md, self.__make_maildir_name__(mid, labels))
+    bname = self.__make_maildir_name__(mid, labels)
+    self.files.append (bname)
+    self.mids.append (mid)
+
+    p = os.path.join (self.md, bname)
     if os.path.exists (p):
       raise Local.RepositoryException ("local file already exists: %s" % p)
 
@@ -131,8 +150,26 @@ class Local:
 
 
     # add to notmuch
+    self.update_tags (m)
 
   def update_tags (self, m):
     # make sure notmuch tags reflect gmail labels
-    print (m)
+    labels = m['labelIds']
+
+    # translate labels. Remote.get_labels () must have been called first
+    labels = [self.gmailieer.remote.labels[l] for l in labels]
+
+    labels = set(labels)
+
+    # remove ignored labels
+    ignore_labels = set (self.gmailieer.remote.ignore_labels)
+    labels = list(labels - ignore_labels)
+
+    # translate to notmuch tags
+    labels = [self.translate_labels.get (l, l) for l in labels]
+
+    # this is my weirdness
+    labels = [l.replace ('/', '.') for l in labels]
+
+    print (labels)
 

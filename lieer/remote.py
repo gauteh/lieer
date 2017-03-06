@@ -56,7 +56,11 @@ class Remote:
     results = self.service.users ().labels ().list (userId = self.account).execute ()
     labels = results.get ('labels', [])
 
-    return [l['name'] for l in labels]
+    self.labels = {}
+    for l in labels:
+      self.labels[l['id']] = l['name']
+
+    return self.labels 
 
   @__require_auth__
   def get_messages_since (self, start):
