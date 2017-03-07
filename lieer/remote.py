@@ -1,5 +1,6 @@
 import os
 import httplib2
+import googleapiclient
 from apiclient import discovery
 from oauth2client import client
 from oauth2client import tools
@@ -132,7 +133,13 @@ class Remote:
     def _cb (rid, resp, excep):
       nonlocal j
       if excep is not None:
-        raise Remote.BatchException(excep)
+        if type(excep) is googleapiclient.errors.HttpError and excep.resp.status == 404:
+          # message could not be found this is probably a deleted message, spam or draft
+          # message since these are not included in the messages.get() query by default.
+          j += 1
+          return
+        else:
+          raise Remote.BatchException(excep)
       else:
         j += 1
 
