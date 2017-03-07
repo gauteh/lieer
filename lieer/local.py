@@ -177,6 +177,26 @@ class Local:
 
     return p + info
 
+  def remove (self, mid, db):
+    """
+    Remove message from local store
+    """
+    fname = self.mids[mid]
+
+    fname = os.path.join (self.md, fname)
+    nmsg  = db.find_message_by_filename (fname)
+
+    if self.dry_run:
+      print ("(dry-run) deleting %s: %s." % (mid, fname))
+    else:
+      if nmsg is not None:
+        db.remove_message (fname)
+      os.unlink (fname)
+
+    f = self.mids[mid]
+    self.files.remove (f)
+    self.mids.pop (mid)
+
   def store (self, m, db):
     """
     Store message in local store

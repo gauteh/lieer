@@ -24,9 +24,6 @@ class Gmailieer:
     parser = argparse.ArgumentParser ('Gmailieer', parents = [tools.argparser])
     self.parser = parser
 
-    # parser.add_argument ('action', choices = ['pull', 'push', 'auth', 'init'],
-    #     help = 'pull: get new e-mail and remote tag-changes, push: push local tag-changes, auth: authorize gmailieer with account, init: initialize local repository')
-
     common = argparse.ArgumentParser (add_help = False)
     common.add_argument ('-c', '--credentials', type = str, default = 'client_secret.json',
         help = 'credentials file for google api (default: client_secret.json)')
@@ -55,6 +52,9 @@ class Gmailieer:
 
     parser_pull.add_argument ('-f', '--force', action = 'store_true',
         default = False, help = 'Force a full synchronization to be performed')
+
+    parser_pull.add_argument ('-r', '--remove', action = 'store_true',
+        default = False, help = 'Remove files locally when they have been deleted remotely')
 
     parser_pull.set_defaults (func = self.pull)
 
@@ -181,8 +181,11 @@ class Gmailieer:
     self.list_labels      = args.list_labels
     self.force            = args.force
     self.limit            = args.limit
+    self.remove           = args.remove
 
     if self.list_labels:
+      if self.remove or self.force or self.limit:
+        raise argparse.ArgumentError ("-t cannot be specified together with -f, -r or --limit")
       for l in self.remote.get_labels ().values ():
         print (l)
       return
@@ -196,6 +199,10 @@ class Gmailieer:
 
     elif self.local.state.last_historyId == 0:
       print ("pull: full synchronization (no previous synchronization state)")
+      self.full_pull ()
+
+    elif self.remove:
+      print ("pull: full synchronization (removing deleted messages)")
       self.full_pull ()
 
     else:
@@ -262,7 +269,7 @@ class Gmailieer:
     # about how much memory this will take. this is just a list of some
     # simple metadata like message ids.
     message_ids = []
-    last_id     = 0
+    last_id     = self.remote.get_current_history_id (self.local.state.last_historyId)
 
     for mset in self.remote.all_messages ():
       (total, mids) = mset
@@ -278,13 +285,23 @@ class Gmailieer:
 
     bar.close ()
 
-    if len(message_ids) > 0:
-      # get historyId
-      mm = self.remote.get_message (message_ids[0])
-      last_id = int(mm['historyId'])
-      if not self.dry_run:
-        self.local.state.set_last_history_id (last_id)
+    if self.remove:
+      if self.limit and not self.dry_run:
+        raise argparse.ArgumentError ('--limit with --remove will cause lots of messages to be deleted')
 
+      # removing files that have been deleted remotely
+      all_remote = set (message_ids)
+      all_local  = set (self.local.mids.keys ())
+      remove     = list(all_local - all_remote)
+      bar = tqdm (leave = True, total = len(remove), desc = 'removing deleted')
+      with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
+        for m in remove:
+          self.local.remove (m, db)
+          bar.update (1)
+
+      bar.close ()
+
+    if len(message_ids) > 0:
       # get content for new messages
       updated = self.get_content (message_ids)
 
