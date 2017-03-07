@@ -144,34 +144,33 @@ class Gmailieer:
         return
 
     # loading local changes
-    self.local.notmuch = notmuch.Database ()
-    (rev, uuid) = self.local.notmuch.get_revision ()
+    with notmuch.Database () as db:
+      (rev, uuid) = db.get_revision ()
 
-    if rev == self.local.state.lastmod:
-      print ("everything is up-to-date.")
-      return
+      if rev == self.local.state.lastmod:
+        print ("everything is up-to-date.")
+        return
 
-    qry = "path:%s/** and lastmod:%d..%d" % (self.local.nm_relative, self.local.state.lastmod, rev)
+      qry = "path:%s/** and lastmod:%d..%d" % (self.local.nm_relative, self.local.state.lastmod, rev)
 
-    # print ("collecting changes..: %s" % qry)
-    query = notmuch.Query (self.local.notmuch, qry)
-    total = query.count_messages () # might be destructive here as well
-    query = notmuch.Query (self.local.notmuch, qry)
+      # print ("collecting changes..: %s" % qry)
+      query = notmuch.Query (db, qry)
+      total = query.count_messages () # might be destructive here as well
+      query = notmuch.Query (db, qry)
 
-    messages = list(query.search_messages ())
-    if self.limit is not None and len(messages) > self.limit:
-      messages = messages[:self.limit]
+      messages = list(query.search_messages ())
+      if self.limit is not None and len(messages) > self.limit:
+        messages = messages[:self.limit]
 
-    # push changes
-    bar = tqdm (leave = True, total = len(messages), desc = 'pushing, 0 changed')
-    changed = 0
-    for m in messages:
-      if self.remote.update (m): changed += 1
-      bar.set_description ('pushing, %d changed' % changed)
-      bar.update (1)
+      # push changes
+      bar = tqdm (leave = True, total = len(messages), desc = 'pushing, 0 changed')
+      changed = 0
+      for m in messages:
+        if self.remote.update (m): changed += 1
+        bar.set_description ('pushing, %d changed' % changed)
+        bar.update (1)
 
-    bar.close ()
-    self.local.notmuch.close ()
+      bar.close ()
 
     if not self.dry_run:
       self.local.state.set_lastmod (rev)
@@ -192,7 +191,7 @@ class Gmailieer:
     self.local.load_repository ()
 
     if self.force:
-      print ("pull: full synchronizatoin (forced)")
+      print ("pull: full synchronization (forced)")
       self.full_pull ()
 
     elif self.local.state.last_historyId == 0:
@@ -298,9 +297,9 @@ class Gmailieer:
     # set notmuch lastmod time, since we have now synced everything from remote
     # to local
 
-    self.local.notmuch = notmuch.Database ()
-    (rev, uuid) = self.local.notmuch.get_revision ()
-    self.local.notmuch.close ()
+    with notmuch.Database () as db:
+      (rev, uuid) = db.get_revision ()
+
     if not self.dry_run:
       self.local.state.set_lastmod (rev)
 
@@ -315,14 +314,14 @@ class Gmailieer:
 
       bar = tqdm (leave = True, total = len(msgids), desc = 'receiving metadata')
 
-      def _got_msg (m):
-        bar.update (1)
-        self.local.update_tags (m)
+      # opening db for whole metadata sync
+      with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
+        def _got_msg (m):
+          nonlocal db
+          bar.update (1)
+          self.local.update_tags (m, None, db)
 
-      self.local.notmuch = notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE)
-      self.remote.get_messages (msgids, _got_msg, 'minimal')
-      self.local.notmuch.close ()
-      self.local.notmuch = None
+        self.remote.get_messages (msgids, _got_msg, 'minimal')
 
       bar.close ()
 
@@ -351,7 +350,9 @@ class Gmailieer:
 
       def _got_msg (m):
         bar.update (1)
-        self.local.store (m)
+        # opening db per message since it takes some time to download each one
+        with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
+          self.local.store (m, db)
 
       self.remote.get_messages (need_content, _got_msg, 'raw')
 

@@ -117,24 +117,22 @@ class Local:
       self.mids[m] = f
 
     ## Check if we are in the notmuch db
-    self.notmuch = notmuch.Database ()
-    try:
-      self.nm_dir  = self.notmuch.get_directory (os.path.abspath(os.path.join (self.md, '..')))
-      if self.nm_dir is not None:
-        self.nm_dir = self.nm_dir.path
-      else:
-        # probably empty dir
-        self.nm_dir = os.path.abspath (os.path.join (self.md, '..'))
+    with notmuch.Database () as db:
+      try:
+        self.nm_dir  = db.get_directory (os.path.abspath(os.path.join (self.md, '..')))
+        if self.nm_dir is not None:
+          self.nm_dir = self.nm_dir.path
+        else:
+          # probably empty dir
+          self.nm_dir = os.path.abspath (os.path.join (self.md, '..'))
 
-      self.nm_relative = self.nm_dir[len(self.notmuch.get_path ())+1:]
+        self.nm_relative = self.nm_dir[len(db.get_path ())+1:]
 
-      self.has_notmuch = True
-    except notmuch.errors.FileError:
-      print ("error: local mail repository not in notmuch db")
-      self.has_notmuch = False
+        self.has_notmuch = True
+      except notmuch.errors.FileError:
+        print ("error: local mail repository not in notmuch db")
+        self.has_notmuch = False
 
-    self.notmuch.close ()
-    self.notmuch = None
 
   def initialize_repository (self, replace_slash_with_dot):
     """
@@ -179,7 +177,7 @@ class Local:
 
     return p + info
 
-  def store (self, m):
+  def store (self, m, db):
     """
     Store message in local store
     """
@@ -202,9 +200,9 @@ class Local:
         fd.write (msg_str)
 
     # add to notmuch
-    self.update_tags (m, p)
+    self.update_tags (m, p, db)
 
-  def update_tags (self, m, fname = None):
+  def update_tags (self, m, fname, db):
     # make sure notmuch tags reflect gmail labels
     mid = m['id']
     labels = m.get('labelIds', [])
@@ -225,16 +223,12 @@ class Local:
       labels = [l.replace ('/', '.') for l in labels]
 
     if fname is None:
-      # this file probably already exists and just needs it tags updated,
+      # this file hopefully already exists and just needs it tags updated,
       # let's try to find its name in the mid to fname table.
       fname = self.mids[mid]
 
     fname = os.path.join (self.md, fname)
-    if self.notmuch is None:
-      db = notmuch.Database(mode = notmuch.Database.MODE.READ_WRITE)
-    else:
-      db = self.notmuch
-    nmsg = db.find_message_by_filename (fname)
+    nmsg  = db.find_message_by_filename (fname)
 
     if nmsg is None:
       if self.dry_run:
@@ -263,6 +257,4 @@ class Local:
         else:
           print ("(dry-run) changing tags on message: %s from: %s to: %s" % (mid, str(otags), str(labels)))
 
-    if self.notmuch is None:
-      db.close ()
 
