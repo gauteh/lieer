@@ -128,10 +128,8 @@ class Local:
 
         self.nm_relative = self.nm_dir[len(db.get_path ())+1:]
 
-        self.has_notmuch = True
       except notmuch.errors.FileError:
-        print ("error: local mail repository not in notmuch db")
-        self.has_notmuch = False
+        raise Local.RepositoryException ("local mail repository not in notmuch db")
 
 
   def initialize_repository (self, replace_slash_with_dot):
