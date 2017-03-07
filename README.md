@@ -24,7 +24,7 @@ should be run from the `gmailieer` storage unless otherwise specified.
 1. get an [api key](https://console.developers.google.com/flows/enableapi?apiid=gmail) for a CLI application and store the client_secret.json file
    somewhere safe, this is needed when authenticating (`auth -c`).
 
-1. make a directory for the gmailieer storage and state files
+2. make a directory for the gmailieer storage and state files
 
 ```sh
 $ cd    ~/.mail
@@ -32,7 +32,7 @@ $ mkdir account.gmail
 $ cd    account.gmail/
 ```
 
-1. make sure this directory is ignored by `notmuch new` as the messages will be
+3. make sure this directory is ignored by `notmuch new` as the messages will be
    handled by `gmailieer`, in .notmuch-config:
 
 ```
@@ -40,7 +40,7 @@ $ cd    account.gmail/
 ignore=account.gmail;
 ```
 
-1. initialize the mail storage:
+4. initialize the mail storage:
 
 ```sh
 $ gmi auth -c path/to/client_secrets.json
@@ -50,7 +50,7 @@ $ gmi init
 if you haven't done `gmi auth` already, your browser will open and you have to
 give gmailieer some access to your e-mail.
 
-you're now set up, and you can do the initial pull.
+5. you're now set up, and you can do the initial pull.
 
 # pull
 
@@ -61,10 +61,11 @@ changes of the affected messages.
 $ gmi pull
 ```
 
+the first time you do this, or if a full synchronization is needed it will take longer.
+
 # push
 
-will push up all changes since last push, overwriting any remote changes since
-the previous pull of the affected messages.
+will push up all changes since last push, conflicting changes will be ignored unless `-f` is specified. these will be resolved at the next `pull`.
 
 ```sh
 $ gmi push
