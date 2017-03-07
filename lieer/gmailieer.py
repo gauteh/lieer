@@ -53,7 +53,7 @@ class Gmailieer:
         default = False, help = 'Force a full synchronization to be performed')
 
     parser_pull.add_argument ('-r', '--remove', action = 'store_true',
-        default = False, help = 'Remove files locally when they have been deleted remotely')
+        default = False, help = 'Remove files locally when they have been deleted remotely (forces full sync)')
 
     parser_pull.set_defaults (func = self.pull)
 
