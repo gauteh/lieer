@@ -136,7 +136,7 @@ class Gmailieer:
       (rev, uuid) = db.get_revision ()
 
       if rev == self.local.state.lastmod:
-        print ("everything is up-to-date.")
+        print ("push: everything is up-to-date.")
         return
 
       qry = "path:%s/** and lastmod:%d..%d" % (self.local.nm_relative, self.local.state.lastmod, rev)
@@ -228,7 +228,7 @@ class Gmailieer:
 
     except googleapiclient.errors.HttpError:
       if bar is not None: bar.close ()
-      print ("historyId is too old, full sync required.")
+      print ("pull: historyId is too old, full sync required.")
       self.full_pull ()
       return
 
@@ -245,7 +245,7 @@ class Gmailieer:
       needs_update = list(set(message_ids) - set(updated))
       self.get_meta (needs_update)
     else:
-      print ("everything is up-to-date.")
+      print ("pull: everything is up-to-date.")
 
     if not self.dry_run:
       self.local.state.set_last_history_id (last_id)
@@ -303,7 +303,7 @@ class Gmailieer:
       needs_update = list(set(message_ids) - set(updated))
       self.get_meta (needs_update)
     else:
-      print ("no messages.")
+      print ("pull: no messages.")
 
     # set notmuch lastmod time, since we have now synced everything from remote
     # to local
