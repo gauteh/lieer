@@ -313,7 +313,7 @@ class Gmailieer:
     if not self.dry_run:
       self.local.state.set_lastmod (rev)
 
-    print ('current historyId: %d, current revision: ' % (last_id, rev))
+    print ('current historyId: %d, current revision: %d' % (last_id, rev))
 
   def get_meta (self, msgids):
     """
