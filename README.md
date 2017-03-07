@@ -21,8 +21,8 @@ warranties.**
 this assumes your root mail folder is in `~/.mail`, all `gmailieer` commands
 should be run from the `gmailieer` storage unless otherwise specified.
 
-1. get an api key for a CLI application and store the client_secret.json file
-   somewhere gmailieer can find it (most likely in the current directory).
+1. get an [api key](https://console.developers.google.com/flows/enableapi?apiid=gmail) for a CLI application and store the client_secret.json file
+   somewhere safe, this is needed when authenticating (`auth -c`).
 
 1. make a directory for the gmailieer storage and state files
 
