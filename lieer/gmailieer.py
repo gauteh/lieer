@@ -3,7 +3,6 @@
 # Author: Gaute Hope <eg@gaute.vetsj.com> / 2017-03-05
 #
 
-
 import  os, sys
 import  argparse
 from    oauth2client import tools
@@ -131,18 +130,6 @@ class Gmailieer:
     self.remote.get_labels ()
     self.local.load_repository ()
 
-    # check if remote repository has changed
-    try:
-      cur_hist = self.remote.get_current_history_id (self.local.state.last_historyId)
-    except googleapiclient.errors.HttpError:
-      print ("historyId is too old, full pull required.")
-      return
-
-    if cur_hist > self.local.state.last_historyId or cur_hist == -1:
-      print ("push: remote has changed, changes may be overwritten (%d > %d)" % (cur_hist, self.local.state.last_historyId))
-      if not self.force:
-        return
-
     # loading local changes
     with notmuch.Database () as db:
       (rev, uuid) = db.get_revision ()
@@ -166,8 +153,10 @@ class Gmailieer:
       bar = tqdm (leave = True, total = len(messages), desc = 'pushing, 0 changed')
       changed = 0
       for m in messages:
-        if self.remote.update (m): changed += 1
-        bar.set_description ('pushing, %d changed' % changed)
+        r = self.remote.update (m, self.local.state.last_historyId, self.force)
+        if r:
+          changed += 1
+          bar.set_description ('pushing, %d changed' % changed)
         bar.update (1)
 
       bar.close ()

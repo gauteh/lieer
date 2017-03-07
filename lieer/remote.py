@@ -201,7 +201,7 @@ class Remote:
     return credentials
 
   @__require_auth__
-  def update (self, m):
+  def update (self, m, last_hist, force):
     """
     Gets a message and checks which labels it should add and which to delete.
     """
@@ -246,6 +246,13 @@ class Remote:
       rem = [r.replace ('.', '/') for r in rem]
 
     if len(add) > 0 or len(rem) > 0:
+      # check if this message has been changed remotely since last pull
+      hist_id = int(r['historyId'])
+      if hist_id > last_hist:
+        if not self.force:
+          print ("update: remote has changed, will not update: %s" % mid)
+          return
+
       if self.dry_run:
         print ("(dry-run) mid: %s: add: %s, remove: %s" % (mid, str(add), str(rem)))
       else:
