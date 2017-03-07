@@ -161,7 +161,11 @@ class Gmailieer:
 
       bar.close ()
 
-    if not self.dry_run:
+    if not self.remote.all_updated:
+      # will not set last_mod, this forces messages to be pushed again at next push
+      print ("push: not all changes could be pushed, will re-try at next push.")
+
+    if not self.dry_run and self.remote.all_updated:
       self.local.state.set_lastmod (rev)
 
   def pull (self, args):

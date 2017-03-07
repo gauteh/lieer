@@ -39,6 +39,9 @@ class Remote:
   # query to use
   query = '-in:chats'
 
+  # used to indicate whether all messages that should be updated where updated
+  all_updated = True
+
   class BatchException (Exception):
     pass
 
@@ -251,7 +254,8 @@ class Remote:
       if hist_id > last_hist:
         if not self.force:
           print ("update: remote has changed, will not update: %s" % mid)
-          return
+          self.all_updated = False
+          return False
 
       if self.dry_run:
         print ("(dry-run) mid: %s: add: %s, remove: %s" % (mid, str(add), str(rem)))
