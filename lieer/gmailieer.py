@@ -24,44 +24,96 @@ class Gmailieer:
     parser = argparse.ArgumentParser ('Gmailieer', parents = [tools.argparser])
     self.parser = parser
 
-    parser.add_argument ('action', choices = ['pull', 'push', 'auth', 'init'],
-        help = 'pull: get new e-mail and remote tag-changes, push: push local tag-changes, auth: authorize gmailieer with account, init: initialize local repository')
+    # parser.add_argument ('action', choices = ['pull', 'push', 'auth', 'init'],
+    #     help = 'pull: get new e-mail and remote tag-changes, push: push local tag-changes, auth: authorize gmailieer with account, init: initialize local repository')
 
-    parser.add_argument ('-c', '--credentials', type = str, default = 'client_secret.json',
+    common = argparse.ArgumentParser (add_help = False)
+    common.add_argument ('-c', '--credentials', type = str, default = 'client_secret.json',
         help = 'credentials file for google api (default: client_secret.json)')
 
-    parser.add_argument ('-d', '--dry-run', action='store_true', default = False,
-        help = 'do not make any changes')
+    common.add_argument ('-a', '--account', type = str, default = 'me',
+        help = 'GMail account to use (default: \'me\' which resolves to currently logged in user)')
 
-    parser.add_argument ('-t', '--list-labels', action='store_true', default = False,
+    subparsers = parser.add_subparsers (help = 'actions', dest = 'action')
+
+    # pull
+    parser_pull = subparsers.add_parser ('pull',
+        help = 'pull new e-mail and remote tag-changes',
+        description = 'pull',
+        parents = [common]
+        )
+
+    parser_pull.add_argument ('-t', '--list-labels', action='store_true', default = False,
         help = 'list all remote labels (pull)')
 
-    parser.add_argument ('-a', '--account', type = str, default = 'me',
-        help = 'GMail account to use (default: me, currently logged in user)')
+    parser_pull.add_argument ('--limit', type = int, default = None,
+        help = 'Maximum number of messages to pull (soft limit, GMail may return more), note that this may upset the tally of synchronized messages.')
 
-    parser.add_argument ('-f', '--force', action = 'store_true', default = False,
-        help = 'Force action (or perform full pull, push)')
 
-    parser.add_argument ('--limit', type = int, default = None,
-        help = 'Maximum number of messages to synchronize (soft limit, gmail may return more), note that this may upset the tally of syncrhonized messages.')
+    parser_pull.add_argument ('-d', '--dry-run', action='store_true',
+        default = False, help = 'do not make any changes')
 
-    parser.add_argument ('--replace-slash-with-dot', action = 'store_true', default = False,
-        help = 'This will replace \'/\' with \'.\' in gmail labels (make sure you know the implications)')
+    parser_pull.add_argument ('-f', '--force', action = 'store_true',
+        default = False, help = 'Force a full synchronization to be performed')
+
+    parser_pull.set_defaults (func = self.pull)
+
+    # push
+    parser_push = subparsers.add_parser ('push', parents = [common],
+        description = 'push',
+        help = 'push local tag-changes')
+
+    parser_push.add_argument ('--limit', type = int, default = None,
+        help = 'Maximum number of messages to push, note that this may upset the tally of synchronized messages.')
+
+    parser_push.add_argument ('-d', '--dry-run', action='store_true',
+        default = False, help = 'do not make any changes')
+
+    parser_push.add_argument ('-f', '--force', action = 'store_true',
+        default = False, help = 'Push even when there has been remote changes (might overwrite remote tag-changes)')
+
+    parser_push.set_defaults (func = self.push)
+
+    # auth
+    parser_auth = subparsers.add_parser ('auth', parents = [common],
+        description = 'authorize',
+        help = 'authorize gmailieer with your GMail account')
+
+    parser_auth.add_argument ('-f', '--force', action = 'store_true',
+        default = False, help = 'Re-authorize')
+
+    parser_auth.set_defaults (func = self.authorize)
+
+    # init
+    parser_init = subparsers.add_parser ('init', parents = [common],
+        description = 'initialize',
+        help = 'initialize local e-mail repository')
+
+    parser_init.add_argument ('--replace-slash-with-dot', action = 'store_true', default = False,
+        help = 'This will replace \'/\' with \'.\' in gmail labels (make sure you realize the implications)')
+
+    parser_init.set_defaults (func = self.initialize)
+
 
     args        = parser.parse_args (sys.argv[1:])
     self.args   = args
 
-    self.action           = args.action
-    self.dry_run          = args.dry_run
-    self.credentials_file = args.credentials
-    self.list_labels      = args.list_labels
-    self.account          = args.account
-    self.force            = args.force
-    self.limit            = args.limit
-    self.replace_slash_with_dot = args.replace_slash_with_dot
+    args.func (args)
 
-    if self.replace_slash_with_dot and self.action != 'init':
-      print ("--replace-slash-with-dot can only be specified with init")
+  def initialize (self, args):
+    self.setup (args, False)
+    self.local.initialize_repository (args.replace_slash_with_dot)
+
+  def authorize (self, args):
+    print ("authorizing..")
+    self.setup (args, False)
+    self.remote.authorize (args.force)
+
+  def setup (self, args, dry_run = False):
+    # common options
+    self.dry_run          = dry_run
+    self.credentials_file = args.credentials
+    self.account          = args.account
 
     if self.dry_run:
       print ("dry-run: ", self.dry_run)
@@ -69,20 +121,12 @@ class Gmailieer:
     self.local  = Local (self)
     self.remote = Remote (self)
 
-    if self.action == 'pull':
-      self.pull ()
+  def push (self, args):
+    self.setup (args, args.dry_run)
 
-    elif self.action == 'auth':
-      print ("authorizing..")
-      self.remote.authorize (self.force)
+    self.force            = args.force
+    self.limit            = args.limit
 
-    elif self.action == 'push':
-      self.push ()
-
-    elif self.action == 'init':
-      self.local.initialize_repository (self.replace_slash_with_dot)
-
-  def push (self):
     self.remote.get_labels ()
     self.local.load_repository ()
 
@@ -131,7 +175,13 @@ class Gmailieer:
     if not self.dry_run:
       self.local.state.set_lastmod (rev)
 
-  def pull (self):
+  def pull (self, args):
+    self.setup (args, args.dry_run)
+
+    self.list_labels      = args.list_labels
+    self.force            = args.force
+    self.limit            = args.limit
+
     if self.list_labels:
       for l in self.remote.get_labels ().values ():
         print (l)
@@ -296,7 +346,7 @@ class Gmailieer:
 
     if len (need_content) > 0:
 
-      bar = tqdm (leave = True, total = len(need_content), desc = 'receiving content')
+      bar = tqdm (leave = True, total = len(need_content), desc = 'receiving content ')
 
       def _got_msg (m):
         bar.update (1)
