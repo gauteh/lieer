@@ -31,6 +31,7 @@ class Gmailieer:
         help = 'GMail account to use (default: \'me\' which resolves to currently logged in user)')
 
     subparsers = parser.add_subparsers (help = 'actions', dest = 'action')
+    subparsers.required = True
 
     # pull
     parser_pull = subparsers.add_parser ('pull',
