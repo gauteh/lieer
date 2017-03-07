@@ -252,7 +252,7 @@ class Remote:
       # check if this message has been changed remotely since last pull
       hist_id = int(r['historyId'])
       if hist_id > last_hist:
-        if not self.force:
+        if not force:
           print ("update: remote has changed, will not update: %s" % mid)
           self.all_updated = False
           return False
