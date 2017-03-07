@@ -28,7 +28,8 @@ class Remote:
                     ]
 
   # these cannot be changed manually
-  read_only_labels = [ 'SENT', 'DRAFT' ]
+  read_only_labels = set(['SENT', 'DRAFT'])
+  read_only_tags   = set(['sent', 'draft'])
 
   ignore_labels = set([ 'CATEGORY_PERSONAL',
                         'CATEGORY_SOCIAL',
@@ -215,7 +216,7 @@ class Remote:
 
     # first get message and figure out what labels it has now
     r = self.get_message (mid)
-    labels = r['labelIds']
+    labels = r.get('labelIds', [])
     labels = [self.labels[l] for l in labels]
 
     # remove ignored labels
@@ -237,8 +238,8 @@ class Remote:
     # remove special notmuch tags
     tags = tags - self.gmailieer.local.ignore_labels
 
-    add = list(tags - labels)
-    rem = list(labels - tags)
+    add = list((tags - labels) - self.read_only_tags)
+    rem = list((labels - tags) - self.read_only_tags)
 
     # translate back to gmail labels
     add = [self.gmailieer.local.labels_translate.get (k, k) for k in add]
