@@ -107,6 +107,7 @@ class Gmailieer:
   def authorize (self, args):
     print ("authorizing..")
     self.setup (args, False)
+    self.local.load_repository ()
     self.remote.authorize (args.force)
 
   def setup (self, args, dry_run = False):

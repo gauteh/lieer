@@ -85,6 +85,7 @@ class Local:
 
     # state file for local repository
     self.state_f = os.path.join (self.wd, '.gmailieer.json')
+    self.credentials_f = os.path.join (self.wd, '.credentials.gmailieer.json')
 
     # mail store
     self.md = os.path.join (self.wd, 'mail', 'cur')
@@ -95,10 +96,10 @@ class Local:
     """
 
     if not os.path.exists (self.state_f):
-      raise Local.RepositoryException ('could not find state file')
+      raise Local.RepositoryException ('local repository not initialized: could not find state file')
 
     if not os.path.exists (self.md):
-      raise Local.RepositoryException ('could not find mail dir')
+      raise Local.RepositoryException ('local repository not initialized: could not find mail dir')
 
     self.state = Local.State (self.state_f)
 

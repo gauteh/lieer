@@ -169,9 +169,7 @@ class Remote:
 
   def authorize (self, reauth = False):
     if reauth:
-      credential_dir = os.path.join(self.gmailieer.home, 'credentials')
-      credential_path = os.path.join(credential_dir,
-          'gmailieer.json')
+      credential_path = self.gmailieer.local.credentials_f
       if os.path.exists (credential_path):
         print ("reauthorizing..")
         os.unlink (credential_path)
@@ -191,12 +189,7 @@ class Remote:
     Returns:
         Credentials, the obtained credential.
     """
-    credential_dir = os.path.join(self.gmailieer.home, 'credentials')
-    if not os.path.exists(credential_dir):
-      os.makedirs(credential_dir)
-
-    credential_path = os.path.join(credential_dir,
-        'gmailieer.json')
+    credential_path = self.gmailieer.local.credentials_f
 
     store = Storage(credential_path)
     credentials = store.get()
@@ -204,7 +197,7 @@ class Remote:
       flow = client.flow_from_clientsecrets(self.CLIENT_SECRET_FILE, self.SCOPES)
       flow.user_agent = self.APPLICATION_NAME
       credentials = tools.run_flow(flow, store, flags = self.gmailieer.args)
-      print('Storing credentials to ' + credential_path)
+      print('credentials stored in ' + credential_path)
     return credentials
 
   @__require_auth__
