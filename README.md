@@ -32,12 +32,11 @@ $ mkdir account.gmail
 $ cd    account.gmail/
 ```
 
-3. make sure this directory is ignored by `notmuch new` as the messages will be
-   handled by `gmailieer`, in .notmuch-config:
+3. ignore the `.json` files in notmuch:
 
 ```
 [new]
-ignore=account.gmail;
+ignore=*.json;
 ```
 
 4. initialize the mail storage:
