@@ -252,7 +252,11 @@ class Local:
     fname = os.path.join (self.md, fname)
     nmsg  = db.find_message_by_filename (fname)
 
-    assert os.path.exists (fname), "tried to update tags on non-existant file: %s" % fname
+    if not os.path.exists (fname):
+      if not self.dry_run:
+        raise Local.RepositoryException ("tried to update tags on non-existant file: %s" % fname)
+      else:
+        print ("(dry-run) tried to update tags on non-existant file: %s" % fname)
 
     if nmsg is None:
       if self.dry_run:

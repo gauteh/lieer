@@ -277,17 +277,32 @@ class Gmailieer:
           if self.local.has (mm['id']):
             deleted_messages.append (mm)
 
-      # changes to SPAM and TRASH should hopefully result in a remote messagesDeleted
-      # or messagesAdded entry as well which makes sure it is synced with the local
-      # store.
-      #
       # messages that are subsequently deleted by a later action will be removed
       # from either labels_changed or added_messages.
       if 'labelsAdded' in h:
         for m in h['labelsAdded']:
           mm = m['message']
           if not (set(mm['labelIds']) & self.remote.not_sync):
-            new = remove_from_list (added_messages, mm)
+            new = remove_from_list (added_messages, mm) or not self.local.has (mm['id'])
+            remove_from_list (labels_changed, mm)
+            if new:
+              added_messages.append (mm) # needs to fetched
+            else:
+              labels_changed.append (mm)
+          else:
+            # in case a not_sync tag has been added to a scheduled message
+            remove_from_list (added_messages, mm)
+            remove_from_list (labels_changed, mm)
+
+            if self.local.has (mm['id']):
+              remove_from_list (deleted_messages, mm)
+              deleted_messages.append (mm)
+
+      if 'labelsRemoved' in h:
+        for m in h['labelsRemoved']:
+          mm = m['message']
+          if not (set(mm['labelIds']) & self.remote.not_sync):
+            new = remove_from_list (added_messages, mm) or not self.local.has (mm['id'])
             remove_from_list (labels_changed, mm)
             if new:
               added_messages.append (mm) # needs to fetched
@@ -298,20 +313,9 @@ class Gmailieer:
             remove_from_list (added_messages, mm)
             remove_from_list (labels_changed, mm)
 
-      if 'labelsRemoved' in h:
-        for m in h['labelsRemoved']:
-          mm = m['message']
-          if not (set(mm['labelIds']) & self.remote.not_sync):
-            new = remove_from_list (added_messages, mm)
-            remove_from_list (labels_changed, mm)
-            if new:
-              added_messages.append (mm) # needs to fetched
-            else:
-              labels_changed.append (mm)
-          else:
-            # in case a not_sync tag has been added
-            remove_from_list (added_messages, mm)
-            remove_from_list (labels_changed, mm)
+            if self.local.has (mm['id']):
+              remove_from_list (deleted_messages, mm)
+              deleted_messages.append (mm)
 
     changed = False
     # fetching new messages
