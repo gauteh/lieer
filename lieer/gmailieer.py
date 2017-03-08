@@ -261,7 +261,12 @@ class Gmailieer:
         return True
       return False
 
-    for h in tqdm(history, leave = True, desc = 'resolving changes'):
+    if len(history) > 0:
+      bar = tqdm (total = len(history), leave = True, desc = 'resolving changes')
+    else:
+      bar = None
+
+    for h in history:
       if 'messagesAdded' in h:
         for m in h['messagesAdded']:
           mm = m['message']
@@ -316,6 +321,10 @@ class Gmailieer:
             if self.local.has (mm['id']):
               remove_from_list (deleted_messages, mm)
               deleted_messages.append (mm)
+
+      bar.update (1)
+
+    if bar: bar.close ()
 
     changed = False
     # fetching new messages
