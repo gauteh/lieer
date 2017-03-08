@@ -165,6 +165,12 @@ class Gmailieer:
     if not self.remote.all_updated:
       # will not set last_mod, this forces messages to be pushed again at next push
       print ("push: not all changes could be pushed, will re-try at next push.")
+    else:
+      # TODO: Once I get more confident we might set the last history Id here to
+      # avoid pulling back in the changes we just pushed. Currently there's a race
+      # if something is modified remotely (new email, changed tags), so this might
+      # not really be possible.
+      pass
 
     if not self.dry_run and self.remote.all_updated:
       self.local.state.set_lastmod (rev)
@@ -226,7 +232,6 @@ class Gmailieer:
       print ("pull: historyId is too old, full sync required.")
       self.full_pull ()
       return
-
 
     if bar is not None: bar.close ()
 
@@ -292,8 +297,8 @@ class Gmailieer:
             remove_from_list (added_messages, mm)
             remove_from_list (labels_changed, mm)
 
-      if 'labelsDeleted' in h:
-        for m in h['labelsDeleted']:
+      if 'labelsRemoved' in h:
+        for m in h['labelsRemoved']:
           mm = m['message']
           if not (set(mm['labelIds']) & self.remote.not_sync):
             new = remove_from_list (added_messages, mm)
@@ -327,9 +332,18 @@ class Gmailieer:
       changed = True
 
     if len (labels_changed) > 0:
+      lchanged = 0
       with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
-        for m in tqdm (labels_changed, leave = True, desc = 'updating tags'):
-          self.local.update_tags (m, None, db)
+        bar = tqdm (total = len(labels_changed), leave = True, desc = 'updating tags (0Δ)')
+        for m in labels_changed:
+          r = self.local.update_tags (m, None, db)
+          if r:
+            lchanged += 1
+            bar.set_description ('updating tags (%dΔ)' % lchanged)
+
+          bar.update (1)
+        bar.close ()
+
 
       changed = True
 

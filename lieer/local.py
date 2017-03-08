@@ -252,6 +252,8 @@ class Local:
     fname = os.path.join (self.md, fname)
     nmsg  = db.find_message_by_filename (fname)
 
+    assert os.path.exists (fname), "tried to update tags on non-existant file"
+
     if nmsg is None:
       if self.dry_run:
         print ("(dry-run) adding message: %s: %s, with tags: %s" % (mid, fname, str(labels)))
@@ -264,6 +266,8 @@ class Local:
           nmsg.add_tag (t, True)
 
         nmsg.thaw ()
+
+      return True
 
     else:
       # message is already in db, set local tags to match remote tags
@@ -278,5 +282,10 @@ class Local:
           nmsg.tags_to_maildir_flags ()
         else:
           print ("(dry-run) changing tags on message: %s from: %s to: %s" % (mid, str(otags), str(labels)))
+
+        return True
+      else:
+        return False
+
 
 
