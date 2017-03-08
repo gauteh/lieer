@@ -71,7 +71,7 @@ will push up all changes since last push, conflicting changes will be ignored un
 $ gmi push
 ```
 
-# regular synchronization routine
+# normal synchronization routine
 
 ```sh
 $ cd ~/.mail/account.gmail
@@ -79,5 +79,8 @@ $ gmi push
 $ gmi pull
 ```
 
-any conflicts detected in `gmi push` should be synced on the next iteration.
+any conflicts detected in `gmi push` will not be pushed. After the next `gmi
+pull` has been run the conflicts should be resolved, effectively overwriting
+the local changes with the remote changes. You can force the local changes to
+overwrite the remote changes by using `gmi push -f`.
 
