@@ -288,6 +288,7 @@ class Gmailieer:
           mm = m['message']
           if not (set(mm['labelIds']) & self.remote.not_sync):
             new = remove_from_list (added_messages, mm)
+            remove_from_list (labels_changed, mm)
             if new:
               added_messages.append (mm) # needs to fetched
             else:
@@ -302,6 +303,7 @@ class Gmailieer:
           mm = m['message']
           if not (set(mm['labelIds']) & self.remote.not_sync):
             new = remove_from_list (added_messages, mm)
+            remove_from_list (labels_changed, mm)
             if new:
               added_messages.append (mm) # needs to fetched
             else:
