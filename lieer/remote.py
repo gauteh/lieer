@@ -41,6 +41,8 @@ class Remote:
   # query to use
   query = '-in:chats'
 
+  not_sync = set (['CHAT', 'SPAM', 'TRASH'])
+
   # used to indicate whether all messages that should be updated where updated
   all_updated = True
 
@@ -85,25 +87,19 @@ class Remote:
       return start
 
   @__require_auth__
-  def get_messages_since (self, start):
+  def get_history_since (self, start):
     """
-    Get all messages changed since start historyId
+    Get all changed since start historyId
     """
     results = self.service.users ().history ().list (userId = self.account, startHistoryId = start).execute ()
     if 'history' in results:
-      msgs = []
-      for h in results['history']:
-        msgs.extend(h['messages'])
-      yield msgs
+      yield results['history']
 
     while 'nextPageToken' in results:
       pt = results['nextPageToken']
       results = self.service.users ().history ().list (userId = self.account, startHistoryId = start, pageToken = pt).execute ()
 
-      msgs = []
-      for h in results['history']:
-        msgs.extend(h['messages'])
-      yield msgs
+      yield results['history']
 
 
   @__require_auth__

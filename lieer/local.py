@@ -179,7 +179,11 @@ class Local:
     """
     Remove message from local store
     """
-    fname = self.mids[mid]
+    fname = self.mids.get (mid, None)
+
+    if fname is None:
+      print ("remove: message does not exist in store: %s" % mid)
+      return
 
     fname = os.path.join (self.md, fname)
     nmsg  = db.find_message_by_filename (fname)

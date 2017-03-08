@@ -206,24 +206,19 @@ class Gmailieer:
   def partial_pull (self):
     # get history
     bar         = None
-    message_ids = []
+    history     = []
     last_id     = self.remote.get_current_history_id (self.local.state.last_historyId)
 
     try:
-      for mset in self.remote.get_messages_since (self.local.state.last_historyId):
-        msgs = mset
+      for hist in self.remote.get_history_since (self.local.state.last_historyId):
+        history.extend (hist)
 
         if bar is None:
           bar = tqdm (leave = True, desc = 'fetching changes')
 
-        bar.update (len(msgs))
+        bar.update (len(hist))
 
-        for m in msgs:
-          labels = m.get('labelIds', [])
-          if not 'CHAT' in labels:
-            message_ids.append (m['id'])
-
-        if self.limit is not None and len(message_ids) >= self.limit:
+        if self.limit is not None and len(history) >= self.limit:
           break
 
     except googleapiclient.errors.HttpError:
@@ -235,16 +230,110 @@ class Gmailieer:
 
     if bar is not None: bar.close ()
 
-    message_ids = list(set(message_ids)) # make unique
+    # figure out which changes need to be applied
+    added_messages   = [] # added messages, if they are later deleted they will be
+                          # removed from this list
 
-    if len(message_ids) > 0:
-      # get content for new messages
-      updated = self.get_content (message_ids)
+    deleted_messages = [] # deleted messages, if they are later added they will be
+                          # removed from this list
 
-      # get updated labels for the rest
-      needs_update = list(set(message_ids) - set(updated))
-      self.get_meta (needs_update)
-    else:
+    labels_changed   = [] # list of messages which have had their label changed
+                          # the entry will be the last and most recent one in case
+                          # of multiple changes. if the message is either deleted
+                          # or added after the label change it will be removed from
+                          # this list.
+
+    def remove_from_all (m):
+      nonlocal added_messages, deleted_messages, labels_changed
+      remove_from_list (deleted_messages, m)
+      remove_from_list (labels_changed, m)
+      remove_from_list (added_messages, m)
+
+    def remove_from_list (lst, m):
+      e = next ((e for e in lst if e['id'] ==  m['id']), None)
+      if e is not None:
+        lst.remove (e)
+        return True
+      return False
+
+    for h in tqdm(history, leave = True, desc = 'resolving changes'):
+      if 'messagesAdded' in h:
+        for m in h['messagesAdded']:
+          mm = m['message']
+          if not (set(mm['labelIds']) & self.remote.not_sync):
+            remove_from_all (mm)
+            added_messages.append (mm)
+
+      if 'messagesDeleted' in h:
+        for m in h['messagesDeleted']:
+          mm = m['message']
+          # might silently fail to delete this
+          remove_from_all (mm)
+          if self.local.has (mm['id']):
+            deleted_messages.append (mm)
+
+      # changes to SPAM and TRASH should hopefully result in a remote messagesDeleted
+      # or messagesAdded entry as well which makes sure it is synced with the local
+      # store.
+      #
+      # messages that are subsequently deleted by a later action will be removed
+      # from either labels_changed or added_messages.
+      if 'labelsAdded' in h:
+        for m in h['labelsAdded']:
+          mm = m['message']
+          if not (set(mm['labelIds']) & self.remote.not_sync):
+            new = remove_from_list (added_messages, mm)
+            if new:
+              added_messages.append (mm) # needs to fetched
+            else:
+              labels_changed.append (mm)
+          else:
+            # in case a not_sync tag has been added
+            remove_from_list (added_messages, mm)
+            remove_from_list (labels_changed, mm)
+
+      if 'labelsDeleted' in h:
+        for m in h['labelsDeleted']:
+          mm = m['message']
+          if not (set(mm['labelIds']) & self.remote.not_sync):
+            new = remove_from_list (added_messages, mm)
+            if new:
+              added_messages.append (mm) # needs to fetched
+            else:
+              labels_changed.append (mm)
+          else:
+            # in case a not_sync tag has been added
+            remove_from_list (added_messages, mm)
+            remove_from_list (labels_changed, mm)
+
+    changed = False
+    # fetching new messages
+    if len (added_messages) > 0:
+      message_ids = [m['id'] for m in added_messages]
+      updated     = self.get_content (message_ids)
+
+      # updated labels for the messages that already existed
+      needs_update_mid = list(set(message_ids) - set(updated))
+      needs_update = [m for m in added_messages if m['id'] in needs_update_mid]
+      labels_changed.extend (needs_update)
+
+      changed = True
+
+    if len (deleted_messages) > 0:
+      with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
+        for m in tqdm (deleted_messages, leave = True, desc = 'removing messages'):
+          self.local.remove (m['id'], db)
+
+      changed = True
+
+    if len (labels_changed) > 0:
+      with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
+        for m in tqdm (labels_changed, leave = True, desc = 'updating tags'):
+          self.local.update_tags (m, None, db)
+
+      changed = True
+
+    if not changed:
       print ("pull: everything is up-to-date.")
 
     if not self.dry_run:
