@@ -66,8 +66,10 @@ class Remote:
     labels = results.get ('labels', [])
 
     self.labels = {}
+    self.invlabels = {}
     for l in labels:
       self.labels[l['id']] = l['name']
+      self.invlabels[l['name']] = l['id']
 
     return self.labels
 
@@ -280,8 +282,8 @@ class Remote:
     Push message changes (these are currently not batched)"
     """
 
-    add = [self.labels[a] for a in add]
-    rem = [self.labels[r] for r in rem]
+    add = [self.invlabels[a] for a in add]
+    rem = [self.invlabels[r] for r in rem]
 
     body = { 'addLabelIds' : add,
              'removeLabelIds' : rem }
