@@ -65,7 +65,9 @@ the first time you do this, or if a full synchronization is needed it will take 
 
 # push
 
-will push up all changes since last push, conflicting changes will be ignored unless `-f` is specified. these will be resolved at the next `pull`.
+will push up all changes since last push, conflicting changes will be ignored
+unless `-f` is specified. these will be overwritten with the remote changes at
+the next `pull`.
 
 ```sh
 $ gmi push
