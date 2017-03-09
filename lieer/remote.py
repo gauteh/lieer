@@ -107,7 +107,7 @@ class Remote:
     """
     Get a list of all messages
     """
-    results = self.service.users ().messages ().list (userId = self.account).execute ()
+    results = self.service.users ().messages ().list (userId = self.account, q = self.query).execute ()
     if 'messages' in results:
       yield (results['resultSizeEstimate'], results['messages'])
 
