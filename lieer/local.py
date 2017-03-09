@@ -275,8 +275,11 @@ class Local:
 
     else:
       # message is already in db, set local tags to match remote tags
-      otags = list(nmsg.get_tags ())
-      if set(otags) != set (labels):
+      otags   = set(nmsg.get_tags ())
+      igntags = otags & self.ignore_labels
+      otags   = otags - self.ignore_labels # remove ignored tags while checking
+      if otags != set (labels):
+        labels.extend (igntags) # add back local ignored tags before adding
         if not self.dry_run:
           nmsg.freeze ()
           nmsg.remove_all_tags ()
