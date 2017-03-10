@@ -5,8 +5,8 @@ import base64
 import notmuch
 
 class Local:
-  wd = None
-  notmuch = None
+  wd      = None
+  loaded  = False
 
 
   translate_labels = {
@@ -46,6 +46,8 @@ class Local:
     lastmod = 0
 
     replace_slash_with_dot = False
+    account = None
+    timeout = 5
 
     def __init__ (self, state_f):
       self.state_f = state_f
@@ -59,6 +61,8 @@ class Local:
       self.last_historyId = self.json.get ('last_historyId', 0)
       self.lastmod = self.json.get ('lastmod', 0)
       self.replace_slash_with_dot = self.json.get ('replace_slash_with_dot', False)
+      self.account = self.json.get ('account', 'me')
+      self.timeout = self.json.get ('timeout', 5)
 
     def write (self):
       self.json = {}
@@ -66,6 +70,8 @@ class Local:
       self.json['last_historyId'] = self.last_historyId
       self.json['lastmod'] = self.lastmod
       self.json['replace_slash_with_dot'] = self.replace_slash_with_dot
+      self.json['account'] = self.account
+      self.json['timeout'] = self.timeout
 
       with open (self.state_f, 'w') as fd:
         json.dump (self.json, fd)
@@ -76,6 +82,14 @@ class Local:
 
     def set_lastmod (self, m):
       self.lastmod = m
+      self.write ()
+
+    def set_account (self, a):
+      self.account = a
+      self.write ()
+
+    def set_timeout (self, t):
+      self.timeout = t
       self.write ()
 
   def __init__ (self, g):
@@ -131,8 +145,10 @@ class Local:
       except notmuch.errors.FileError:
         raise Local.RepositoryException ("local mail repository not in notmuch db")
 
+    self.loaded = True
 
-  def initialize_repository (self, replace_slash_with_dot):
+
+  def initialize_repository (self, replace_slash_with_dot, account):
     """
     Sets up a local repository
     """
@@ -147,6 +163,7 @@ class Local:
 
     self.state = Local.State (self.state_f)
     self.state.replace_slash_with_dot = replace_slash_with_dot
+    self.state.account = account
     self.state.write ()
     os.makedirs (self.md)
     os.makedirs (os.path.join (self.md, '../new'))

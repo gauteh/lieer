@@ -27,9 +27,6 @@ class Gmailieer:
     common.add_argument ('-c', '--credentials', type = str, default = 'client_secret.json',
         help = 'credentials file for google api (default: client_secret.json)')
 
-    common.add_argument ('-a', '--account', type = str, default = 'me',
-        help = 'GMail account to use (default: \'me\' which resolves to currently logged in user)')
-
     subparsers = parser.add_subparsers (help = 'actions', dest = 'action')
     subparsers.required = True
 
@@ -92,7 +89,24 @@ class Gmailieer:
     parser_init.add_argument ('--replace-slash-with-dot', action = 'store_true', default = False,
         help = 'This will replace \'/\' with \'.\' in gmail labels (make sure you realize the implications)')
 
+    parser_init.add_argument ('-a', '--account', type = str, default = 'me',
+        help = 'GMail account to use (default: \'me\' which resolves to currently logged in user)')
+
     parser_init.set_defaults (func = self.initialize)
+
+
+    # set option
+    parser_set = subparsers.add_parser ('set', parents = [common],
+        description = 'set option',
+        help = 'set options for repository')
+
+    parser_set.add_argument ('-t', '--timeout', type = float,
+        default = None, help = 'Set HTTP timeout in seconds')
+
+    parser_set.add_argument ('-a', '--account', type = str,
+        default = None, help = 'Set GMail account to use (\'me\' resolves to currently logged in user)')
+
+    parser_set.set_defaults (func = self.set)
 
 
     args        = parser.parse_args (sys.argv[1:])
@@ -102,34 +116,33 @@ class Gmailieer:
 
   def initialize (self, args):
     self.setup (args, False)
-    self.local.initialize_repository (args.replace_slash_with_dot)
+    self.local.initialize_repository (args.replace_slash_with_dot, args.account)
 
   def authorize (self, args):
     print ("authorizing..")
-    self.setup (args, False)
-    self.local.load_repository ()
+    self.setup (args, False, True)
     self.remote.authorize (args.force)
 
-  def setup (self, args, dry_run = False):
+  def setup (self, args, dry_run = False, load = False):
     # common options
     self.dry_run          = dry_run
     self.credentials_file = args.credentials
-    self.account          = args.account
 
     if self.dry_run:
       print ("dry-run: ", self.dry_run)
 
     self.local  = Local (self)
-    self.remote = Remote (self)
+    if load:
+      self.local.load_repository ()
+      self.remote = Remote (self)
 
   def push (self, args):
-    self.setup (args, args.dry_run)
+    self.setup (args, args.dry_run, True)
 
     self.force            = args.force
     self.limit            = args.limit
 
     self.remote.get_labels ()
-    self.local.load_repository ()
 
     # loading local changes
     with notmuch.Database () as db:
@@ -176,7 +189,7 @@ class Gmailieer:
       self.local.state.set_lastmod (rev)
 
   def pull (self, args):
-    self.setup (args, args.dry_run)
+    self.setup (args, args.dry_run, True)
 
     self.list_labels      = args.list_labels
     self.force            = args.force
@@ -191,7 +204,6 @@ class Gmailieer:
       return
 
     self.remote.get_labels () # to make sure label map is initialized
-    self.local.load_repository ()
 
     if self.force:
       print ("pull: full synchronization (forced)")
@@ -491,6 +503,22 @@ class Gmailieer:
       print ("receiving content: everything up-to-date.")
 
     return need_content
+
+  def set (self, args):
+    self.setup (args, False, True)
+
+    if args.timeout is not None:
+      self.local.state.set_timeout (args.timeout)
+
+    if args.account is not None:
+      self.local.state.set_account (args.account)
+
+    print ("Repository info:")
+    print ("Account ...........: %s" % self.local.state.account)
+    print ("Timeout ...........: %f" % self.local.state.timeout)
+    print ("historyId .........: %d" % self.local.state.last_historyId)
+    print ("lastmod ...........: %d" % self.local.state.lastmod)
+    print ("replace . with / ..:", self.local.state.replace_slash_with_dot)
 
 
 

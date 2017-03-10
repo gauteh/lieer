@@ -51,8 +51,11 @@ class Remote:
 
   def __init__ (self, g):
     self.gmailieer = g
+
+    assert g.local.loaded, "local repository must be loaded!"
+
     self.CLIENT_SECRET_FILE = g.credentials_file
-    self.account = g.account
+    self.account = g.local.state.account
     self.dry_run = g.dry_run
 
   def __require_auth__ (func):
@@ -185,7 +188,7 @@ class Remote:
         os.unlink (credential_path)
 
     self.credentials = self.__get_credentials__ ()
-    self.http = self.credentials.authorize (httplib2.Http())
+    self.http = self.credentials.authorize (httplib2.Http(timeout = self.gmailieer.local.state.timeout))
     self.service = discovery.build ('gmail', 'v1', http = self.http)
     self.authorized = True
 
