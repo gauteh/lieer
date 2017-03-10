@@ -43,13 +43,15 @@ ignore=*.json;
 
 ```sh
 $ gmi auth -c path/to/client_secrets.json
-$ gmi init
+$ gmi init -a your.email@gmail.com
 ```
 
 if you haven't done `gmi auth` already, your browser will open and you have to
 give gmailieer some access to your e-mail.
 
 5. you're now set up, and you can do the initial pull.
+
+> Use `gmi -h` or `gmi command -h` to get more usage information.
 
 # pull
 
