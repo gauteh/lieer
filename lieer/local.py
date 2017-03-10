@@ -92,6 +92,10 @@ class Local:
       self.timeout = t
       self.write ()
 
+    def set_replace_slash_with_dot (self, r):
+      self.replace_slash_with_dot = r
+      self.write ()
+
   def __init__ (self, g):
     self.gmailieer = g
     self.wd = os.getcwd ()
