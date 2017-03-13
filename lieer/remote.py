@@ -83,11 +83,25 @@ class Remote:
     """
     Get the current history id of the mailbox
     """
-    results = self.service.users ().history ().list (userId = self.account, startHistoryId = start).execute ()
-    if 'history' in results:
-      return int(results['historyId'])
-    else:
-      return start
+    try:
+      results = self.service.users ().history ().list (userId = self.account, startHistoryId = start).execute ()
+      if 'history' in results:
+        return int(results['historyId'])
+      else:
+        # try to get last message
+        for mset in self.all_messages (1):
+          (total, mset) = mset
+          m     = mset[0]
+          msg   = self.get_message (m['id'])
+          return int(msg['historyId'])
+
+    except googleapiclient.errors.HttpError:
+      # try to get last message
+      for mset in self.all_messages (1):
+        (total, mset) = mset
+        m     = mset[0]
+        msg   = self.get_message (m['id'])
+        return int(msg['historyId'])
 
   @__require_auth__
   def get_history_since (self, start):
@@ -106,17 +120,17 @@ class Remote:
 
 
   @__require_auth__
-  def all_messages (self):
+  def all_messages (self, limit = None):
     """
     Get a list of all messages
     """
-    results = self.service.users ().messages ().list (userId = self.account, q = self.query).execute ()
+    results = self.service.users ().messages ().list (userId = self.account, q = self.query, maxResults = limit).execute ()
     if 'messages' in results:
       yield (results['resultSizeEstimate'], results['messages'])
 
     while 'nextPageToken' in results:
       pt = results['nextPageToken']
-      results = self.service.users ().messages ().list (userId = self.account, pageToken = pt, q = self.query).execute ()
+      results = self.service.users ().messages ().list (userId = self.account, pageToken = pt, q = self.query, maxResults = limit).execute ()
 
       yield (results['resultSizeEstimate'], results['messages'])
 
