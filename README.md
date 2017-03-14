@@ -78,12 +78,12 @@ $ gmi push
 
 ```sh
 $ cd ~/.mail/account.gmail
-$ gmi push
-$ gmi pull
+$ gmi sync
 ```
 
-any conflicts detected in `gmi push` will not be pushed. After the next `gmi
-pull` has been run the conflicts should be resolved, effectively overwriting
-the local changes with the remote changes. You can force the local changes to
-overwrite the remote changes by using `gmi push -f`.
+This effectively does a `push` followed by a `pull`. Any conflicts detected
+with the remote in `push` will not be pushed. After the next `pull` has been
+run the conflicts should be resolved, overwriting the local changes with the
+remote changes. You can force the local changes to overwrite the remote changes
+by using `push -f`.
 

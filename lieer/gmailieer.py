@@ -71,6 +71,25 @@ class Gmailieer:
 
     parser_push.set_defaults (func = self.push)
 
+    # sync
+    parser_sync = subparsers.add_parser ('sync', parents = [common],
+        description = 'sync',
+        help = 'sync changes (flags have same meaning as for push and pull)')
+
+    parser_sync.add_argument ('--limit', type = int, default = None,
+        help = 'Maximum number of messages to sync, note that this may upset the tally of synchronized messages.')
+
+    parser_sync.add_argument ('-d', '--dry-run', action='store_true',
+        default = False, help = 'do not make any changes')
+
+    parser_sync.add_argument ('-f', '--force', action = 'store_true',
+        default = False, help = 'Push even when there has been remote changes, and force a full remote-to-local synchronization')
+
+    parser_sync.add_argument ('-r', '--remove', action = 'store_true',
+        default = False, help = 'Remove files locally when they have been deleted remotely (forces full sync)')
+
+    parser_sync.set_defaults (func = self.sync)
+
     # auth
     parser_auth = subparsers.add_parser ('auth', parents = [common],
         description = 'authorize',
@@ -139,13 +158,30 @@ class Gmailieer:
       self.local.load_repository ()
       self.remote = Remote (self)
 
-  def push (self, args):
+  def sync (self, args):
     self.setup (args, args.dry_run, True)
-
     self.force            = args.force
     self.limit            = args.limit
+    self.list_labels      = False
 
     self.remote.get_labels ()
+
+    # will try to push local changes, this operation should not make
+    # any changes to the local store or any of the file names.
+    self.push (args, True)
+
+    # will pull in remote changes, overwriting local changes and effectively
+    # resolving any conflicts.
+    self.pull (args, True)
+
+  def push (self, args, setup = False):
+    if not setup:
+      self.setup (args, args.dry_run, True)
+
+      self.force            = args.force
+      self.limit            = args.limit
+
+      self.remote.get_labels ()
 
     # loading local changes
     with notmuch.Database () as db:
@@ -191,22 +227,26 @@ class Gmailieer:
     if not self.dry_run and self.remote.all_updated:
       self.local.state.set_lastmod (rev)
 
-  def pull (self, args):
-    self.setup (args, args.dry_run, True)
+    print ("remote historyId: %d" % self.remote.get_current_history_id (self.local.state.last_historyId))
 
-    self.list_labels      = args.list_labels
-    self.force            = args.force
-    self.limit            = args.limit
+  def pull (self, args, setup = False):
+    if not setup:
+      self.setup (args, args.dry_run, True)
+
+      self.list_labels      = args.list_labels
+      self.force            = args.force
+      self.limit            = args.limit
+
+      self.remote.get_labels () # to make sure label map is initialized
+
     self.remove           = args.remove
 
     if self.list_labels:
       if self.remove or self.force or self.limit:
         raise argparse.ArgumentError ("-t cannot be specified together with -f, -r or --limit")
-      for l in self.remote.get_labels ().values ():
+      for l in self.remote.labels.values ():
         print (l)
       return
-
-    self.remote.get_labels () # to make sure label map is initialized
 
     if self.force:
       print ("pull: full synchronization (forced)")
