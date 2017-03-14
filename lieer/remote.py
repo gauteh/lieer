@@ -201,7 +201,11 @@ class Remote:
         os.unlink (credential_path)
 
     self.credentials = self.__get_credentials__ ()
-    self.http = self.credentials.authorize (httplib2.Http(timeout = self.gmailieer.local.state.timeout))
+
+    timeout = self.gmailieer.local.state.timeout
+    if timeout == 0: timeout = None
+
+    self.http = self.credentials.authorize (httplib2.Http(timeout = timeout))
     self.service = discovery.build ('gmail', 'v1', http = self.http)
     self.authorized = True
 

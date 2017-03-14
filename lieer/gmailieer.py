@@ -120,7 +120,7 @@ class Gmailieer:
         help = 'set options for repository')
 
     parser_set.add_argument ('-t', '--timeout', type = float,
-        default = None, help = 'Set HTTP timeout in seconds')
+        default = None, help = 'Set HTTP timeout in seconds (0 means system timeout)')
 
     parser_set.add_argument ('-a', '--account', type = str,
         default = None, help = 'Set GMail account to use (\'me\' resolves to currently logged in user)')

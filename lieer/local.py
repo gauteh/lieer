@@ -62,7 +62,7 @@ class Local:
       self.lastmod = self.json.get ('lastmod', 0)
       self.replace_slash_with_dot = self.json.get ('replace_slash_with_dot', False)
       self.account = self.json.get ('account', 'me')
-      self.timeout = self.json.get ('timeout', 5)
+      self.timeout = self.json.get ('timeout', 0)
 
     def write (self):
       self.json = {}
