@@ -49,6 +49,9 @@ class Remote:
   class BatchException (Exception):
     pass
 
+  class GenericException (Exception):
+    pass
+
   def __init__ (self, g):
     self.gmailieer = g
 
@@ -88,15 +91,11 @@ class Remote:
       if 'historyId' in results:
         return int(results['historyId'])
       else:
-        # try to get last message
-        for mset in self.all_messages (1):
-          (total, mset) = mset
-          m     = mset[0]
-          msg   = self.get_message (m['id'])
-          return int(msg['historyId'])
+        raise Remote.GenericException ("no historyId field returned")
 
     except googleapiclient.errors.HttpError:
-      # try to get last message
+      # this happens if the original historyId is too old,
+      # try to get last message and the historyId from it.
       for mset in self.all_messages (1):
         (total, mset) = mset
         m     = mset[0]
