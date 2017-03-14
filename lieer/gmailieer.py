@@ -480,12 +480,12 @@ class Gmailieer:
 
     # set notmuch lastmod time, since we have now synced everything from remote
     # to local
-
     with notmuch.Database () as db:
       (rev, uuid) = db.get_revision ()
 
     if not self.dry_run:
       self.local.state.set_lastmod (rev)
+      self.local.state.set_last_history_id (last_id)
 
     print ('current historyId: %d, current revision: %d' % (last_id, rev))
 
