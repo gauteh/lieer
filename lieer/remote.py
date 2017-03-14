@@ -85,7 +85,7 @@ class Remote:
     """
     try:
       results = self.service.users ().history ().list (userId = self.account, startHistoryId = start).execute ()
-      if 'history' in results:
+      if 'historyId' in results:
         return int(results['historyId'])
       else:
         # try to get last message
@@ -277,7 +277,7 @@ class Remote:
       hist_id = int(r['historyId'])
       if hist_id > last_hist:
         if not force:
-          print ("update: remote has changed, will not update: %s" % mid)
+          print ("update: remote has changed, will not update: %s (add: %s, rem: %s) (%d > %d)" % (mid, add, rem, hist_id, last_hist))
           self.all_updated = False
           return False
 
