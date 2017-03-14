@@ -295,15 +295,53 @@ class Remote:
     Push message changes (these are currently not batched)"
     """
 
-    add = [self.invlabels[a] for a in add]
+    _add = []
+    for a in add:
+      _a = self.invlabels.get (a, None)
+      if _a is None:
+        # label does not exist
+        (lid, ll) = self.__create_label__ (a)
+        self.labels[lid]   = ll
+        self.invlabels[ll] = lid
+        _add.append (lid)
+      else:
+        _add.append (_a)
+
+    add = _add
     rem = [self.invlabels[r] for r in rem]
 
-    body = { 'addLabelIds' : add,
+    body = { 'addLabelIds'    : add,
              'removeLabelIds' : rem }
 
     result = self.service.users ().messages ().modify (userId = self.account,
         id = mid, body = body).execute ()
 
     return result
+
+  @__require_auth__
+  def __create_label__ (self, l):
+    """
+    Creates a new label
+
+    Returns:
+
+      (labelId, label)
+
+    """
+
+    print ("push: creating label: %s.." % l)
+
+    label  = { 'messageListVisibility' : 'show',
+               'name' : l,
+               'labelListVisibility' : 'labelShow',
+               }
+
+    if not self.dry_run:
+      lr = self.service.users ().labels ().create (userId = self.account, body = label).execute ()
+
+      return (lr['id'], l)
+
+    else:
+      return (None, None)
 
 
