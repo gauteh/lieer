@@ -325,7 +325,7 @@ class Gmailieer:
       if 'messagesAdded' in h:
         for m in h['messagesAdded']:
           mm = m['message']
-          if not (set(mm['labelIds']) & self.remote.not_sync):
+          if not (set(mm.get('labelIds', [])) & self.remote.not_sync):
             remove_from_all (mm)
             added_messages.append (mm)
 
@@ -342,7 +342,7 @@ class Gmailieer:
       if 'labelsAdded' in h:
         for m in h['labelsAdded']:
           mm = m['message']
-          if not (set(mm['labelIds']) & self.remote.not_sync):
+          if not (set(mm.get('labelIds', [])) & self.remote.not_sync):
             new = remove_from_list (added_messages, mm) or not self.local.has (mm['id'])
             remove_from_list (labels_changed, mm)
             if new:
@@ -361,7 +361,7 @@ class Gmailieer:
       if 'labelsRemoved' in h:
         for m in h['labelsRemoved']:
           mm = m['message']
-          if not (set(mm['labelIds']) & self.remote.not_sync):
+          if not (set(mm.get('labelIds', [])) & self.remote.not_sync):
             new = remove_from_list (added_messages, mm) or not self.local.has (mm['id'])
             remove_from_list (labels_changed, mm)
             if new:
