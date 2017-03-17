@@ -1,5 +1,7 @@
 # gmailieer
 
+<img src="doc/demo.png">
+
 This program can pull email and labels (and changes to labels) from your GMail
 account and store them locally in a maildir with the labels synchronized with a
 [notmuch](https://notmuchmail.org/) database. The changes to tags in the
