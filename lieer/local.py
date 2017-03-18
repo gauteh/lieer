@@ -1,6 +1,7 @@
 import os
 import json
 import base64
+import configparser
 
 import notmuch
 
@@ -149,6 +150,17 @@ class Local:
       except notmuch.errors.FileError:
         raise Local.RepositoryException ("local mail repository not in notmuch db")
 
+
+    # load notmuch config
+    cfg = os.environ.get('NOTMUCH_CONFIG', os.path.expanduser('~/.notmuch-config'))
+    if not os.path.exists (cfg):
+      raise Local.RepositoryException("could not find notmuch-config: %s" % cfg)
+
+    self.nmconfig = configparser.ConfigParser ()
+    self.nmconfig.read (cfg)
+    self.new_tags = self.nmconfig['new']['tags'].split (';')
+    self.new_tags = [t.strip () for t in self.new_tags if len(t.strip()) > 0]
+
     self.loaded = True
 
 
@@ -288,6 +300,9 @@ class Local:
 
         # adding initial tags
         for t in labels:
+          nmsg.add_tag (t, True)
+
+        for t in self.new_tags:
           nmsg.add_tag (t, True)
 
         nmsg.thaw ()
