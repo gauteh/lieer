@@ -2,3 +2,6 @@
 client_secret.json
 .gmailieer.json
 mail
+build
+dist
+*.egg-info
