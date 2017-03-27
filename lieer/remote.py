@@ -221,9 +221,13 @@ class Remote:
     """
     credential_path = self.gmailieer.local.credentials_f
 
+
     store = Storage(credential_path)
     credentials = store.get()
     if not credentials or credentials.invalid:
+      if not os.path.exists (self.CLIENT_SECRET_FILE):
+        raise Remote.GenericException ("error: no secret client API key file found for authentication at: %s" % self.CLIENT_SECRET_FILE)
+
       flow = client.flow_from_clientsecrets(self.CLIENT_SECRET_FILE, self.SCOPES)
       flow.user_agent = self.APPLICATION_NAME
       credentials = tools.run_flow(flow, store, flags = self.gmailieer.args)
