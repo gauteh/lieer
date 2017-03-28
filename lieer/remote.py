@@ -14,12 +14,12 @@ class Remote:
   authorized         = False
 
   OAUTH2_CLIENT_SECRET = {
-       "client_id":"XXXX",
+       "client_id":"753933720722-ju82fu305lii0v9rdo6mf9hj40l5juv0.apps.googleusercontent.com",
         "project_id":"capable-pixel-160614",
         "auth_uri":"https://accounts.google.com/o/oauth2/auth",
         "token_uri":"https://accounts.google.com/o/oauth2/token",
         "auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs",
-        "client_secret":"YYYY",
+        "client_secret":"8oudEG0Tvb7YI2V0ykp2Pzz9",
         "redirect_uris":["urn:ietf:wg:oauth:2.0:oob", "http://localhost"]
     }
 
