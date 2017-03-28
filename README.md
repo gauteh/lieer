@@ -44,11 +44,10 @@ ignore=*.json;
 4. initialize the mail storage:
 
 ```sh
-$ gmi init -a your.email@gmail.com
-$ gmi auth -c path/to/client_secrets.json
+$ gmi init -c path/to/client_secrets.json your.email@gmail.com
 ```
 
-`gmi auth` will now open your browser and request some access to your e-mail. the access token is stored in `.credentials.gmailieer.json` in the local mail repository. you can stow `client_secrets.json` somewhere safe, it is not generally needed anymore.
+`gmi init` will now open your browser and request some access to your e-mail. the access token is stored in `.credentials.gmailieer.json` in the local mail repository. you can stow `client_secrets.json` somewhere safe, it is not generally needed anymore. if this somehow fails you can complete authorization by using `gmi auth`.
 
 5. you're now set up, and you can do the initial pull.
 

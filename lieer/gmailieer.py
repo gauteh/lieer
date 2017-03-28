@@ -103,27 +103,26 @@ class Gmailieer:
     # init
     parser_init = subparsers.add_parser ('init', parents = [common],
         description = 'initialize',
-        help = 'initialize local e-mail repository')
+        help = 'initialize local e-mail repository and authorize')
 
     parser_init.add_argument ('--replace-slash-with-dot', action = 'store_true', default = False,
         help = 'This will replace \'/\' with \'.\' in gmail labels (make sure you realize the implications)')
 
-    parser_init.add_argument ('-a', '--account', type = str, default = 'me',
-        help = 'GMail account to use (default: \'me\' which resolves to currently logged in user)')
+    parser_init.add_argument ('--no-auth', action = 'store_true', default = False,
+        help = 'Do not immediately authorize as well (you will need to run \'auth\' afterwards)')
+
+    parser_init.add_argument ('account', type = str, help = 'GMail account to use')
 
     parser_init.set_defaults (func = self.initialize)
 
 
     # set option
-    parser_set = subparsers.add_parser ('set', parents = [common],
+    parser_set = subparsers.add_parser ('set',
         description = 'set option',
         help = 'set options for repository')
 
     parser_set.add_argument ('-t', '--timeout', type = float,
         default = None, help = 'Set HTTP timeout in seconds (0 means system timeout)')
-
-    parser_set.add_argument ('-a', '--account', type = str,
-        default = None, help = 'Set GMail account to use (\'me\' resolves to currently logged in user)')
 
     parser_set.add_argument ('--replace-slash-with-dot', action = 'store_true', default = False,
         help = 'This will replace \'/\' with \'.\' in gmail labels (make sure you realize the implications)')
@@ -139,6 +138,22 @@ class Gmailieer:
   def initialize (self, args):
     self.setup (args, False)
     self.local.initialize_repository (args.replace_slash_with_dot, args.account)
+
+    if not args.no_auth:
+      self.local.load_repository ()
+      self.remote = Remote (self)
+
+      try:
+        self.remote.authorize ()
+      except:
+        print ("")
+        print ("")
+        print ("init: repository is set up, but authorization failed. re-run 'gmi auth' with proper parameters to complete authorization")
+        print ("")
+        print ("")
+        print ("")
+        print ("")
+        raise
 
   def authorize (self, args):
     print ("authorizing..")
@@ -548,13 +563,11 @@ class Gmailieer:
     return need_content
 
   def set (self, args):
+    args.credentials = '' # for setup()
     self.setup (args, False, True)
 
     if args.timeout is not None:
       self.local.state.set_timeout (args.timeout)
-
-    if args.account is not None:
-      self.local.state.set_account (args.account)
 
     if args.replace_slash_with_dot:
       self.local.state.set_replace_slash_with_dot (args.replace_slash_with_dot)
