@@ -13,6 +13,16 @@ class Remote:
   CLIENT_SECRET_FILE = None
   authorized         = False
 
+  OAUTH2_CLIENT_SECRET = {
+       "client_id":"XXXX",
+        "project_id":"capable-pixel-160614",
+        "auth_uri":"https://accounts.google.com/o/oauth2/auth",
+        "token_uri":"https://accounts.google.com/o/oauth2/token",
+        "auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs",
+        "client_secret":"YYYY",
+        "redirect_uris":["urn:ietf:wg:oauth:2.0:oob", "http://localhost"]
+    }
+
   special_labels = [  'INBOX',
                       'SPAM',
                       'TRASH',
@@ -257,12 +267,32 @@ class Remote:
     store = Storage(credential_path)
     credentials = store.get()
     if not credentials or credentials.invalid:
-      if not os.path.exists (self.CLIENT_SECRET_FILE):
-        raise Remote.GenericException ("error: no secret client API key file found for authentication at: %s" % self.CLIENT_SECRET_FILE)
+      if self.CLIENT_SECRET_FILE is not None:
+        # use user-provided client_secret
+        print ("auth: using user-provided api id and secret")
+        if not os.path.exists (self.CLIENT_SECRET_FILE):
+          raise Remote.GenericException ("error: no secret client API key file found for authentication at: %s" % self.CLIENT_SECRET_FILE)
 
-      flow = client.flow_from_clientsecrets(self.CLIENT_SECRET_FILE, self.SCOPES)
-      flow.user_agent = self.APPLICATION_NAME
-      credentials = tools.run_flow(flow, store, flags = self.gmailieer.args)
+        flow = client.flow_from_clientsecrets(self.CLIENT_SECRET_FILE, self.SCOPES)
+        flow.user_agent = self.APPLICATION_NAME
+        credentials = tools.run_flow(flow, store, flags = self.gmailieer.args)
+
+      else:
+        # use default id and secret
+        client_id     = self.OAUTH2_CLIENT_SECRET['client_id']
+        client_secret = self.OAUTH2_CLIENT_SECRET['client_secret']
+        redirect_uri  = self.OAUTH2_CLIENT_SECRET['redirect_uris']
+        user_agent    = self.APPLICATION_NAME
+        auth_uri      = self.OAUTH2_CLIENT_SECRET['auth_uri']
+        token_uri     = self.OAUTH2_CLIENT_SECRET['token_uri']
+
+        flow = client.OAuth2WebServerFlow(client_id, client_secret, self.SCOPES,
+                                       redirect_uri=redirect_uri,
+                                       user_agent=user_agent,
+                                       auth_uri=auth_uri,
+                                       token_uri=token_uri)
+        credentials = tools.run_flow(flow, store, flags = self.gmailieer.args)
+
       print('credentials stored in ' + credential_path)
     return credentials
 

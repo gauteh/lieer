@@ -20,13 +20,11 @@ warranties.**
 
 # usage
 
-this assumes your root mail folder is in `~/.mail`, all `gmailieer` commands
-should be run from the `gmailieer` storage unless otherwise specified.
+This assumes your root mail folder is in `~/.mail`, all commands
+should be run from the local mail repository unless otherwise specified.
 
-1. get an [api key](https://console.developers.google.com/flows/enableapi?apiid=gmail) for a CLI application and store the client_secret.json file
-   somewhere safe, this is needed when authenticating (`auth -c`).
 
-2. make a directory for the gmailieer storage and state files
+1. Make a directory for the gmailieer storage and state files
 
 ```sh
 $ cd    ~/.mail
@@ -34,22 +32,24 @@ $ mkdir account.gmail
 $ cd    account.gmail/
 ```
 
-3. ignore the `.json` files in notmuch:
+2. Ignore the `.json` files in notmuch:
 
 ```
 [new]
 ignore=*.json;
 ```
 
-4. initialize the mail storage:
+3. Initialize the mail storage:
 
 ```sh
-$ gmi init -c path/to/client_secrets.json your.email@gmail.com
+$ gmi init your.email@gmail.com
 ```
 
-`gmi init` will now open your browser and request some access to your e-mail. the access token is stored in `.credentials.gmailieer.json` in the local mail repository. you can stow `client_secrets.json` somewhere safe, it is not generally needed anymore. if this somehow fails you can complete authorization by using `gmi auth`.
+`gmi init` will now open your browser and request limited access to your e-mail.
 
-5. you're now set up, and you can do the initial pull.
+> The access token is stored in `.credentials.gmailieer.json` in the local mail repository. If you wish, you can specify [your own api key](#using-your-own-api-key) that should be used.
+
+4. You're now set up, and you can do the initial pull.
 
 > Use `gmi -h` or `gmi command -h` to get more usage information.
 
@@ -86,4 +86,11 @@ with the remote in `push` will not be pushed. After the next `pull` has been
 run the conflicts should be resolved, overwriting the local changes with the
 remote changes. You can force the local changes to overwrite the remote changes
 by using `push -f`.
+
+## using your own API key
+
+gmailieer ships with an API key that is shared openly, this key shares API quota, but [cannot be used to access data](https://github.com/gauteh/gmailieer/pull/9) unless access is gained to your private `access_token` or `refresh_token`.
+
+You can get an [api key](https://console.developers.google.com/flows/enableapi?apiid=gmail) for a CLI application to use for yourself. Store the `client_secret.json` file somewhere safe and specify it to `gmi auth -c`. You can do this on a repository that is already initialized.
+
 

@@ -24,8 +24,8 @@ class Gmailieer:
     self.parser = parser
 
     common = argparse.ArgumentParser (add_help = False)
-    common.add_argument ('-c', '--credentials', type = str, default = 'client_secret.json',
-        help = 'credentials file for google api (default: client_secret.json)')
+    common.add_argument ('-c', '--credentials', type = str, default = None,
+        help = 'optional credentials file for google api')
 
     subparsers = parser.add_subparsers (help = 'actions', dest = 'action')
     subparsers.required = True
