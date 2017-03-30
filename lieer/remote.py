@@ -148,7 +148,8 @@ class Remote:
     i       = 0
     j       = 0
 
-    user_rate_delay    = 2
+    user_rate_delay     = 2
+    user_rate_ok        = 0
 
     def _cb (rid, resp, excep):
       nonlocal j
@@ -183,11 +184,35 @@ class Remote:
         i += 1
 
       try:
+        # we wait if there is a user_rate_delay
+        if user_rate_delay > 0:
+          if user_rate_ok > 10:
+            # gradually reduce if we had 10 ok batches
+            if user_rate_delay == 2:
+              user_rate_delay = 0
+            else:
+              user_rate_delay = user_rate_delay / 2
+              user_rate_ok    = 0
+
+          if user_rate_delay > 0:
+            time.sleep (user_rate_delay)
+
+
         batch.execute (http = self.http)
 
+        user_rate_ok += 1
+
       except Remote.UserRateException as ex:
-        print ("remote: user rate error, waiting %.1f seconds..")
+        print ("remote: user rate error, waiting %.1f seconds.." % user_rate_delay)
+
+        if user_rate_delay == 0:
+          user_rate_delay = 2
+        else:
+          user_rate_delay = user_rate_delay * 2
+
+        user_rate_ok = 0
         time.sleep (user_rate_delay)
+
         i = j # reset
 
       except Remote.BatchException as ex:
