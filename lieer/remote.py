@@ -1,4 +1,5 @@
 import os
+import time
 import httplib2
 import googleapiclient
 from apiclient import discovery
@@ -47,6 +48,9 @@ class Remote:
   all_updated = True
 
   class BatchException (Exception):
+    pass
+
+  class UserRateException (Exception):
     pass
 
   class GenericException (Exception):
@@ -144,6 +148,8 @@ class Remote:
     i       = 0
     j       = 0
 
+    user_rate_delay    = 2
+
     def _cb (rid, resp, excep):
       nonlocal j
       if excep is not None:
@@ -153,6 +159,10 @@ class Remote:
           print ("remote: could not find remote message: %s!" % mids[j])
           j += 1
           return
+
+        elif type(excep) is googleapiclient.errors.HttpError and excep.resp.status == 403:
+          raise Remote.UserRateException (excep)
+
         else:
           raise Remote.BatchException(excep)
       else:
@@ -174,6 +184,12 @@ class Remote:
 
       try:
         batch.execute (http = self.http)
+
+      except Remote.UserRateException as ex:
+        print ("remote: user rate error, waiting %.1f seconds..")
+        time.sleep (user_rate_delay)
+        i = j # reset
+
       except Remote.BatchException as ex:
         if max_req > 10:
           max_req = max_req / 2
