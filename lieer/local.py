@@ -295,7 +295,11 @@ class Local:
       if self.dry_run:
         print ("(dry-run) adding message: %s: %s, with tags: %s" % (mid, fname, str(labels)))
       else:
-        (nmsg, stat) = db.add_message (fname, True)
+        try:
+          (nmsg, stat) = db.add_message (fname, True)
+        except notmuch.errors.FileNotEmailError:
+          print('%s is not an email' % fname)
+          return True
         nmsg.freeze ()
 
         # adding initial tags
