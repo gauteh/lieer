@@ -296,6 +296,11 @@ class Local:
         print ("(dry-run) adding message: %s: %s, with tags: %s" % (mid, fname, str(labels)))
       else:
         (nmsg, stat) = db.add_message (fname, True)
+
+        if nmsg is None:
+          print ("error: failed to add message: %s to database" % fname)
+          raise Local.RepositoryException ("failed to add message: %s to database" % fname)
+
         nmsg.freeze ()
 
         # adding initial tags
