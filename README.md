@@ -11,12 +11,23 @@ It will and can not:
 * Add or delete messages on your remote account
 * Modify messages other than their labels
 
-# disclaimer
+## disclaimer
 
 This does not modify or delete your email remotely, but it can modify the
 message labels remotely. So those may be lost if all goes wrong. Also, whether
 you will actually get all your email is not proven. **In short: No
 warranties.**
+
+## requirements
+
+* Python 3
+* `tqdm`
+* `google_api_python_client` (sometimes `google-api-python-client`)
+* `oauth2client`
+
+## installation
+
+After cloning this repository, symlink `gmi` to somewhere on your path, or use `python setup.py`.
 
 # usage
 
