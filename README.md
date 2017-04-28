@@ -43,10 +43,11 @@ $ mkdir account.gmail
 $ cd    account.gmail/
 ```
 
-2. Ignore the `.json` files in notmuch:
+2. Ignore the `.json` files in notmuch and use `new` for [new tags](https://notmuchmail.org/initial_tagging/). Set up a `post-new` hook as described which removes this tag afterwards, or processes mail from other accounts than gmailieer. The `new` tag is ignored by `gmailieer`.
 
 ```
 [new]
+tags=new
 ignore=*.json;
 ```
 
