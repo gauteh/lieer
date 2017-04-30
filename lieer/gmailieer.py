@@ -545,7 +545,7 @@ class Gmailieer:
 
     if len (need_content) > 0:
 
-      bar = tqdm (leave = True, total = len(need_content), desc = 'receiving content ')
+      bar = tqdm (leave = True, total = len(need_content), desc = 'receiving content')
 
       def _got_msg (m):
         bar.update (1)
