@@ -6,6 +6,7 @@ from apiclient import discovery
 from oauth2client import client
 from oauth2client import tools
 from oauth2client.file import Storage
+from pathlib import Path
 
 class Remote:
   SCOPES = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/gmail.modify'
@@ -302,62 +303,84 @@ class Remote:
     Gets a message and checks which labels it should add and which to delete.
     """
 
-    # get gmail id
-    fname = m.get_filename ()
-    mid   = os.path.basename (fname).split (':')[0]
+    ret = False
 
-    # first get message and figure out what labels it has now
-    r = self.get_message (mid)
-    labels = r.get('labelIds', [])
-    labels = [self.labels[l] for l in labels]
+    # DUPLICATES:
+    #
+    # there might be duplicate messages across gmail accounts with the same
+    # message id, messages outside the repository are skipped. if there are
+    # duplicate messages in the same account they are all updated. if one of
+    # them is changed remotely it will not be updated, any changes on it will
+    # then be pulled back on next pull overwriting the changes that might have
+    # been pushed on another duplicate. this will again trigger a change on the
+    # next push for the other duplicates. after the 2nd pull things should
+    # settle unless there's been any local changes.
+    #
+    # the return value is true if a message has been changed, even if not all have been updated.
 
-    # remove ignored labels
-    labels = set (labels)
-    labels = labels - self.ignore_labels
+    for fname in m.get_filenames ():
+      if not Path(self.gmailieer.local.md) in Path(fname).parents:
+        print ("update: '%s' is not in this repository, ignoring." % fname)
 
-    # translate to notmuch tags
-    labels = [self.gmailieer.local.translate_labels.get (l, l) for l in labels]
-
-    # this is my weirdness
-    if self.gmailieer.local.state.replace_slash_with_dot:
-      labels = [l.replace ('/', '.') for l in labels]
-
-    labels = set(labels)
-
-    # current tags
-    tags = set(m.get_tags ())
-
-    # remove special notmuch tags
-    tags = tags - self.gmailieer.local.ignore_labels
-
-    add = list((tags - labels) - self.read_only_tags)
-    rem = list((labels - tags) - self.read_only_tags)
-
-    # translate back to gmail labels
-    add = [self.gmailieer.local.labels_translate.get (k, k) for k in add]
-    rem = [self.gmailieer.local.labels_translate.get (k, k) for k in rem]
-
-    if self.gmailieer.local.state.replace_slash_with_dot:
-      add = [a.replace ('.', '/') for a in add]
-      rem = [r.replace ('.', '/') for r in rem]
-
-    if len(add) > 0 or len(rem) > 0:
-      # check if this message has been changed remotely since last pull
-      hist_id = int(r['historyId'])
-      if hist_id > last_hist:
-        if not force:
-          print ("update: remote has changed, will not update: %s (add: %s, rem: %s) (%d > %d)" % (mid, add, rem, hist_id, last_hist))
-          self.all_updated = False
-          return False
-
-      if self.dry_run:
-        print ("(dry-run) mid: %s: add: %s, remove: %s" % (mid, str(add), str(rem)))
       else:
-        self.__push_tags__ (mid, add, rem)
+        # get gmail id
+        mid   = os.path.basename (fname).split (':')[0]
 
-      return True
-    else:
-      return False
+        # first get message and figure out what labels it has now
+        r = self.get_message (mid)
+        labels = r.get('labelIds', [])
+        labels = [self.labels[l] for l in labels]
+
+        # remove ignored labels
+        labels = set (labels)
+        labels = labels - self.ignore_labels
+
+        # translate to notmuch tags
+        labels = [self.gmailieer.local.translate_labels.get (l, l) for l in labels]
+
+        # this is my weirdness
+        if self.gmailieer.local.state.replace_slash_with_dot:
+          labels = [l.replace ('/', '.') for l in labels]
+
+        labels = set(labels)
+
+        # current tags
+        tags = set(m.get_tags ())
+
+        # remove special notmuch tags
+        tags = tags - self.gmailieer.local.ignore_labels
+
+        add = list((tags - labels) - self.read_only_tags)
+        rem = list((labels - tags) - self.read_only_tags)
+
+        # translate back to gmail labels
+        add = [self.gmailieer.local.labels_translate.get (k, k) for k in add]
+        rem = [self.gmailieer.local.labels_translate.get (k, k) for k in rem]
+
+        if self.gmailieer.local.state.replace_slash_with_dot:
+          add = [a.replace ('.', '/') for a in add]
+          rem = [r.replace ('.', '/') for r in rem]
+
+        if len(add) > 0 or len(rem) > 0:
+          # check if this message has been changed remotely since last pull
+          hist_id = int(r['historyId'])
+          if hist_id > last_hist:
+            if not force:
+              print ("update: remote has changed, will not update: %s (add: %s, rem: %s) (%d > %d)" % (mid, add, rem, hist_id, last_hist))
+              self.all_updated = False
+              # ret = False
+
+          if self.dry_run:
+            print ("(dry-run) mid: %s: add: %s, remove: %s" % (mid, str(add), str(rem)))
+          else:
+            self.__push_tags__ (mid, add, rem)
+
+          ret = True
+        else:
+          pass
+          # ret = False
+
+    return ret
 
   @__require_auth__
   def __push_tags__ (self, mid, add, rem):
