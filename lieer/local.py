@@ -31,6 +31,8 @@ class Local:
                         'new',
                         'passed',
                         'replied',
+                        'muted',
+                        'mute',
                         ])
 
   class RepositoryException (Exception):
