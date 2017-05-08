@@ -58,6 +58,12 @@ class Remote:
   # used to indicate whether all messages that should be updated where updated
   all_updated = True
 
+  # Handle exponential back-offs in get_message and __push_tags__. get_messages implements
+  # its own.
+  _delay     = 0
+  MAX_DELAY  = 100
+  _delay_ok  = 0
+
   class BatchException (Exception):
     pass
 
@@ -82,6 +88,30 @@ class Remote:
         self.authorize ()
       return func (self, *args, **kwargs)
     return func_wrap
+
+  def __wait_delay__ (self):
+    if self._delay:
+      time.sleep (self._delay)
+
+  def __request_done__ (self, success):
+    if success:
+      if self._delay:
+        if self._delay_ok > 10:
+          # after 10 good requests, reduce request delay
+          self._delay    = self._delay // 2
+          self._delay_ok = 0
+        else:
+          self._delay_ok += 1
+    else:
+      self._delay    = self._delay * 2 + 1
+      self._delay_ok = 0
+      if self._delay <= self.MAX_DELAY:
+        print ("remote: request failed, increasing delay between requests to: %d s" % self._delay)
+      else:
+        print ("remote: increased delay to more than maximum of %d s." % self.MAX_DELAY)
+        raise GenericException ("cannot increase delay more to more than maximum %d s" % self.MAX_DELAY)
+
+
 
   @__require_auth__
   def get_labels (self):
@@ -231,10 +261,19 @@ class Remote:
     """
     Get a single message
     """
-    result = self.service.users ().messages ().get (userId = self.account,
-        id = mid, format = format).execute ()
-    return result
+    self.__wait_delay__ ()
+    try:
+      result = self.service.users ().messages ().get (userId = self.account,
+          id = mid, format = format).execute ()
 
+    except googleapiclient.errors.HttpError as excep:
+      if excep.resp.code == 403 or excep.resp.code == 500:
+        self.__request_done__ (False)
+        return self.get_message (mid, format)
+
+    self.__request_done__ (True)
+
+    return result
 
   def authorize (self, reauth = False):
     if reauth:
@@ -400,14 +439,22 @@ class Remote:
       else:
         _add.append (_a)
 
-    add = _add
-    rem = [self.invlabels[r] for r in rem]
+    _rem = [self.invlabels[r] for r in rem]
 
-    body = { 'addLabelIds'    : add,
-             'removeLabelIds' : rem }
+    body = { 'addLabelIds'    : _add,
+             'removeLabelIds' : _rem }
 
-    result = self.service.users ().messages ().modify (userId = self.account,
-        id = mid, body = body).execute ()
+    self.__wait_delay__ ()
+    try:
+      result = self.service.users ().messages ().modify (userId = self.account,
+          id = mid, body = body).execute ()
+
+    except googleapiclient.errors.HttpError as excep:
+      if excep.resp.code == 403 or excep.resp.code == 500:
+        self.__request_done__ (False)
+        return self.__push_tags__ (mid, add, rem)
+
+    self.__request_done__ (True)
 
     return result
 
