@@ -534,9 +534,18 @@ class Remote:
                }
 
     if not self.dry_run:
-      lr = self.service.users ().labels ().create (userId = self.account, body = label).execute ()
+      self.__wait_delay__ ()
+      try:
+        lr = self.service.users ().labels ().create (userId = self.account, body = label).execute ()
 
-      return (lr['id'], l)
+        return (lr['id'], l)
+
+      except googleapiclient.errors.HttpError as excep:
+        if excep.resp.code == 403 or excep.resp.code == 500:
+          self.__request_done__ (False)
+          return self.__create_label__ (l)
+
+      self.__request_done__ (True)
 
     else:
       return (None, None)
