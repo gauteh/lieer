@@ -337,12 +337,11 @@ class Remote:
     return credentials
 
   @__require_auth__
-  def update (self, m, last_hist, force):
+  def update (self, gmsg, nmsg, last_hist, force):
     """
-    Gets a message and checks which labels it should add and which to delete.
+    Gets a message and checks which labels it should add and which to delete, returns a
+    operation which can be submitted in a batch.
     """
-
-    ret = False
 
     # DUPLICATES:
     #
@@ -355,71 +354,65 @@ class Remote:
     # next push for the other duplicates. after the 2nd pull things should
     # settle unless there's been any local changes.
     #
-    # the return value is true if a message has been changed, even if not all have been updated.
 
-    for fname in m.get_filenames ():
-      if not Path(self.gmailieer.local.md) in Path(fname).parents:
-        print ("update: '%s' is not in this repository, ignoring." % fname)
+    found = False
+    for f in nmsg.get_filenames ():
+      if gmsg['id'] in f:
+        found = True
 
+    assert found == True, "remote: update: gid does not match any file name of message"
+
+    mid    = gmsg['id']
+    labels = gmsg.get('labelIds', [])
+    labels = [self.labels[l] for l in labels]
+
+    # remove ignored labels
+    labels = set (labels)
+    labels = labels - self.ignore_labels
+
+    # translate to notmuch tags
+    labels = [self.gmailieer.local.translate_labels.get (l, l) for l in labels]
+
+    # this is my weirdness
+    if self.gmailieer.local.state.replace_slash_with_dot:
+      labels = [l.replace ('/', '.') for l in labels]
+
+    labels = set(labels)
+
+    # current tags
+    tags = set(nmsg.get_tags ())
+
+    # remove special notmuch tags
+    tags = tags - self.gmailieer.local.ignore_labels
+
+    add = list((tags - labels) - self.read_only_tags)
+    rem = list((labels - tags) - self.read_only_tags)
+
+    # translate back to gmail labels
+    add = [self.gmailieer.local.labels_translate.get (k, k) for k in add]
+    rem = [self.gmailieer.local.labels_translate.get (k, k) for k in rem]
+
+    if self.gmailieer.local.state.replace_slash_with_dot:
+      add = [a.replace ('.', '/') for a in add]
+      rem = [r.replace ('.', '/') for r in rem]
+
+    if len(add) > 0 or len(rem) > 0:
+      # check if this message has been changed remotely since last pull
+      hist_id = int(gmsg['historyId'])
+      if hist_id > last_hist:
+        if not force:
+          print ("update: remote has changed, will not update: %s (add: %s, rem: %s) (%d > %d)" % (mid, add, rem, hist_id, last_hist))
+          self.all_updated = False
+          return None
+
+      if self.dry_run:
+        print ("(dry-run) mid: %s: add: %s, remove: %s" % (mid, str(add), str(rem)))
+        return None
       else:
-        # get gmail id
-        mid   = os.path.basename (fname).split (':')[0]
+        return self.__push_tags__ (mid, add, rem)
 
-        # first get message and figure out what labels it has now
-        r = self.get_message (mid)
-        labels = r.get('labelIds', [])
-        labels = [self.labels[l] for l in labels]
-
-        # remove ignored labels
-        labels = set (labels)
-        labels = labels - self.ignore_labels
-
-        # translate to notmuch tags
-        labels = [self.gmailieer.local.translate_labels.get (l, l) for l in labels]
-
-        # this is my weirdness
-        if self.gmailieer.local.state.replace_slash_with_dot:
-          labels = [l.replace ('/', '.') for l in labels]
-
-        labels = set(labels)
-
-        # current tags
-        tags = set(m.get_tags ())
-
-        # remove special notmuch tags
-        tags = tags - self.gmailieer.local.ignore_labels
-
-        add = list((tags - labels) - self.read_only_tags)
-        rem = list((labels - tags) - self.read_only_tags)
-
-        # translate back to gmail labels
-        add = [self.gmailieer.local.labels_translate.get (k, k) for k in add]
-        rem = [self.gmailieer.local.labels_translate.get (k, k) for k in rem]
-
-        if self.gmailieer.local.state.replace_slash_with_dot:
-          add = [a.replace ('.', '/') for a in add]
-          rem = [r.replace ('.', '/') for r in rem]
-
-        if len(add) > 0 or len(rem) > 0:
-          # check if this message has been changed remotely since last pull
-          hist_id = int(r['historyId'])
-          if hist_id > last_hist:
-            if not force:
-              print ("update: remote has changed, will not update: %s (add: %s, rem: %s) (%d > %d)" % (mid, add, rem, hist_id, last_hist))
-              self.all_updated = False
-              # ret = False
-
-          if self.dry_run:
-            print ("(dry-run) mid: %s: add: %s, remove: %s" % (mid, str(add), str(rem)))
-          else:
-            self.__push_tags__ (mid, add, rem)
-
-          ret = True
-        else:
-          pass
-          # ret = False
-
-    return ret
+    else:
+      return None
 
   @__require_auth__
   def __push_tags__ (self, mid, add, rem):
@@ -444,19 +437,83 @@ class Remote:
     body = { 'addLabelIds'    : _add,
              'removeLabelIds' : _rem }
 
-    self.__wait_delay__ ()
-    try:
-      result = self.service.users ().messages ().modify (userId = self.account,
-          id = mid, body = body).execute ()
+    return self.service.users ().messages ().modify (userId = self.account,
+          id = mid, body = body)
 
-    except googleapiclient.errors.HttpError as excep:
-      if excep.resp.code == 403 or excep.resp.code == 500:
-        self.__request_done__ (False)
-        return self.__push_tags__ (mid, add, rem)
+  @__require_auth__
+  def push_changes (self, actions, cb):
+    """
+    Push label changes
+    """
+    max_req = 200
+    N       = len (actions)
+    i       = 0
+    j       = 0
 
-    self.__request_done__ (True)
+    # How much to wait before contacting the remote.
+    user_rate_delay     = 0
+    # How many requests with the current delay returned ok.
+    user_rate_ok        = 0
 
-    return result
+    def _cb (rid, resp, excep):
+      nonlocal j
+      if excep is not None:
+        if type(excep) is googleapiclient.errors.HttpError and excep.resp.status == 404:
+          # message could not be found this is probably a deleted message, spam or draft
+          # message since these are not included in the messages.get() query by default.
+          print ("remote: could not find remote message: %s!" % mids[j])
+          j += 1
+          return
+
+        elif type(excep) is googleapiclient.errors.HttpError and excep.resp.status == 403:
+          raise Remote.UserRateException (excep)
+
+        else:
+          raise Remote.BatchException(excep)
+      else:
+        j += 1
+
+      cb (resp)
+
+    while i < N:
+      n = 0
+      j = i
+      batch = self.service.new_batch_http_request  (callback = _cb)
+
+      while n < max_req and i < N:
+        a = actions[i]
+        batch.add (a)
+        n += 1
+        i += 1
+
+      # we wait if there is a user_rate_delay
+      if user_rate_delay:
+        print ("remote: waiting %.1f seconds.." % user_rate_delay)
+        time.sleep (user_rate_delay)
+
+      try:
+        batch.execute (http = self.http)
+
+        # gradually reduce if we had 10 ok batches
+        user_rate_ok += 1
+        if user_rate_ok > 10:
+          user_rate_delay = user_rate_delay // 2
+          user_rate_ok    = 0
+
+      except Remote.UserRateException as ex:
+        user_rate_delay = user_rate_delay * 2 + 1
+        print ("remote: user rate error, increasing delay to %s" % user_rate_delay)
+        user_rate_ok = 0
+
+        i = j # reset
+
+      except Remote.BatchException as ex:
+        if max_req > 10:
+          max_req = max_req / 2
+          i = j # reset
+          print ("reducing batch request size to: %d" % max_req)
+        else:
+          raise Remote.BatchException ("cannot reduce request any further")
 
   @__require_auth__
   def __create_label__ (self, l):

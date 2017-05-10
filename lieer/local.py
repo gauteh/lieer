@@ -2,6 +2,7 @@ import os
 import json
 import base64
 import configparser
+from pathlib import Path
 
 import notmuch
 
@@ -189,6 +190,23 @@ class Local:
 
   def has (self, m):
     return m in self.mids
+
+  def fnames_to_gids (self, msgs):
+    gids     = []
+    messages = []
+
+    for m in msgs:
+      for fname in m.get_filenames ():
+        if not Path(self.gmailieer.local.md) in Path(fname).parents:
+          print ("'%s' is not in this repository, ignoring." % fname)
+        else:
+          # get gmail id
+          mid = os.path.basename (fname).split (':')[0]
+          gids.append (mid)
+          messages.append (m)
+
+    return (messages, gids)
+
 
   def __make_maildir_name__ (self, m, labels):
     # http://cr.yp.to/proto/maildir.html

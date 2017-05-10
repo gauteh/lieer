@@ -217,23 +217,58 @@ class Gmailieer:
       if self.limit is not None and len(messages) > self.limit:
         messages = messages[:self.limit]
 
-      # push changes
-      bar = tqdm (leave = True, total = len(messages), desc = 'pushing, 0 changed')
-      changed = 0
-      for m in messages:
-        r = self.remote.update (m, self.local.state.last_historyId, self.force)
-        if r:
-          changed += 1
-          bar.set_description ('pushing, %d changed' % changed)
+      # get gids and filter out messages outside this repository
+      messages, gids = self.local.fnames_to_gids (messages)
+
+      # get meta-data on changed messages from remote
+      remote_messages = []
+      bar = tqdm (leave = True, total = len(gids), desc = 'receiving metadata')
+
+      def _got_msg (m):
+        bar.update (1)
+        remote_messages.append (m)
+
+      self.remote.get_messages (gids, _got_msg, 'minimal')
+      bar.close ()
+
+      # resolve changes
+      bar = tqdm (leave = True, total = len(gids), desc = 'resolving changes')
+      actions = []
+      for rm, nm in zip(remote_messages, messages):
+        actions.append (self.remote.update (rm, nm, self.local.state.last_historyId, self.force))
         bar.update (1)
 
       bar.close ()
+
+      # remove no-ops
+      actions = [a for a in actions if a]
+
+      # limit
+      if self.limit is not None and len(actions) >= self.limit:
+        actions = actions[:self.limit]
+
+      # push changes
+      if len(actions) > 0:
+        bar = tqdm (leave = True, total = len(actions), desc = 'pushing, 0 changed')
+        changed = 0
+
+        def cb (resp):
+          nonlocal changed
+          bar.update (1)
+          changed += 1
+          bar.set_description ('pushing, %d changed' % changed)
+
+        self.remote.push_changes (actions, cb)
+
+        bar.close ()
+      else:
+        print ('push: nothing to push')
 
     if not self.remote.all_updated:
       # will not set last_mod, this forces messages to be pushed again at next push
       print ("push: not all changes could be pushed, will re-try at next push.")
     else:
-      # TODO: Once I get more confident we might set the last history Id here to
+      # TODO: Once we get more confident we might set the last history Id here to
       # avoid pulling back in the changes we just pushed. Currently there's a race
       # if something is modified remotely (new email, changed tags), so this might
       # not really be possible.
