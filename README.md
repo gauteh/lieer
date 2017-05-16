@@ -7,7 +7,7 @@ account and store them locally in a maildir with the labels synchronized with a
 [notmuch](https://notmuchmail.org/) database. The changes to tags in the
 notmuch database may be pushed back remotely to your GMail account.
 
-It will and can not:
+It will not and can not:
 * Add or delete messages on your remote account
 * Modify messages other than their labels
 
