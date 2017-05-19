@@ -332,11 +332,15 @@ class Gmailieer:
         if self.limit is not None and len(history) >= self.limit:
           break
 
-    except googleapiclient.errors.HttpError:
+    except googleapiclient.errors.HttpError as excep:
       if bar is not None: bar.close ()
-      print ("pull: historyId is too old, full sync required.")
-      self.full_pull ()
-      return
+
+      if excep.resp.code == 404:
+        print ("pull: historyId is too old, full sync required.")
+        self.full_pull ()
+        return
+      else:
+        raise
 
     if bar is not None: bar.close ()
 
