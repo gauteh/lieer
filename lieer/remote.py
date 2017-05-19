@@ -270,6 +270,8 @@ class Remote:
       if excep.resp.code == 403 or excep.resp.code == 500:
         self.__request_done__ (False)
         return self.get_message (mid, format)
+      else:
+        raise
 
     self.__request_done__ (True)
 
@@ -544,6 +546,8 @@ class Remote:
         if excep.resp.code == 403 or excep.resp.code == 500:
           self.__request_done__ (False)
           return self.__create_label__ (l)
+        else:
+          raise
 
       self.__request_done__ (True)
 
