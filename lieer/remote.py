@@ -160,7 +160,11 @@ class Remote:
       pt = results['nextPageToken']
       results = self.service.users ().history ().list (userId = self.account, startHistoryId = start, pageToken = pt).execute ()
 
-      yield results['history']
+      if 'history' in results:
+        yield results['history']
+      else:
+        raise Remote.GenericException ("no 'history' record returned, even though several pages were indicated.")
+
 
 
   @__require_auth__
