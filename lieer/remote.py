@@ -361,14 +361,19 @@ class Remote:
     # settle unless there's been any local changes.
     #
 
+    mid    = gmsg['id']
+
     found = False
     for f in nmsg.get_filenames ():
-      if gmsg['id'] in f:
+      if mid in f:
         found = True
 
-    assert found == True, "remote: update: gid does not match any file name of message"
+    # this can happen if a draft is edited remotely and is synced before it is sent. we'll
+    # just skip it and it should be resolved on the next pull.
+    if not found:
+      print ("update: gid does not match any file name of message, probably a draft, skipping: %s" % mid)
+      return None
 
-    mid    = gmsg['id']
     labels = gmsg.get('labelIds', [])
     labels = [self.labels[l] for l in labels]
 
