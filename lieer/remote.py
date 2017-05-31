@@ -152,35 +152,54 @@ class Remote:
     """
     Get all changed since start historyId
     """
+    self.__wait_delay__ ()
     results = self.service.users ().history ().list (userId = self.account, startHistoryId = start).execute ()
     if 'history' in results:
+      self.__request_done__ (True)
       yield results['history']
+
+    # no history field means that there is no history
 
     while 'nextPageToken' in results:
       pt = results['nextPageToken']
-      results = self.service.users ().history ().list (userId = self.account, startHistoryId = start, pageToken = pt).execute ()
 
-      if 'history' in results:
+      self.__wait_delay__ ()
+      _results = self.service.users ().history ().list (userId = self.account, startHistoryId = start, pageToken = pt).execute ()
+
+      if 'history' in _results:
+        self.__request_done__ (True)
+        results = _results
         yield results['history']
       else:
-        raise Remote.GenericException ("no 'history' record returned, even though several pages were indicated.")
-
-
+        print ("remote: no 'history' when several pages were indicated, waiting..")
+        self.__request_done__ (False)
 
   @__require_auth__
   def all_messages (self, limit = None):
     """
     Get a list of all messages
     """
+
+    self.__wait_delay__ ()
     results = self.service.users ().messages ().list (userId = self.account, q = self.query, maxResults = limit).execute ()
+
     if 'messages' in results:
+      self.__request_done__ (True)
       yield (results['resultSizeEstimate'], results['messages'])
+
+    # no messages field presumably means no messages
 
     while 'nextPageToken' in results:
       pt = results['nextPageToken']
-      results = self.service.users ().messages ().list (userId = self.account, pageToken = pt, q = self.query, maxResults = limit).execute ()
+      _results = self.service.users ().messages ().list (userId = self.account, pageToken = pt, q = self.query, maxResults = limit).execute ()
 
-      yield (results['resultSizeEstimate'], results['messages'])
+      if 'messages' in _results:
+        self.__request_done__ (True)
+        results = _results
+        yield (results['resultSizeEstimate'], results['messages'])
+      else:
+        self.__request_done__ (False)
+        print ("remote: no messages when several pages were indicated, waiting..")
 
   @__require_auth__
   def get_messages (self, mids, cb, format):
