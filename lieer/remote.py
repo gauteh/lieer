@@ -435,6 +435,18 @@ class Remote:
           self.all_updated = False
           return None
 
+      if 'TRASH' in add:
+        if 'SPAM' in add:
+          print ("update: %s: Trying to add both TRASH and SPAM, dropping SPAM (add: %s, rem: %s)" % (mid, add, rem))
+          add.remove('SPAM')
+        if 'INBOX' in add:
+          print ("update: %s: Trying to add both TRASH and INBOX, dropping INBOX (add: %s, rem: %s)" % (mid, add, rem))
+          add.remove('INBOX')
+      elif 'SPAM' in add:
+        if 'INBOX' in add:
+          print ("update: %s: Trying to add both SPAM and INBOX, dropping INBOX (add: %s, rem: %s)" % (mid, add, rem))
+          add.remove('INBOX')
+
       if self.dry_run:
         print ("(dry-run) mid: %s: add: %s, remove: %s" % (mid, str(add), str(rem)))
         return None

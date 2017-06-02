@@ -111,3 +111,5 @@ You can get an [api key](https://console.developers.google.com/flows/enableapi?a
 The GMail API does not let you sync `muted` messages. Until the [Google
 bug](https://issuetracker.google.com/issues/36759067) is fixed, the `mute` and `muted` tags are not synchronized with the remote.
 
+Only one of the tags `inbox`, `spam`, and `trash` may be added to an email. For
+the time being, `trash` will be prefered over `spam`, and `spam` over inbox.
