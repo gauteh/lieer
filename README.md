@@ -24,6 +24,7 @@ warranties.**
 * `tqdm`
 * `google_api_python_client` (sometimes `google-api-python-client`)
 * `oauth2client`
+* `notmuch` python bindings: latest from [git://notmuchmail.org/git/notmuch](https://git.notmuchmail.org/git/notmuch) or `>= 0.25` (when released)
 
 ## installation
 
