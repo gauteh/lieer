@@ -24,7 +24,7 @@ warranties.**
 * `tqdm`
 * `google_api_python_client` (sometimes `google-api-python-client`)
 * `oauth2client`
-
+* `notmuch` bindings for Python 3 from the master branch of [notmuch](https://github.com/notmuch/notmuch/tree/master/bindings/python)
 ## installation
 
 After cloning this repository, symlink `gmi` to somewhere on your path, or use `python setup.py`.
