@@ -14,6 +14,16 @@ class Remote:
   CLIENT_SECRET_FILE = None
   authorized         = False
 
+  # nothing to see here, move along..
+  #
+  # no seriously: this is not dangerous to keep here, in order to gain
+  # access an users account the access_token and/or refresh_token must be
+  # compromised. these are stored locally.
+  #
+  # * https://github.com/gauteh/gmailieer/pull/9
+  # * https://stackoverflow.com/questions/25957027/oauth-2-installed-application-client-secret-considerationsgoogle-api/43061998#43061998
+  # * https://stackoverflow.com/questions/19615372/client-secret-in-oauth-2-0?rq=1
+  #
   OAUTH2_CLIENT_SECRET = {
        "client_id":"753933720722-ju82fu305lii0v9rdo6mf9hj40l5juv0.apps.googleusercontent.com",
         "project_id":"capable-pixel-160614",
@@ -63,6 +73,7 @@ class Remote:
   _delay     = 0
   MAX_DELAY  = 100
   _delay_ok  = 0
+  MAX_CONNECTION_ERRORS = 20
 
   class BatchException (Exception):
     pass
@@ -217,6 +228,8 @@ class Remote:
     # How many requests with the current delay returned ok.
     user_rate_ok        = 0
 
+    conn_errors         = 0
+
     def _cb (rid, resp, excep):
       nonlocal j
       if excep is not None:
@@ -263,6 +276,8 @@ class Remote:
           user_rate_delay = user_rate_delay // 2
           user_rate_ok    = 0
 
+        conn_errors = 0
+
       except Remote.UserRateException as ex:
         user_rate_delay = user_rate_delay * 2 + 1
         print ("remote: user rate error, increasing delay to %s" % user_rate_delay)
@@ -278,6 +293,16 @@ class Remote:
         else:
           raise Remote.BatchException ("cannot reduce request any further")
 
+      except ConnectionError as ex:
+        print ("connection failed, re-trying:", ex)
+        i = j # reset
+        conn_errors += 1
+
+        time.sleep (1)
+
+        if conn_errors > MAX_CONNECTION_ERRORS:
+          print ("too many connection errors")
+          raise
 
   @__require_auth__
   def get_message (self, mid, format = 'minimal'):
