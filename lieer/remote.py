@@ -63,7 +63,7 @@ class Remote:
   # query to use
   query = '-in:chats'
 
-  not_sync = set (['CHAT', 'SPAM', 'TRASH'])
+  not_sync = set (['CHAT'])
 
   # used to indicate whether all messages that should be updated where updated
   all_updated = True
@@ -192,7 +192,7 @@ class Remote:
     """
 
     self.__wait_delay__ ()
-    results = self.service.users ().messages ().list (userId = self.account, q = self.query, maxResults = limit).execute ()
+    results = self.service.users ().messages ().list (userId = self.account, q = self.query, maxResults = limit, includeSpamTrash = True).execute ()
 
     if 'messages' in results:
       self.__request_done__ (True)
@@ -202,7 +202,7 @@ class Remote:
 
     while 'nextPageToken' in results:
       pt = results['nextPageToken']
-      _results = self.service.users ().messages ().list (userId = self.account, pageToken = pt, q = self.query, maxResults = limit).execute ()
+      _results = self.service.users ().messages ().list (userId = self.account, pageToken = pt, q = self.query, maxResults = limit, includeSpamTrash = True).execute ()
 
       if 'messages' in _results:
         self.__request_done__ (True)

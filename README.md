@@ -7,16 +7,17 @@ account and store them locally in a maildir with the labels synchronized with a
 [notmuch](https://notmuchmail.org/) database. The changes to tags in the
 notmuch database may be pushed back remotely to your GMail account.
 
-It will not and can not:
-* Add or delete messages on your remote account
-* Modify messages other than their labels
-
 ## disclaimer
 
-This does not modify or delete your email remotely, but it can modify the
-message labels remotely. So those may be lost if all goes wrong. Also, whether
-you will actually get all your email is not proven. **In short: No
-warranties.**
+Gmailieer will not and can not:
+
+* Add or delete messages on your remote account, except `trash` or `spam` messages (and those will eventually be [deleted](https://support.google.com/mail/answer/7401?co=GENIE.Platform%3DDesktop&hl=en))
+* Modify messages other than their labels
+
+So `trash`'ed or `spam`'ed messages (or if somehow these tags get added to all
+your messages) may be lost, as well as messages labels may be lost if all goes
+wrong. Also, whether you will actually get all your email is not proven. **In
+short: No warranties.**
 
 ## requirements
 
@@ -109,8 +110,8 @@ You can get an [api key](https://console.developers.google.com/flows/enableapi?a
 
 # caveats
 
-The GMail API does not let you sync `muted` messages. Until the [Google
+* The GMail API does not let you sync `muted` messages. Until [this Google
 bug](https://issuetracker.google.com/issues/36759067) is fixed, the `mute` and `muted` tags are not synchronized with the remote.
 
-Only one of the tags `inbox`, `spam`, and `trash` may be added to an email. For
+* Only one of the tags `inbox`, `spam`, and `trash` may be added to an email. For
 the time being, `trash` will be prefered over `spam`, and `spam` over inbox.
