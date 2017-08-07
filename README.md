@@ -11,13 +11,10 @@ notmuch database may be pushed back remotely to your GMail account.
 
 Gmailieer will not and can not:
 
-* Add or delete messages on your remote account, except `trash` or `spam` messages (and those will eventually be [deleted](https://support.google.com/mail/answer/7401?co=GENIE.Platform%3DDesktop&hl=en))
+* Add or delete messages on your remote account (except syncing the `trash` or `spam` label to messages, and those messages will eventually be [deleted](https://support.google.com/mail/answer/7401?co=GENIE.Platform%3DDesktop&hl=en))
 * Modify messages other than their labels
 
-So `trash`'ed or `spam`'ed messages (or if somehow these tags get added to all
-your messages) may be lost, as well as messages labels may be lost if all goes
-wrong. Also, whether you will actually get all your email is not proven. **In
-short: No warranties.**
+While Gmailieer has been used to successfully synchronize millions of messages and tags by now, it comes with **NO WARRANTIES**.
 
 ## requirements
 
