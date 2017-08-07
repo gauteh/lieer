@@ -133,6 +133,9 @@ class Local:
       self.files.extend (fnames)
       break
 
+    # exclude files that are unlikely to be real message files
+    self.files = [ f for f in self.files if f[0] != '.' ]
+
     self.mids = {}
     for f in self.files:
       m = f.split (':')[0]
