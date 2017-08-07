@@ -127,7 +127,7 @@ class Local:
 
     # NOTE:
     # this list is used for .has () to figure out what messages we have
-    # hopefully this won't grow to gigantic with lots of messages.
+    # hopefully this won't grow too gigantic with lots of messages.
     self.files = []
     for (dp, dirnames, fnames) in os.walk (self.md):
       self.files.extend (fnames)
@@ -269,13 +269,20 @@ class Local:
     self.files.append (bname)
     self.mids[mid] = bname
 
-    p = os.path.join (self.md, bname)
+    p       = os.path.join (self.md, bname)
+    tmp_p   = os.path.join (self.md, '../tmp', bname)
+
     if os.path.exists (p):
       raise Local.RepositoryException ("local file already exists: %s" % p)
 
+    if os.path.exists (tmp_p):
+      raise Local.RepositoryException ("local file already exists: %s" % p)
+
     if not self.dry_run:
-      with open (p, 'wb') as fd:
+      with open (tmp_p, 'wb') as fd:
         fd.write (msg_str)
+
+      os.rename (tmp_p, p)
 
     # add to notmuch
     self.update_tags (m, p, db)
