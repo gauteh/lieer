@@ -3,6 +3,7 @@ import json
 import base64
 import configparser
 from pathlib import Path
+import tempfile
 
 import notmuch
 
@@ -77,8 +78,9 @@ class Local:
       self.json['account'] = self.account
       self.json['timeout'] = self.timeout
 
-      with open (self.state_f, 'w') as fd:
+      with tempfile.NamedTemporaryFile (mode = 'w+', dir = os.path.dirname (self.state_f), delete = False) as fd:
         json.dump (self.json, fd)
+        os.rename (fd.name, self.state_f)
 
     def set_last_history_id (self, hid):
       self.last_historyId = hid
