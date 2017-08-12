@@ -196,13 +196,17 @@ class Local:
   def has (self, m):
     return m in self.mids
 
+  def hasf (self, fname):
+    """ Check whether message file is in repository """
+    return ( Path(self.md) in Path(fname).parents )
+
   def fnames_to_gids (self, msgs):
     gids     = []
     messages = []
 
     for m in msgs:
       for fname in m.get_filenames ():
-        if not Path(self.gmailieer.local.md) in Path(fname).parents:
+        if not self.hasf (fname):
           print ("'%s' is not in this repository, ignoring." % fname)
         else:
           # get gmail id
@@ -359,6 +363,15 @@ class Local:
             nmsg.add_tag (t, False)
           nmsg.thaw ()
           nmsg.tags_to_maildir_flags ()
+
+          # update message list
+          for _f in nmsg.get_filenames ():
+            if self.hasf (_f):
+              self.mids[mid] = os.path.basename (_f)
+              self.files.remove (os.path.basename (fname))
+              self.files.append (os.path.basename(_f))
+              break
+
         else:
           print ("(dry-run) changing tags on message: %s from: %s to: %s" % (mid, str(otags), str(labels)))
 
