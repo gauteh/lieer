@@ -269,6 +269,10 @@ class Local:
     mid     = m['id']
     msg_str = base64.urlsafe_b64decode(m['raw'].encode ('ASCII'))
 
+    # messages from GMail have windows line endings
+    if os.linesep == '\n':
+      msg_str = msg_str.replace (b'\r\n', b'\n')
+
     labels  = m.get('labelIds', [])
 
     bname = self.__make_maildir_name__(mid, labels)
