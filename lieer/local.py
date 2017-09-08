@@ -332,7 +332,10 @@ class Local:
         print ("(dry-run) adding message: %s: %s, with tags: %s" % (mid, fname, str(labels)))
       else:
         try:
-          (nmsg, stat) = db.index_file (fname, True)
+          if hasattr (notmuch.Database, 'index_file'):
+            (nmsg, stat) = db.index_file (fname, True)
+          else:
+            (nmsg, stat) = db.add_message (fname, True)
         except notmuch.errors.FileNotEmailError:
           print('%s is not an email' % fname)
           return True
