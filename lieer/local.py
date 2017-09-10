@@ -196,9 +196,9 @@ class Local:
   def has (self, m):
     return m in self.mids
 
-  def hasf (self, fname):
+  def contains (self, fname):
     """ Check whether message file is in repository """
-    return ( Path(self.md) in Path(fname).parents )
+    return ( Path(self.md).parent in Path(fname).parents )
 
   def fnames_to_gids (self, msgs):
     gids     = []
@@ -206,7 +206,7 @@ class Local:
 
     for m in msgs:
       for fname in m.get_filenames ():
-        if not self.hasf (fname):
+        if not self.contains (fname):
           print ("'%s' is not in this repository, ignoring." % fname)
         else:
           # get gmail id
@@ -373,7 +373,7 @@ class Local:
 
           # update message list
           for _f in nmsg.get_filenames ():
-            if self.hasf (_f):
+            if self.contains (_f):
               self.mids[mid] = os.path.basename (_f)
               self.files.remove (os.path.basename (fname))
               self.files.append (os.path.basename(_f))
