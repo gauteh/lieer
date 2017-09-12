@@ -257,9 +257,9 @@ class Local:
         db.remove_message (fname)
       os.unlink (fname)
 
-    f = self.mids[mid]
-    self.files.remove (f)
-    self.mids.pop (mid)
+      f = self.mids[mid]
+      self.files.remove (f)
+      self.mids.pop (mid)
 
   def store (self, m, db):
     """
