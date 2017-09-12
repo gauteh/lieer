@@ -229,8 +229,11 @@ class Local:
     if 'STARRED' in labels:
       info += 'F'
 
-    if 'TRASH' in labels:
-      info += 'T'
+    ## notmuch does not add 'T', so it will only be removed at the next
+    ## maildir sync tags anyway.
+
+    # if 'TRASH' in labels:
+    #   info += 'T'
 
     if not 'UNREAD' in labels:
       info += 'S'
