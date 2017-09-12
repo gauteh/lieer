@@ -112,7 +112,7 @@ class Local:
     self.credentials_f = os.path.join (self.wd, '.credentials.gmailieer.json')
 
     # mail store
-    self.md = os.path.join (self.wd, 'mail', 'cur')
+    self.md = os.path.join (self.wd, 'mail')
 
   def load_repository (self):
     """
@@ -127,37 +127,43 @@ class Local:
 
     self.state = Local.State (self.state_f)
 
-    # NOTE:
-    # this list is used for .has () to figure out what messages we have
-    # hopefully this won't grow too gigantic with lots of messages.
-    self.files = []
-    for (dp, dirnames, fnames) in os.walk (self.md):
-      self.files.extend (fnames)
-      break
-
-    # exclude files that are unlikely to be real message files
-    self.files = [ f for f in self.files if f[0] != '.' ]
-
-    self.mids = {}
-    for f in self.files:
-      m = f.split (':')[0]
-      self.mids[m] = f
-
     ## Check if we are in the notmuch db
     with notmuch.Database () as db:
       try:
-        self.nm_dir  = db.get_directory (os.path.abspath(os.path.join (self.md, '..')))
+        self.nm_dir  = db.get_directory (os.path.abspath(self.md))
         if self.nm_dir is not None:
           self.nm_dir = self.nm_dir.path
         else:
           # probably empty dir
-          self.nm_dir = os.path.abspath (os.path.join (self.md, '..'))
+          self.nm_dir = os.path.abspath (self.md)
 
         self.nm_relative = self.nm_dir[len(db.get_path ())+1:]
 
       except notmuch.errors.FileError:
         raise Local.RepositoryException ("local mail repository not in notmuch db")
 
+    ## The Cache:
+    ##
+    ## this cache is used to know which messages we have a physical copy of.
+    ## hopefully this won't grow too gigantic with lots of messages.
+    self.files = []
+    for (dp, dirnames, fnames) in os.walk (os.path.join (self.md, 'cur')):
+      _fnames = ( 'cur/' + f for f in fnames )
+      self.files.extend (_fnames)
+      break
+
+    for (dp, dirnames, fnames) in os.walk (os.path.join (self.md, 'new')):
+      _fnames = ( 'new/' + f for f in fnames )
+      self.files.extend (_fnames)
+      break
+
+    # exclude files that are unlikely to be real message files
+    self.files = [ f for f in self.files if os.path.basename(f)[0] != '.' ]
+
+    self.mids = {}
+    for f in self.files:
+      m = os.path.basename(f).split (':')[0]
+      self.mids[m] = f
 
     # load notmuch config
     cfg = os.environ.get('NOTMUCH_CONFIG', os.path.expanduser('~/.notmuch-config'))
@@ -189,16 +195,17 @@ class Local:
     self.state.replace_slash_with_dot = replace_slash_with_dot
     self.state.account = account
     self.state.write ()
-    os.makedirs (self.md)
-    os.makedirs (os.path.join (self.md, '../new'))
-    os.makedirs (os.path.join (self.md, '../tmp'))
+    os.makedirs (os.path.join (self.md, 'cur'))
+    os.makedirs (os.path.join (self.md, 'new'))
+    os.makedirs (os.path.join (self.md, 'tmp'))
 
   def has (self, m):
-    return m in self.mids
+    """ Check whether we have message id """
+    return (m in self.mids)
 
   def contains (self, fname):
-    """ Check whether message file is in repository """
-    return ( Path(self.md).parent in Path(fname).parents )
+    """ Check whether message file exists is in repository """
+    return ( Path(self.md) in Path(fname).parents )
 
   def fnames_to_gids (self, msgs):
     gids     = []
@@ -279,11 +286,13 @@ class Local:
     labels  = m.get('labelIds', [])
 
     bname = self.__make_maildir_name__(mid, labels)
-    self.files.append (bname)
-    self.mids[mid] = bname
 
-    p       = os.path.join (self.md, bname)
-    tmp_p   = os.path.join (self.md, '../tmp', bname)
+    # add to cache
+    self.files.append (os.path.join ('cur', bname))
+    self.mids[mid] = os.path.join ('cur', bname)
+
+    p       = os.path.join (self.md, 'cur', bname)
+    tmp_p   = os.path.join (self.md, 'tmp', bname)
 
     if os.path.exists (p):
       raise Local.RepositoryException ("local file already exists: %s" % p)
@@ -323,9 +332,12 @@ class Local:
     if fname is None:
       # this file hopefully already exists and just needs it tags updated,
       # let's try to find its name in the mid to fname table.
-      fname = self.mids[mid]
+      fname = os.path.join (self.md, self.mids[mid])
 
-    fname = os.path.join (self.md, fname)
+    else:
+      # new file
+      fname = os.path.join (self.md, 'cur', fname)
+
     nmsg  = db.find_message_by_filename (fname)
 
     if not os.path.exists (fname):
@@ -374,12 +386,15 @@ class Local:
           nmsg.thaw ()
           nmsg.tags_to_maildir_flags ()
 
-          # update message list
+          # update message list after maildir flag sync
           for _f in nmsg.get_filenames ():
             if self.contains (_f):
-              self.mids[mid] = os.path.basename (_f)
-              self.files.remove (os.path.basename (fname))
-              self.files.append (os.path.basename(_f))
+              new_f = Path (_f)
+              old_f = Path (fname)
+
+              self.mids[mid] = os.path.join (new_f.parent.name, new_f.name)
+              self.files.remove (os.path.join (old_f.parent.name, old_f.name))
+              self.files.append (os.path.join (new_f.parent.name, new_f.name))
               break
 
         else:
