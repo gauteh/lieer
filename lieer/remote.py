@@ -68,12 +68,18 @@ class Remote:
   # used to indicate whether all messages that should be updated where updated
   all_updated = True
 
-  # Handle exponential back-offs in get_message and __push_tags__. get_messages implements
-  # its own.
+  # Handle exponential back-offs in non-batch requests.
   _delay     = 0
-  MAX_DELAY  = 100
   _delay_ok  = 0
+  MAX_DELAY  = 100
   MAX_CONNECTION_ERRORS = 20
+
+  ## Batch requests should generally be of size 50, and at most 100. Best overall
+  ## performance is likely to be at 50 since we will not be throttled.
+  ##
+  ## * https://developers.google.com/gmail/api/guides/batch
+  ## * https://developers.google.com/gmail/api/v1/reference/quota
+  BATCH_REQUEST_SIZE = 50
 
   class BatchException (Exception):
     pass
@@ -218,7 +224,7 @@ class Remote:
     Get the messages
     """
 
-    max_req = 200
+    max_req = self.BATCH_REQUEST_SIZE
     N       = len (mids)
     i       = 0
     j       = 0
@@ -512,7 +518,7 @@ class Remote:
     """
     Push label changes
     """
-    max_req = 200
+    max_req = self.BATCH_REQUEST_SIZE
     N       = len (actions)
     i       = 0
     j       = 0
