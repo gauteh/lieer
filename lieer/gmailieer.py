@@ -210,7 +210,7 @@ class Gmailieer:
 
       # print ("collecting changes..: %s" % qry)
       query = notmuch.Query (db, qry)
-      total = query.count_messages () # might be destructive here as well
+      total = query.count_messages () # probably destructive here as well
       query = notmuch.Query (db, qry)
 
       messages = list(query.search_messages ())
@@ -218,7 +218,7 @@ class Gmailieer:
         messages = messages[:self.limit]
 
       # get gids and filter out messages outside this repository
-      messages, gids = self.local.fnames_to_gids (messages)
+      messages, gids = self.local.messages_to_gids (messages)
 
       # get meta-data on changed messages from remote
       remote_messages = []
@@ -241,7 +241,7 @@ class Gmailieer:
       bar.close ()
 
       # remove no-ops
-      actions = [a for a in actions if a]
+      actions = [ a for a in actions if a ]
 
       # limit
       if self.limit is not None and len(actions) >= self.limit:
@@ -438,12 +438,12 @@ class Gmailieer:
     changed = False
     # fetching new messages
     if len (added_messages) > 0:
-      message_ids = [m['id'] for m in added_messages]
-      updated     = self.get_content (message_ids)
+      message_gids = [m['id'] for m in added_messages]
+      updated     = self.get_content (message_gids)
 
       # updated labels for the messages that already existed
-      needs_update_mid = list(set(message_ids) - set(updated))
-      needs_update = [m for m in added_messages if m['id'] in needs_update_mid]
+      needs_update_gid = list(set(message_gids) - set(updated))
+      needs_update = [m for m in added_messages if m['id'] in needs_update_gid]
       labels_changed.extend (needs_update)
 
       changed = True
@@ -489,19 +489,19 @@ class Gmailieer:
     # this list might grow gigantic for large quantities of e-mail, not really sure
     # about how much memory this will take. this is just a list of some
     # simple metadata like message ids.
-    message_ids = []
-    last_id     = self.remote.get_current_history_id (self.local.state.last_historyId)
+    message_gids = []
+    last_id      = self.remote.get_current_history_id (self.local.state.last_historyId)
 
     for mset in self.remote.all_messages ():
-      (total, mids) = mset
+      (total, gids) = mset
 
       bar.total = total
-      bar.update (len(mids))
+      bar.update (len(gids))
 
-      for m in mids:
-        message_ids.append (m['id'])
+      for m in gids:
+        message_gids.append (m['id'])
 
-      if self.limit is not None and len(message_ids) >= self.limit:
+      if self.limit is not None and len(message_gids) >= self.limit:
         break
 
     bar.close ()
@@ -511,8 +511,8 @@ class Gmailieer:
         raise argparse.ArgumentError ('--limit with --remove will cause lots of messages to be deleted')
 
       # removing files that have been deleted remotely
-      all_remote = set (message_ids)
-      all_local  = set (self.local.mids.keys ())
+      all_remote = set (message_gids)
+      all_local  = set (self.local.gids.keys ())
       remove     = list(all_local - all_remote)
       bar = tqdm (leave = True, total = len(remove), desc = 'removing deleted')
       with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
@@ -522,12 +522,12 @@ class Gmailieer:
 
       bar.close ()
 
-    if len(message_ids) > 0:
+    if len(message_gids) > 0:
       # get content for new messages
-      updated = self.get_content (message_ids)
+      updated = self.get_content (message_gids)
 
       # get updated labels for the rest
-      needs_update = list(set(message_ids) - set(updated))
+      needs_update = list(set(message_gids) - set(updated))
       self.get_meta (needs_update)
     else:
       print ("pull: no messages.")

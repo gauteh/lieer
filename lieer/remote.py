@@ -219,13 +219,13 @@ class Remote:
         print ("remote: no messages when several pages were indicated, waiting..")
 
   @__require_auth__
-  def get_messages (self, mids, cb, format):
+  def get_messages (self, gids, cb, format):
     """
     Get the messages
     """
 
     max_req = self.BATCH_REQUEST_SIZE
-    N       = len (mids)
+    N       = len (gids)
     i       = 0
     j       = 0
 
@@ -242,7 +242,7 @@ class Remote:
         if type(excep) is googleapiclient.errors.HttpError and excep.resp.status == 404:
           # message could not be found this is probably a deleted message, spam or draft
           # message since these are not included in the messages.get() query by default.
-          print ("remote: could not find remote message: %s!" % mids[j])
+          print ("remote: could not find remote message: %s!" % gids[j])
           j += 1
           return
 
@@ -262,9 +262,9 @@ class Remote:
       batch = self.service.new_batch_http_request  (callback = _cb)
 
       while n < max_req and i < N:
-        mid = mids[i]
+        gid = gids[i]
         batch.add (self.service.users ().messages ().get (userId = self.account,
-          id = mid, format = format))
+          id = gid, format = format))
         n += 1
         i += 1
 
@@ -311,19 +311,19 @@ class Remote:
           raise
 
   @__require_auth__
-  def get_message (self, mid, format = 'minimal'):
+  def get_message (self, gid, format = 'minimal'):
     """
     Get a single message
     """
     self.__wait_delay__ ()
     try:
       result = self.service.users ().messages ().get (userId = self.account,
-          id = mid, format = format).execute ()
+          id = gid, format = format).execute ()
 
     except googleapiclient.errors.HttpError as excep:
       if excep.resp.code == 403 or excep.resp.code == 500:
         self.__request_done__ (False)
-        return self.get_message (mid, format)
+        return self.get_message (gid, format)
       else:
         raise
 
@@ -411,17 +411,17 @@ class Remote:
     # settle unless there's been any local changes.
     #
 
-    mid    = gmsg['id']
+    gid    = gmsg['id']
 
     found = False
     for f in nmsg.get_filenames ():
-      if mid in f:
+      if gid in f:
         found = True
 
     # this can happen if a draft is edited remotely and is synced before it is sent. we'll
     # just skip it and it should be resolved on the next pull.
     if not found:
-      print ("update: gid does not match any file name of message, probably a draft, skipping: %s" % mid)
+      print ("update: gid does not match any file name of message, probably a draft, skipping: %s" % gid)
       return None
 
     labels = gmsg.get('labelIds', [])
@@ -462,33 +462,33 @@ class Remote:
       hist_id = int(gmsg['historyId'])
       if hist_id > last_hist:
         if not force:
-          print ("update: remote has changed, will not update: %s (add: %s, rem: %s) (%d > %d)" % (mid, add, rem, hist_id, last_hist))
+          print ("update: remote has changed, will not update: %s (add: %s, rem: %s) (%d > %d)" % (gid, add, rem, hist_id, last_hist))
           self.all_updated = False
           return None
 
       if 'TRASH' in add:
         if 'SPAM' in add:
-          print ("update: %s: Trying to add both TRASH and SPAM, dropping SPAM (add: %s, rem: %s)" % (mid, add, rem))
+          print ("update: %s: Trying to add both TRASH and SPAM, dropping SPAM (add: %s, rem: %s)" % (gid, add, rem))
           add.remove('SPAM')
         if 'INBOX' in add:
-          print ("update: %s: Trying to add both TRASH and INBOX, dropping INBOX (add: %s, rem: %s)" % (mid, add, rem))
+          print ("update: %s: Trying to add both TRASH and INBOX, dropping INBOX (add: %s, rem: %s)" % (gid, add, rem))
           add.remove('INBOX')
       elif 'SPAM' in add:
         if 'INBOX' in add:
-          print ("update: %s: Trying to add both SPAM and INBOX, dropping INBOX (add: %s, rem: %s)" % (mid, add, rem))
+          print ("update: %s: Trying to add both SPAM and INBOX, dropping INBOX (add: %s, rem: %s)" % (gid, add, rem))
           add.remove('INBOX')
 
       if self.dry_run:
-        print ("(dry-run) mid: %s: add: %s, remove: %s" % (mid, str(add), str(rem)))
+        print ("(dry-run) gid: %s: add: %s, remove: %s" % (gid, str(add), str(rem)))
         return None
       else:
-        return self.__push_tags__ (mid, add, rem)
+        return self.__push_tags__ (gid, add, rem)
 
     else:
       return None
 
   @__require_auth__
-  def __push_tags__ (self, mid, add, rem):
+  def __push_tags__ (self, gid, add, rem):
     """
     Push message changes (these are currently not batched)"
     """
@@ -511,7 +511,7 @@ class Remote:
              'removeLabelIds' : _rem }
 
     return self.service.users ().messages ().modify (userId = self.account,
-          id = mid, body = body)
+          id = gid, body = body)
 
   @__require_auth__
   def push_changes (self, actions, cb):
@@ -534,7 +534,7 @@ class Remote:
         if type(excep) is googleapiclient.errors.HttpError and excep.resp.status == 404:
           # message could not be found this is probably a deleted message, spam or draft
           # message since these are not included in the messages.get() query by default.
-          print ("remote: could not find remote message: %s!" % mids[j])
+          print ("remote: could not find remote message: %s!" % gids[j])
           j += 1
           return
 

@@ -160,10 +160,10 @@ class Local:
     # exclude files that are unlikely to be real message files
     self.files = [ f for f in self.files if os.path.basename(f)[0] != '.' ]
 
-    self.mids = {}
+    self.gids = {}
     for f in self.files:
       m = os.path.basename(f).split (':')[0]
-      self.mids[m] = f
+      self.gids[m] = f
 
     # load notmuch config
     cfg = os.environ.get('NOTMUCH_CONFIG', os.path.expanduser('~/.notmuch-config'))
@@ -201,13 +201,46 @@ class Local:
 
   def has (self, m):
     """ Check whether we have message id """
-    return (m in self.mids)
+    return (m in self.gids)
 
   def contains (self, fname):
     """ Check whether message file exists is in repository """
     return ( Path(self.md) in Path(fname).parents )
 
-  def fnames_to_gids (self, msgs):
+  def __update_cache__ (self, nmsg, old = None):
+    """
+    Update cache with filenames from nmsg, removing the old:
+
+      nmsg - NotmuchMessage
+      old  - tuple of old gid and old fname
+    """
+
+    # remove old file from cache
+    if old is not None:
+      (old_gid, old_f) = old
+
+      old_f = Path (old_f)
+      self.files.remove (os.path.join (old_f.parent.name, old_f.name))
+      self.gids.pop (gid)
+
+    # add message to cache
+    for _f in nmsg.get_filenames ():
+      if self.contains (_f):
+        new_f = Path (_f)
+
+        # there might be more GIDs (and files) for each NotmuchMessage, if so,
+        # the last matching file will be used in the gids map.
+
+        _m = new_f.name.split (':')[0]
+        self.gids[_m] = os.path.join (new_f.parent.name, new_f.name)
+        self.files.append (os.path.join (new_f.parent.name, new_f.name))
+
+  def messages_to_gids (self, msgs):
+    """
+    Gets GIDs from a list of NotmuchMessages, the returned list of tuples may contain
+    the same NotmuchMessage several times for each matching file. Files outside the
+    repository are filtered out.
+    """
     gids     = []
     messages = []
 
@@ -217,8 +250,8 @@ class Local:
           print ("'%s' is not in this repository, ignoring." % fname)
         else:
           # get gmail id
-          mid = os.path.basename (fname).split (':')[0]
-          gids.append (mid)
+          gid = os.path.basename (fname).split (':')[0]
+          gids.append (gid)
           messages.append (m)
 
     return (messages, gids)
@@ -237,7 +270,7 @@ class Local:
       info += 'F'
 
     ## notmuch does not add 'T', so it will only be removed at the next
-    ## maildir sync tags anyway.
+    ## maildir sync flags anyway.
 
     # if 'TRASH' in labels:
     #   info += 'T'
@@ -247,36 +280,36 @@ class Local:
 
     return p + info
 
-  def remove (self, mid, db):
+  def remove (self, gid, db):
     """
     Remove message from local store
     """
-    fname = self.mids.get (mid, None)
+    fname = self.gids.get (gid, None)
 
     if fname is None:
-      print ("remove: message does not exist in store: %s" % mid)
+      print ("remove: message does not exist in store: %s" % gid)
       return
 
     fname = os.path.join (self.md, fname)
     nmsg  = db.find_message_by_filename (fname)
 
     if self.dry_run:
-      print ("(dry-run) deleting %s: %s." % (mid, fname))
+      print ("(dry-run) deleting %s: %s." % (gid, fname))
     else:
       if nmsg is not None:
         db.remove_message (fname)
       os.unlink (fname)
 
-      f = self.mids[mid]
+      f = self.gids[gid]
       self.files.remove (f)
-      self.mids.pop (mid)
+      self.gids.pop (gid)
 
   def store (self, m, db):
     """
     Store message in local store
     """
 
-    mid     = m['id']
+    gid     = m['id']
     msg_str = base64.urlsafe_b64decode(m['raw'].encode ('ASCII'))
 
     # messages from GMail have windows line endings
@@ -285,11 +318,11 @@ class Local:
 
     labels  = m.get('labelIds', [])
 
-    bname = self.__make_maildir_name__(mid, labels)
+    bname = self.__make_maildir_name__(gid, labels)
 
     # add to cache
     self.files.append (os.path.join ('cur', bname))
-    self.mids[mid] = os.path.join ('cur', bname)
+    self.gids[gid] = os.path.join ('cur', bname)
 
     p       = os.path.join (self.md, 'cur', bname)
     tmp_p   = os.path.join (self.md, 'tmp', bname)
@@ -311,7 +344,7 @@ class Local:
 
   def update_tags (self, m, fname, db):
     # make sure notmuch tags reflect gmail labels
-    mid = m['id']
+    gid = m['id']
     labels = m.get('labelIds', [])
 
     # translate labels. Remote.get_labels () must have been called first
@@ -331,8 +364,8 @@ class Local:
 
     if fname is None:
       # this file hopefully already exists and just needs it tags updated,
-      # let's try to find its name in the mid to fname table.
-      fname = os.path.join (self.md, self.mids[mid])
+      # let's try to find its name in the gid to fname table.
+      fname = os.path.join (self.md, self.gids[gid])
 
     else:
       # new file
@@ -348,7 +381,7 @@ class Local:
 
     if nmsg is None:
       if self.dry_run:
-        print ("(dry-run) adding message: %s: %s, with tags: %s" % (mid, fname, str(labels)))
+        print ("(dry-run) adding message: %s: %s, with tags: %s" % (gid, fname, str(labels)))
       else:
         try:
           if hasattr (notmuch.Database, 'index_file'):
@@ -369,19 +402,7 @@ class Local:
 
         nmsg.thaw ()
         nmsg.tags_to_maildir_flags ()
-
-        # add message to cache
-        for _f in nmsg.get_filenames ():
-          if self.contains (_f):
-            new_f = Path (_f)
-
-            _m = new_f.name.split (':')[0] # there might be more GIDs for each message
-
-            self.mids[_m] = os.path.join (new_f.parent.name, new_f.name)
-
-            # we might have more files matching the same mid, in that case the last file
-            # is used in the mid map.
-            self.files.append (os.path.join (new_f.parent.name, new_f.name))
+        self.__update_cache__ (nmsg)
 
       return True
 
@@ -394,32 +415,18 @@ class Local:
         labels.extend (igntags) # add back local ignored tags before adding
         if not self.dry_run:
           nmsg.freeze ()
+
           nmsg.remove_all_tags ()
           for t in labels:
             nmsg.add_tag (t, False)
+
           nmsg.thaw ()
+
           nmsg.tags_to_maildir_flags ()
-
-          # remove old file from cache, new will be added below.
-          old_f = Path (fname)
-          self.files.remove (os.path.join (old_f.parent.name, old_f.name))
-          self.mids.pop (mid)
-
-          # update message list after maildir flag sync
-          for _f in nmsg.get_filenames ():
-            if self.contains (_f):
-              new_f = Path (_f)
-
-              _m = new_f.name.split (':')[0] # there might be more GIDs for each message
-
-              self.mids[_m] = os.path.join (new_f.parent.name, new_f.name)
-
-              # we might have more files matching the same mid, in that case the last file
-              # is used in the mid map.
-              self.files.append (os.path.join (new_f.parent.name, new_f.name))
+          self.__update_cache__ (self, nmsg, (gid, fname))
 
         else:
-          print ("(dry-run) changing tags on message: %s from: %s to: %s" % (mid, str(otags), str(labels)))
+          print ("(dry-run) changing tags on message: %s from: %s to: %s" % (gid, str(otags), str(labels)))
 
         return True
       else:
