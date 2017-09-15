@@ -221,7 +221,7 @@ class Local:
 
       old_f = Path (old_f)
       self.files.remove (os.path.join (old_f.parent.name, old_f.name))
-      self.gids.pop (gid)
+      self.gids.pop (old_gid)
 
     # add message to cache
     for _f in nmsg.get_filenames ():
