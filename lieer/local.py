@@ -368,6 +368,16 @@ class Local:
           nmsg.add_tag (t, True)
 
         nmsg.thaw ()
+        nmsg.tags_to_maildir_flags ()
+
+        # add message to cache
+        for _f in nmsg.get_filenames ():
+          if self.contains (_f):
+            new_f = Path (_f)
+
+            self.mids[mid] = os.path.join (new_f.parent.name, new_f.name)
+            self.files.append (os.path.join (new_f.parent.name, new_f.name))
+            break
 
       return True
 
