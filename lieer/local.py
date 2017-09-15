@@ -375,9 +375,13 @@ class Local:
           if self.contains (_f):
             new_f = Path (_f)
 
-            self.mids[mid] = os.path.join (new_f.parent.name, new_f.name)
+            _m = new_f.name.split (':')[0] # there might be more GIDs for each message
+
+            self.mids[_m] = os.path.join (new_f.parent.name, new_f.name)
+
+            # we might have more files matching the same mid, in that case the last file
+            # is used in the mid map.
             self.files.append (os.path.join (new_f.parent.name, new_f.name))
-            break
 
       return True
 
@@ -396,16 +400,23 @@ class Local:
           nmsg.thaw ()
           nmsg.tags_to_maildir_flags ()
 
+          # remove old file from cache, new will be added below.
+          old_f = Path (fname)
+          self.files.remove (os.path.join (old_f.parent.name, old_f.name))
+          self.mids.pop (mid)
+
           # update message list after maildir flag sync
           for _f in nmsg.get_filenames ():
             if self.contains (_f):
               new_f = Path (_f)
-              old_f = Path (fname)
 
-              self.mids[mid] = os.path.join (new_f.parent.name, new_f.name)
-              self.files.remove (os.path.join (old_f.parent.name, old_f.name))
+              _m = new_f.name.split (':')[0] # there might be more GIDs for each message
+
+              self.mids[_m] = os.path.join (new_f.parent.name, new_f.name)
+
+              # we might have more files matching the same mid, in that case the last file
+              # is used in the mid map.
               self.files.append (os.path.join (new_f.parent.name, new_f.name))
-              break
 
         else:
           print ("(dry-run) changing tags on message: %s from: %s to: %s" % (mid, str(otags), str(labels)))
