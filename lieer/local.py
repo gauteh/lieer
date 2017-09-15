@@ -423,7 +423,7 @@ class Local:
           nmsg.thaw ()
 
           nmsg.tags_to_maildir_flags ()
-          self.__update_cache__ (self, nmsg, (gid, fname))
+          self.__update_cache__ (nmsg, (gid, fname))
 
         else:
           print ("(dry-run) changing tags on message: %s from: %s to: %s" % (gid, str(otags), str(labels)))
