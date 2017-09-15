@@ -577,10 +577,7 @@ class Gmailieer:
 
     """
 
-    need_content = []
-    for m in msgids:
-      if not self.local.has (m):
-        need_content.append (m)
+    need_content = [ m for m in msgids if not self.local.has (m) ]
 
     if len (need_content) > 0:
 
