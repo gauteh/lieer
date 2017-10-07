@@ -321,7 +321,7 @@ class Remote:
           id = gid, format = format).execute ()
 
     except googleapiclient.errors.HttpError as excep:
-      if excep.resp.code == 403 or excep.resp.code == 500:
+      if excep.resp.status == 403 or excep.resp.status == 500:
         self.__request_done__ (False)
         return self.get_message (gid, format)
       else:
@@ -614,7 +614,7 @@ class Remote:
         return (lr['id'], l)
 
       except googleapiclient.errors.HttpError as excep:
-        if excep.resp.code == 403 or excep.resp.code == 500:
+        if excep.resp.status == 403 or excep.resp.status == 500:
           self.__request_done__ (False)
           return self.__create_label__ (l)
         else:

@@ -335,7 +335,7 @@ class Gmailieer:
     except googleapiclient.errors.HttpError as excep:
       if bar is not None: bar.close ()
 
-      if excep.resp.code == 404:
+      if excep.resp.status == 404:
         print ("pull: historyId is too old, full sync required.")
         self.full_pull ()
         return
