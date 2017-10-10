@@ -1,4 +1,4 @@
-import os
+import os, shutil
 import json
 import base64
 import configparser
@@ -78,7 +78,7 @@ class Local:
       self.json['account'] = self.account
       self.json['timeout'] = self.timeout
 
-      os.rename (self.state_f, self.state_f + '.bak')
+      shutil.copyfile (self.state_f, self.state_f + '.bak')
 
       with tempfile.NamedTemporaryFile (mode = 'w+', dir = os.path.dirname (self.state_f), delete = False) as fd:
         json.dump (self.json, fd)
