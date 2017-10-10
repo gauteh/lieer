@@ -170,7 +170,7 @@ class Remote:
   @__require_auth__
   def get_history_since (self, start):
     """
-    Get all changed since start historyId
+    Get all changes since start historyId
     """
     self.__wait_delay__ ()
     results = self.service.users ().history ().list (userId = self.account, startHistoryId = start).execute ()
@@ -219,8 +219,9 @@ class Remote:
         results = _results
         yield (results['resultSizeEstimate'], results['messages'])
       else:
-        self.__request_done__ (False)
-        print ("remote: no messages when several pages were indicated, waiting..")
+        self.__request_done__ (True)
+        print ("remote: warning: no messages when several pages were indicated.")
+        break
 
   @__require_auth__
   def get_messages (self, gids, cb, format):
