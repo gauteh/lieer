@@ -317,42 +317,35 @@ class Gmailieer:
   def partial_pull (self):
     # get history
     bar         = None
-    last_id     = None
     history     = []
-    def get_history ():
-      nonlocal bar, history, last_id
-      last_id     = self.remote.get_current_history_id (self.local.state.last_historyId)
-      history = []
-      try:
-        for hist in self.remote.get_history_since (self.local.state.last_historyId):
-          history.extend (hist)
-
-          if bar is None:
-            bar = tqdm (leave = True, desc = 'fetching changes')
-
-          bar.update (len(hist))
-
-          if self.limit is not None and len(history) >= self.limit:
-            break
-
-      except googleapiclient.errors.HttpError as excep:
-        if bar is not None: bar.close ()
-
-        if excep.resp.status == 404:
-          print ("pull: historyId is too old, full sync required.")
-          self.full_pull ()
-          return
-        else:
-          raise
-
-      if bar is not None: bar.close ()
+    last_id     = self.remote.get_current_history_id (self.local.state.last_historyId)
 
     try:
-      get_history ()
-    except Remote.NoHistoryException:
+      for hist in self.remote.get_history_since (self.local.state.last_historyId):
+        history.extend (hist)
+
+        if bar is None:
+          bar = tqdm (leave = True, desc = 'fetching changes')
+
+        bar.update (len(hist))
+
+        if self.limit is not None and len(history) >= self.limit:
+          break
+
+    except googleapiclient.errors.HttpError as excep:
+      if excep.resp.status == 404:
+        print ("pull: historyId is too old, full sync required.")
+        self.full_pull ()
+        return
+      else:
+        raise
+
+    except Remote.NoHistoryException as excep:
+      print ("pull: failed, re-try in a bit.")
+      raise
+
+    finally:
       if bar is not None: bar.close ()
-      print ("pull: history error, re-trying to fetch changes..")
-      get_history ()
 
     # figure out which changes need to be applied
     added_messages   = [] # added messages, if they are later deleted they will be

@@ -191,11 +191,9 @@ class Remote:
         results = _results
         yield results['history']
       else:
-        print ("remote: no 'history' when several pages were indicated, waiting..")
-        try:
-          self.__request_done__ (False)
-        except Remote.GenericException:
-          raise Remote.NoHistoryException ()
+        print ("remote: no 'history' when more pages were indicated.")
+        self.__request_done__ (False)
+        raise Remote.NoHistoryException ()
 
   @__require_auth__
   def all_messages (self, limit = None):
