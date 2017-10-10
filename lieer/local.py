@@ -78,6 +78,8 @@ class Local:
       self.json['account'] = self.account
       self.json['timeout'] = self.timeout
 
+      os.rename (self.state_f, self.state_f + '.bak')
+
       with tempfile.NamedTemporaryFile (mode = 'w+', dir = os.path.dirname (self.state_f), delete = False) as fd:
         json.dump (self.json, fd)
         os.rename (fd.name, self.state_f)
