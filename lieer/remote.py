@@ -126,7 +126,7 @@ class Remote:
         print ("remote: request failed, increasing delay between requests to: %d s" % self._delay)
       else:
         print ("remote: increased delay to more than maximum of %d s." % self.MAX_DELAY)
-        raise GenericException ("cannot increase delay more to more than maximum %d s" % self.MAX_DELAY)
+        raise Remote.GenericException ("cannot increase delay more to more than maximum %d s" % self.MAX_DELAY)
 
 
 
