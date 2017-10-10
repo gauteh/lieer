@@ -90,6 +90,9 @@ class Remote:
   class GenericException (Exception):
     pass
 
+  class NoHistoryException (Exception):
+    pass
+
   def __init__ (self, g):
     self.gmailieer = g
 
@@ -189,7 +192,10 @@ class Remote:
         yield results['history']
       else:
         print ("remote: no 'history' when several pages were indicated, waiting..")
-        self.__request_done__ (False)
+        try:
+          self.__request_done__ (False)
+        except Remote.GenericException:
+          raise Remote.NoHistoryException ()
 
   @__require_auth__
   def all_messages (self, limit = None):
