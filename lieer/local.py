@@ -78,7 +78,8 @@ class Local:
       self.json['account'] = self.account
       self.json['timeout'] = self.timeout
 
-      shutil.copyfile (self.state_f, self.state_f + '.bak')
+      if os.path.exists (self.state_f):
+        shutil.copyfile (self.state_f, self.state_f + '.bak')
 
       with tempfile.NamedTemporaryFile (mode = 'w+', dir = os.path.dirname (self.state_f), delete = False) as fd:
         json.dump (self.json, fd)
