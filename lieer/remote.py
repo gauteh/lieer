@@ -58,7 +58,8 @@ class Remote:
                         'CATEGORY_SOCIAL',
                         'CATEGORY_PROMOTIONS',
                         'CATEGORY_UPDATES',
-                        'CATEGORY_FORUMS'
+                        'CATEGORY_FORUMS',
+                        'unknown'
                       ])
   # query to use
   query = '-in:chats'
@@ -430,10 +431,11 @@ class Remote:
       return None
 
     labels = gmsg.get('labelIds', [])
-    labels = [self.labels[l] for l in labels]
-
+    newLabels = []
+    for l in labels:
+        newLabels.append(self.labels.get(l, "unknown"))
     # remove ignored labels
-    labels = set (labels)
+    labels = set(newLabels)
     labels = labels - self.ignore_labels
 
     # translate to notmuch tags
