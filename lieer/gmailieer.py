@@ -294,8 +294,8 @@ class Gmailieer:
     if self.list_labels:
       if self.remove or self.force or self.limit:
         raise argparse.ArgumentError ("-t cannot be specified together with -f, -r or --limit")
-      for l in self.remote.labels.values ():
-        print (l)
+      for k,l in self.remote.labels.items ():
+        print ("{0: <30} {1}".format (l, k))
       return
 
     if self.force:
