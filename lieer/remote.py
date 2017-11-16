@@ -138,10 +138,10 @@ class Remote:
     results = self.service.users ().labels ().list (userId = self.account).execute ()
     labels = results.get ('labels', [])
 
-    self.labels = {}
-    self.invlabels = {}
+    self.labels     = {}
+    self.invlabels  = {}
     for l in labels:
-      self.labels[l['id']] = l['name']
+      self.labels[l['id']]      = l['name']
       self.invlabels[l['name']] = l['id']
 
     return self.labels
