@@ -13,15 +13,15 @@ class Local:
 
 
   translate_labels = {
-                      'INBOX' : 'inbox',
-                      'SPAM' : 'spam',
-                      'TRASH' : 'trash',
-                      'UNREAD' : 'unread',
-                      'STARRED' : 'flagged',
+                      'INBOX'     : 'inbox',
+                      'SPAM'      : 'spam',
+                      'TRASH'     : 'trash',
+                      'UNREAD'    : 'unread',
+                      'STARRED'   : 'flagged',
                       'IMPORTANT' : 'important',
-                      'SENT' : 'sent',
-                      'DRAFT' : 'draft',
-                      'CHAT'  : 'chat'
+                      'SENT'      : 'sent',
+                      'DRAFT'     : 'draft',
+                      'CHAT'      : 'chat'
                       }
 
   labels_translate = { v: k for k, v in translate_labels.items () }
@@ -287,7 +287,8 @@ class Local:
     """
     Remove message from local store
     """
-    fname = self.gids.get (gid, None)
+    fname  = self.gids.get (gid, None)
+    ffname = fname
 
     if fname is None:
       print ("remove: message does not exist in store: %s" % gid)
@@ -303,8 +304,7 @@ class Local:
         db.remove_message (fname)
       os.unlink (fname)
 
-      f = self.gids[gid]
-      self.files.remove (f)
+      self.files.remove (ffname)
       self.gids.pop (gid)
 
   def store (self, m, db):
