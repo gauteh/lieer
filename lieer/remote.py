@@ -59,7 +59,6 @@ class Remote:
                         'CATEGORY_PROMOTIONS',
                         'CATEGORY_UPDATES',
                         'CATEGORY_FORUMS',
-                        'unknown'
                       ])
   # query to use
   query = '-in:chats'
@@ -430,12 +429,24 @@ class Remote:
       print ("update: gid does not match any file name of message, probably a draft, skipping: %s" % gid)
       return None
 
-    labels = gmsg.get('labelIds', [])
-    newLabels = []
-    for l in labels:
-        newLabels.append(self.labels.get(l, "unknown"))
+    glabels = gmsg.get('labelIds', [])
+
+    # translate labels. Remote.get_labels () must have been called first
+    labels = []
+    for l in glabels:
+      ll = self.labels.get(l, None)
+
+      if ll is None and not self.gmailieer.local.state.drop_non_existing_label:
+        err = "error: GMail supplied a label that there exists no record for! You can `gmi set --drop-non-existing-labels` to work around the issue (https://github.com/gauteh/gmailieer/issues/48)"
+        print (err)
+        raise Remote.GenericException (err)
+      elif ll is None:
+        pass # drop
+      else:
+        labels.append (ll)
+
     # remove ignored labels
-    labels = set(newLabels)
+    labels = set(labels)
     labels = labels - self.ignore_labels
 
     # translate to notmuch tags

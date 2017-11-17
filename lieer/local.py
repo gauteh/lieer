@@ -35,7 +35,6 @@ class Local:
                         'replied',
                         'muted',
                         'mute',
-                        'unknown'
                         ])
 
   class RepositoryException (Exception):
@@ -54,6 +53,7 @@ class Local:
     replace_slash_with_dot = False
     account = None
     timeout = 5
+    drop_non_existing_label = False
 
     def __init__ (self, state_f):
       self.state_f = state_f
@@ -69,6 +69,7 @@ class Local:
       self.replace_slash_with_dot = self.json.get ('replace_slash_with_dot', False)
       self.account = self.json.get ('account', 'me')
       self.timeout = self.json.get ('timeout', 0)
+      self.drop_non_existing_label = self.json.get ('drop_non_existing_label', False)
 
     def write (self):
       self.json = {}
@@ -78,6 +79,7 @@ class Local:
       self.json['replace_slash_with_dot'] = self.replace_slash_with_dot
       self.json['account'] = self.account
       self.json['timeout'] = self.timeout
+      self.json['drop_non_existing_label'] = self.drop_non_existing_label
 
       if os.path.exists (self.state_f):
         shutil.copyfile (self.state_f, self.state_f + '.bak')
@@ -104,6 +106,10 @@ class Local:
 
     def set_replace_slash_with_dot (self, r):
       self.replace_slash_with_dot = r
+      self.write ()
+
+    def set_drop_non_existing_label (self, r):
+      self.drop_non_existing_label = r
       self.write ()
 
   def __init__ (self, g):
@@ -349,15 +355,24 @@ class Local:
   def update_tags (self, m, fname, db):
     # make sure notmuch tags reflect gmail labels
     gid = m['id']
-    labels = m.get('labelIds', [])
+    glabels = m.get('labelIds', [])
 
     # translate labels. Remote.get_labels () must have been called first
-    newLabels = []
-    for l in labels:
-        newLabels.append(self.gmailieer.remote.labels.get(l, "unknown"))
-    labels = set(newLabels)
+    labels = []
+    for l in glabels:
+      ll = self.gmailieer.remote.labels.get(l, None)
+
+      if ll is None and not self.state.drop_non_existing_label:
+        err = "error: GMail supplied a label that there exists no record for! You can `gmi set --drop-non-existing-labels` to work around the issue (https://github.com/gauteh/gmailieer/issues/48)"
+        print (err)
+        raise Local.RepositoryException (err)
+      elif ll is None:
+        pass # drop
+      else:
+        labels.append (ll)
 
     # remove ignored labels
+    labels = set(labels)
     labels = list(labels - self.gmailieer.remote.ignore_labels)
 
     # translate to notmuch tags
