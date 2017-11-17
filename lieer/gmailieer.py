@@ -127,6 +127,8 @@ class Gmailieer:
     parser_set.add_argument ('--replace-slash-with-dot', action = 'store_true', default = False,
         help = 'This will replace \'/\' with \'.\' in gmail labels (make sure you realize the implications)')
 
+    parser_set.add_argument ('--no-replace-slash-with-dot', action = 'store_true', default = False)
+
     parser_set.set_defaults (func = self.set)
 
 
@@ -610,6 +612,9 @@ class Gmailieer:
 
     if args.replace_slash_with_dot:
       self.local.state.set_replace_slash_with_dot (args.replace_slash_with_dot)
+
+    if args.no_replace_slash_with_dot:
+      self.local.state.set_replace_slash_with_dot (not args.no_replace_slash_with_dot)
 
     print ("Repository info:")
     print ("Account ...........: %s" % self.local.state.account)
