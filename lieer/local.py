@@ -35,6 +35,7 @@ class Local:
                         'replied',
                         'muted',
                         'mute',
+                        'unknown'
                         ])
 
   class RepositoryException (Exception):
@@ -351,9 +352,10 @@ class Local:
     labels = m.get('labelIds', [])
 
     # translate labels. Remote.get_labels () must have been called first
-    labels = [self.gmailieer.remote.labels[l] for l in labels]
-
-    labels = set(labels)
+    newLabels = []
+    for l in labels:
+        newLabels.append(self.gmailieer.remote.labels.get(l, "unknown"))
+    labels = set(newLabels)
 
     # remove ignored labels
     labels = list(labels - self.gmailieer.remote.ignore_labels)
