@@ -7,9 +7,10 @@ from oauth2client import client
 from oauth2client import tools
 from oauth2client.file import Storage
 from pathlib import Path
+from .gimap import Gimap
 
 class Remote:
-  SCOPES = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/gmail.modify'
+  SCOPES = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/gmail.modify https://mail.google.com/'
   APPLICATION_NAME   = 'Gmailieer'
   CLIENT_SECRET_FILE = None
   authorized         = False
@@ -132,6 +133,9 @@ class Remote:
         raise Remote.GenericException ("cannot increase delay more to more than maximum %d s" % self.MAX_DELAY)
 
 
+  @__require_auth__
+  def setup_imap (self):
+    self.imap = Gimap (self)
 
   @__require_auth__
   def get_labels (self):

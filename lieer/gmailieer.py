@@ -53,6 +53,9 @@ class Gmailieer:
     parser_pull.add_argument ('-r', '--remove', action = 'store_true',
         default = False, help = 'Remove files locally when they have been deleted remotely (forces full sync)')
 
+    parser_pull.add_argument ('--imap', action = 'store_true',
+        default = False, help = 'Use IMAP to fetch message content')
+
     parser_pull.set_defaults (func = self.pull)
 
     # push
@@ -296,7 +299,8 @@ class Gmailieer:
 
       self.remote.get_labels () # to make sure label map is initialized
 
-    self.remove           = args.remove
+    self.remove = args.remove
+    self.imap   = args.imap
 
     if self.list_labels:
       if self.remove or self.force or self.limit:
@@ -449,12 +453,15 @@ class Gmailieer:
     # fetching new messages
     if len (added_messages) > 0:
       message_gids = [m['id'] for m in added_messages]
-      updated     = self.get_content (message_gids)
+      updated      = self.get_content (message_gids)
 
       # updated labels for the messages that already existed
-      needs_update_gid = list(set(message_gids) - set(updated))
-      needs_update = [m for m in added_messages if m['id'] in needs_update_gid]
-      labels_changed.extend (needs_update)
+      if self.imap:
+        labels_changed.extend (added_messages)
+      else:
+        needs_update_gid = list(set(message_gids) - set(updated))
+        needs_update = [m for m in added_messages if m['id'] in needs_update_gid]
+        labels_changed.extend (needs_update)
 
       changed = True
 
@@ -536,9 +543,13 @@ class Gmailieer:
       # get content for new messages
       updated = self.get_content (message_gids)
 
-      # get updated labels for the rest
-      needs_update = list(set(message_gids) - set(updated))
-      self.get_meta (needs_update)
+      if self.imap:
+        # imap doesn't fetch labels
+        self.get_meta (message_gids)
+      else:
+        # get updated labels for the rest
+        needs_update = list(set(message_gids) - set(updated))
+        self.get_meta (needs_update)
     else:
       print ("pull: no messages.")
 
@@ -593,13 +604,21 @@ class Gmailieer:
 
       bar = tqdm (leave = True, total = len(need_content), desc = 'receiving content')
 
-      def _got_msg (m):
+      def _got_msg (m, _gid = None):
         bar.update (1)
         # opening db per message since it takes some time to download each one
         with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
-          self.local.store (m, db)
+          self.local.store (m, db, self.imap, _gid)
 
-      self.remote.get_messages (need_content, _got_msg, 'raw')
+      if not self.imap:
+        self.remote.get_messages (need_content, _got_msg, 'raw')
+
+      else:
+        self.remote.setup_imap ()
+
+        self.remote.imap.connect ()
+        self.remote.imap.get_messages (need_content, _got_msg)
+        self.remote.imap.disconnect ()
 
       bar.close ()
 
