@@ -110,10 +110,12 @@ You can get an [api key](https://console.developers.google.com/flows/enableapi?a
 * The GMail API does not let you sync `muted` messages. Until [this Google
 bug](https://issuetracker.google.com/issues/36759067) is fixed, the `mute` and `muted` tags are not synchronized with the remote.
 
-* The `todo` label seems to be reserved and will be ignored.
+* The [`todo`](https://github.com/gauteh/gmailieer/issues/52) label seems to be reserved and will be ignored.
 
-* Only one of the tags `inbox`, `spam`, and `trash` may be added to an email. For
+* [Only one of the tags](https://github.com/gauteh/gmailieer/issues/26) `inbox`, `spam`, and `trash` may be added to an email. For
 the time being, `trash` will be prefered over `spam`, and `spam` over inbox.
 
 * Sometimes GMail provides a label identifier on a message for a label that does not exist. If you encounter this [issue](https://github.com/gauteh/gmailieer/issues/48) you can get around it by using `gmi set --drop-non-existing-labels` and re-try to pull. The labels will now be ignored, and if this message is ever synced back up the unmapped label ID will be removed. You can list labels with `gmi pull -t`.
+
+* You [cannot add any new files](https://github.com/gauteh/gmailieer/issues/54) (files starting with `.` will be ignored) to the gmailieer repository. Gmailieer uses the directory content an index of local files. Gmailieer does not push new messages to your account (note that if you send messages with GMail, GMail automatically adds the message to your mailbox).
 
