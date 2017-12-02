@@ -114,3 +114,6 @@ bug](https://issuetracker.google.com/issues/36759067) is fixed, the `mute` and `
 
 * Only one of the tags `inbox`, `spam`, and `trash` may be added to an email. For
 the time being, `trash` will be prefered over `spam`, and `spam` over inbox.
+
+* Sometimes GMail provides a label identifier on a message for a label that does not exist. If you encounter this [issue](https://github.com/gauteh/gmailieer/issues/48) you can get around it by using `gmi set --drop-non-existing-labels` and re-try to pull. The labels will now be ignored, and if this message is ever synced back up the unmapped label ID will be removed. You can list labels with `gmi pull -t`.
+
