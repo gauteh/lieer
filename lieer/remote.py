@@ -79,7 +79,8 @@ class Remote:
   ##
   ## * https://developers.google.com/gmail/api/guides/batch
   ## * https://developers.google.com/gmail/api/v1/reference/quota
-  BATCH_REQUEST_SIZE = 50
+  BATCH_REQUEST_SIZE     = 50
+  MIN_BATCH_REQUEST_SIZE = 1
 
   class BatchException (Exception):
     pass
@@ -297,7 +298,7 @@ class Remote:
         i = j # reset
 
       except Remote.BatchException as ex:
-        if max_req > 10:
+        if max_req > self.MIN_BATCH_REQUEST_SIZE:
           max_req = max_req / 2
           i = j # reset
           print ("reducing batch request size to: %d" % max_req)
@@ -599,7 +600,7 @@ class Remote:
         i = j # reset
 
       except Remote.BatchException as ex:
-        if max_req > 10:
+        if max_req > self.MIN_BATCH_REQUEST_SIZE:
           max_req = max_req / 2
           i = j # reset
           print ("reducing batch request size to: %d" % max_req)
