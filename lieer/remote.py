@@ -252,6 +252,12 @@ class Remote:
           j += 1
           return
 
+        elif type(excep) is googleapiclient.errors.HttpError and excep.resp.status == 400:
+          # message id invalid, probably caused by stray files in the mail repo
+          print ("remote: message id: %s is invalid! are there any non-gmailieer files created in the gmailieer repository?" % gids[j])
+          j += 1
+          return
+
         elif type(excep) is googleapiclient.errors.HttpError and excep.resp.status == 403:
           raise Remote.UserRateException (excep)
 
@@ -554,6 +560,12 @@ class Remote:
           # message could not be found this is probably a deleted message, spam or draft
           # message since these are not included in the messages.get() query by default.
           print ("remote: could not find remote message: %s!" % gids[j])
+          j += 1
+          return
+
+        elif type(excep) is googleapiclient.errors.HttpError and excep.resp.status == 400:
+          # message id invalid, probably caused by stray files in the mail repo
+          print ("remote: message id: %s is invalid! are there any non-gmailieer files created in the gmailieer repository?" % gids[j])
           j += 1
           return
 
