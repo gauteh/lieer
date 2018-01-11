@@ -315,19 +315,26 @@ class Local:
       self.files.remove (ffname)
       self.gids.pop (gid)
 
-  def store (self, m, db):
+  def store (self, m, db, imap = False, _gid = None):
     """
     Store message in local store
     """
 
-    gid     = m['id']
-    msg_str = base64.urlsafe_b64decode(m['raw'].encode ('ASCII'))
+    if imap:
+      gid = _gid
+      msg_str = m
+    else:
+      gid     = m['id']
+      msg_str = base64.urlsafe_b64decode(m['raw'].encode ('ASCII'))
 
     # messages from GMail have windows line endings
     if os.linesep == '\n':
       msg_str = msg_str.replace (b'\r\n', b'\n')
 
-    labels  = m.get('labelIds', [])
+    if imap:
+      labels = []
+    else:
+      labels  = m.get('labelIds', [])
 
     bname = self.__make_maildir_name__(gid, labels)
 
@@ -351,7 +358,8 @@ class Local:
       os.rename (tmp_p, p)
 
     # add to notmuch
-    self.update_tags (m, p, db)
+    if not imap:
+      self.update_tags (m, p, db)
 
   def update_tags (self, m, fname, db):
     # make sure notmuch tags reflect gmail labels
