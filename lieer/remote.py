@@ -242,8 +242,10 @@ class Remote:
 
     conn_errors         = 0
 
+    msg_batch = [] # queue up received batch and send in one go to content / db routine
+
     def _cb (rid, resp, excep):
-      nonlocal j
+      nonlocal j, msg_batch
       if excep is not None:
         if type(excep) is googleapiclient.errors.HttpError and excep.resp.status == 404:
           # message could not be found this is probably a deleted message, spam or draft
@@ -266,7 +268,7 @@ class Remote:
       else:
         j += 1
 
-      cb (resp)
+      msg_batch.append (resp)
 
     while i < N:
       n = 0
@@ -321,6 +323,12 @@ class Remote:
         if conn_errors > MAX_CONNECTION_ERRORS:
           print ("too many connection errors")
           raise
+
+      finally:
+        # handle batch
+        if len(msg_batch) > 0:
+          cb (msg_batch)
+          msg_batch.clear ()
 
   @__require_auth__
   def get_message (self, gid, format = 'minimal'):

@@ -231,11 +231,12 @@ class Gmailieer:
       remote_messages = []
       bar = tqdm (leave = True, total = len(gids), desc = 'receiving metadata')
 
-      def _got_msg (m):
-        bar.update (1)
-        remote_messages.append (m)
+      def _got_msgs (ms):
+        for m in ms:
+          bar.update (1)
+          remote_messages.append (m)
 
-      self.remote.get_messages (gids, _got_msg, 'minimal')
+      self.remote.get_messages (gids, _got_msgs, 'minimal')
       bar.close ()
 
       # resolve changes
@@ -563,13 +564,13 @@ class Gmailieer:
       bar = tqdm (leave = True, total = len(msgids), desc = 'receiving metadata')
 
       # opening db for whole metadata sync
-      with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
-        def _got_msg (m):
-          nonlocal db
-          bar.update (1)
-          self.local.update_tags (m, None, db)
+      def _got_msgs (ms):
+        with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
+          for m in ms:
+            bar.update (1)
+            self.local.update_tags (m, None, db)
 
-        self.remote.get_messages (msgids, _got_msg, 'minimal')
+        self.remote.get_messages (msgids, _got_msgs, 'minimal')
 
       bar.close ()
 
@@ -593,13 +594,14 @@ class Gmailieer:
 
       bar = tqdm (leave = True, total = len(need_content), desc = 'receiving content')
 
-      def _got_msg (m):
-        bar.update (1)
-        # opening db per message since it takes some time to download each one
+      def _got_msgs (ms):
+        # opening db per message batch since it takes some time to download each one
         with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
-          self.local.store (m, db)
+          for m in ms:
+            bar.update (1)
+            self.local.store (m, db)
 
-      self.remote.get_messages (need_content, _got_msg, 'raw')
+      self.remote.get_messages (need_content, _got_msgs, 'raw')
 
       bar.close ()
 
