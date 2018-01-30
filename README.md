@@ -110,7 +110,7 @@ You can get an [api key](https://console.developers.google.com/flows/enableapi?a
 * The GMail API does not let you sync `muted` messages. Until [this Google
 bug](https://issuetracker.google.com/issues/36759067) is fixed, the `mute` and `muted` tags are not synchronized with the remote.
 
-* The [`todo`](https://github.com/gauteh/gmailieer/issues/52) label seems to be reserved and will be ignored.
+* The [`todo`](https://github.com/gauteh/gmailieer/issues/52) label seems to be reserved and will be ignored. The same is true for `Trash` (capital `T`), use `trash` (lowercase, see below) to bin messages remotely.
 
 * [Only one of the tags](https://github.com/gauteh/gmailieer/issues/26) `inbox`, `spam`, and `trash` may be added to an email. For
 the time being, `trash` will be prefered over `spam`, and `spam` over inbox.
