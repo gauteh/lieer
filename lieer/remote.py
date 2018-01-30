@@ -515,7 +515,7 @@ class Remote:
   @__require_auth__
   def __push_tags__ (self, gid, add, rem):
     """
-    Push message changes (these are currently not batched)"
+    Push message changes
     """
 
     _add = []
