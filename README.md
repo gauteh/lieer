@@ -98,6 +98,208 @@ run the conflicts should be resolved, overwriting the local changes with the
 remote changes. You can force the local changes to overwrite the remote changes
 by using `push -f`.
 
+# label translation
+
+gmailieer enables bidirectional label to tag translation between
+GMail's labels and Notmuch tags, and, in addition to that, it enables
+pattern-based filtering of local Notmuch tags when syncing to GMail.
+
+By default, gmailieer translate GMail's sysetm labels (`INBOX`, `Sent`
+etc.) into lower-case tags of the same name. However, the user can
+define custom translation of GMail's system labels, as well as custom
+translation of arbitrary labels.
+
+For example, the user can define that GMail's `TRASH` label will be
+translated into `deleted`, and that a GMail's label `remote-label` will
+be translated into the local `local-tag` tag.
+
+The tag-filtering option allows the user to define which of the local
+Notmuch tags will not be synced to GMail. For example, the user might
+be using a local tag `new` to mark newly-arrived messages, but would
+not like this tag to be synced to GMail. In another scenario, the user
+might be using gmailieer to sync several GMail account to the same
+Notmuch database, and would like to tag local messages with a tag
+indicating their source GMail account. Obviously, it would be
+meaningless to have such tags in the GMail accounts.
+
+Another feature of gmailieer is replacement of "label separator". The
+label separator is the character (or string) that is used to separate
+labels and sublabels. In GMail, the label separate is `/` (Slash). For
+example, if the user have, in GMail, a label "parent", that has a
+sublabel "child", what actually happens is that there is a label
+"parent", and another label "parent/child". When using gmailieer to
+sync these labels, a local label "parent/child" would be created.
+
+However, gmailieer enables the user to define a different string for
+the local label separator. If, for example, a user prefers the local
+label separator to be '::' (double colon), then GMail's label
+"parent/child" will be translated to the local tag "parent::child".
+
+## label translation and filtering configuration
+
+To enable label translation and filtering, the user has to provide a
+configuration file that describe the actions to take, and to setup
+gmailieer to use it.
+
+The label translation file should be named `.label-trans.json` (note
+the dot at the beginning of the file name) and it should be placed in
+the directory of the corresponding GMail account (see the `usage`
+section above).
+
+Following is an example of a custom translation file:
+
+```
+{
+    "labels_map": {
+        "TRASH": "deleted",
+        "my-remote": "my-local"
+    },
+    "ignore_patterns": [
+        "new",
+        "par.*"
+    ],
+    "label_sep": "::"
+}
+```
+
+Using this file will have the following effects:
+
+1. Gmail's 'TRASH' label will be translated to the local tag
+   'deleted' and vice versa;
+
+2. Gmail's label 'my-remote' will be translated to the local
+   tag 'my-local' and vice versa;
+
+3. The local tag 'new' will not be synced to Gmail;
+
+4. Any local tag matching the regular expression 'par.*' (i.e., any
+   tag that starts with 'par') will not be synced to Gmail;
+
+5. The '/' character that separates label/sublabel in Gmail will be
+   replaced, in local tags, with the string '::'. For example, a
+   Gmail 'foo/bar' label will be translated to the local tag 'foo::bar'.
+
+### technical details
+
+The label translation and filtering file should be a JSON file having
+the following structure:
+
+```
+{
+    "labels_map": {
+        "<remote label>" : "<local tag>",
+        "<remote label>" : "<local tag>",
+        .
+        .
+        .
+    },
+    "ignore_patterns": [
+        "<pattern>",
+        "<pattern>",
+        .
+        .
+        .
+    ],
+    "label_sep": "<label separator>"
+}
+```
+
+Where:
+
+* "label_map" is a mapping between remote labels and local tags.
+
+* "ignore_patterns" is a list of regular expressions; local tags
+  matching any of these patterns will not be synced to Gmail.
+
+* "label_sep" is a string that will replace, in local tags, the slash
+  used by Gmail as a label/sublabel separator.
+
+
+A sample file is provided in the `doc/examples` directory.
+
+## setting up gmailieer to use translation and filtering
+
+After creating this file, one needs to tell gmailieer to use it. This
+can be done either during initialization, or later using the gmailieer
+`set` command:
+
+```sh
+$ gmi init --user-label-translation
+```
+
+or
+
+```sh
+$ gmi set --user-label-translation
+```
+
+To disable label translation use:
+
+```sh
+$ gmi set --no-user-label-translation
+```
+
+Note: once you sync with gmailieer, with or without specifying label
+translation, specific translation is set—either the default or
+custom translation. Changing the state at a later stage, from default
+to custom translation or vice versa, might cause the labels and tags
+to get out of sync. If you decide to do that, make sure you know what
+you are doing.
+
+
+## obtain translation and filtering informatoin
+
+gmailieer can display detailed informatoin regarding the translation
+and filtering settings.
+
+The general command for obtaining this information is
+
+```sh
+$ gmi show-label-translation [-d | -f MAP_FROM_FILE]
+```
+
+The different variants of this command are described below.
+
+```sh
+$ gmi show-label-translation
+```
+
+When run without any switch gmailieer will load the default
+translation configuration file and print the following data:
+
+1. The complete label translation map, including both the system
+   default translation and the user's custom translation, if it
+   exists.
+
+2. The label separates information.
+
+3. The tag ignoring patterns, if there are any.
+
+4. The actual tags (read from Notmuch database) that would be ignored
+   when syncing to GMail.
+
+This data describes how gmailieer will actually will behave when
+running it.
+
+```sh
+$ gmi show-label-translation -d
+```
+
+When run with the `-d` switch, gmailieer will print only the default
+label to tag translation map.
+
+```sh
+$ gmi show-label-translation -f MAP_FROM_FILE
+```
+
+When run with the `-f` switch followed by a file name (relative or
+full path), gmailieer will load the given translation configuration
+file, and print the same data as if this is the default configuration
+file, described above.
+
+This method might be useful for testing your configuration file before
+making it the default.
+
 ## using your own API key
 
 gmailieer ships with an API key that is shared openly, this key shares API quota, but [cannot be used to access data](https://github.com/gauteh/gmailieer/pull/9) unless access is gained to your private `access_token` or `refresh_token`.

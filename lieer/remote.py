@@ -465,30 +465,18 @@ class Remote:
     labels = labels - self.ignore_labels
 
     # translate to notmuch tags
-    labels = [self.gmailieer.local.translate_labels.get (l, l) for l in labels]
+    labels = set(self.gmailieer.label_translator.remote_labels_to_local(labels))
 
-    # this is my weirdness
-    if self.gmailieer.local.state.replace_slash_with_dot:
-      labels = [l.replace ('/', '.') for l in labels]
-
-    labels = set(labels)
-
-    # current tags
-    tags = set(nmsg.get_tags ())
-
-    # remove special notmuch tags
-    tags = tags - self.gmailieer.local.ignore_labels
+    # remove from the local notmuch tag list tags that should not be
+    # synced with Gmail
+    tags = set(self.gmailieer.label_translator.filter_out_tags(nmsg.get_tags()))
 
     add = list((tags - labels) - self.read_only_tags)
     rem = list((labels - tags) - self.read_only_tags)
 
     # translate back to gmail labels
-    add = [self.gmailieer.local.labels_translate.get (k, k) for k in add]
-    rem = [self.gmailieer.local.labels_translate.get (k, k) for k in rem]
-
-    if self.gmailieer.local.state.replace_slash_with_dot:
-      add = [a.replace ('.', '/') for a in add]
-      rem = [r.replace ('.', '/') for r in rem]
+    add = self.gmailieer.label_translator.local_labels_to_remote(add)
+    rem = self.gmailieer.label_translator.local_labels_to_remote(rem)
 
     if len(add) > 0 or len(rem) > 0:
       # check if this message has been changed remotely since last pull
@@ -656,6 +644,15 @@ class Remote:
         if excep.resp.status == 403 or excep.resp.status == 500:
           self.__request_done__ (False)
           return self.__create_label__ (l)
+        # not sure this is good enough, but it would be nice to be
+        # able to notify the end user that some specific tags were
+        # rejected by Gmail and then continue, without exiting with an
+        # exception.
+
+        # elif excep.resp.status == 400:
+        #   print("REJECTION: Label '{}' rejected by Gmail".format(l))
+        #   return (None, None)
+
         else:
           raise
 

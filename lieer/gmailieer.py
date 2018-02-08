@@ -13,14 +13,54 @@ from tqdm import tqdm, tqdm_gui
 
 from .remote import *
 from .local  import *
+from .labels_translation import LabelTranslator
 
 class Gmailieer:
+
+  # the name of the custom user's label translation file. can be
+  # either relative or full path.
+  user_label_trans_file_name = '.label-trans.json'
+
   def __init__ (self):
     xdg_data_home = os.getenv ('XDG_DATA_HOME', os.path.expanduser ('~/.local/share'))
     self.home = os.path.join (xdg_data_home, 'gmailieer')
 
+    # the sole instance of LableTranslator
+    self._label_translator = LabelTranslator()
+
+  @property
+  def label_translator(self):
+    """Return the instance of LabelTranslator"""
+    return self._label_translator
+
+  def show_label_translation(self, args):
+    """Show label translation map and additional translation information"""
+    if args.default_map:
+      # no map file, default translation
+      LabelTranslator.print_default_translation()
+    elif args.map_from_file:
+      # tranlation from arbitrary user supplied file
+      lt = LabelTranslator()
+      try:
+        lt.load_user_translation(args.map_from_file)
+        print("User's label translation loaded (file: {})".format(args.map_from_file))
+      # except json.decoder.JSONDecodeError as e:
+      except Exception as e:
+        print('Failed to load user map file: {}'.format(args.map_from_file))
+        print(e)
+        raise
+      lt.print_info()
+    else:
+      # print _actual_ translation, based on state settings
+      self.setup(args, dry_run=False, load=True)
+      self.label_translator.print_info()
+
   def main (self):
-    parser = argparse.ArgumentParser ('Gmailieer', parents = [tools.argparser])
+    parser = argparse.ArgumentParser(prog='gmi',
+                                     description="Sync email between GMail and Notmuch database",
+                                     epilog="To get help on a specific command use the following:"
+                                     " %(prog)s <command> -h",
+                                     parents=[tools.argparser])
     self.parser = parser
 
     common = argparse.ArgumentParser (add_help = False)
@@ -105,13 +145,18 @@ class Gmailieer:
         description = 'initialize',
         help = 'initialize local e-mail repository and authorize')
 
-    parser_init.add_argument ('--replace-slash-with-dot', action = 'store_true', default = False,
-        help = 'This will replace \'/\' with \'.\' in gmail labels (make sure you realize the implications)')
-
     parser_init.add_argument ('--no-auth', action = 'store_true', default = False,
         help = 'Do not immediately authorize as well (you will need to run \'auth\' afterwards)')
 
     parser_init.add_argument ('account', type = str, help = 'GMail account to use')
+
+    # Enabel user labels translation
+    user_label_translatien_help = 'Translate labels according to user-supplied map. ' \
+                                  + 'Read the documentation and make sure you understand ' \
+                                  + 'the implications'
+
+    parser_init.add_argument('--user-label-translation', action='store_true',
+                             help=user_label_translatien_help)
 
     parser_init.set_defaults (func = self.initialize)
 
@@ -124,27 +169,43 @@ class Gmailieer:
     parser_set.add_argument ('-t', '--timeout', type = float,
         default = None, help = 'Set HTTP timeout in seconds (0 means system timeout)')
 
-    parser_set.add_argument ('--replace-slash-with-dot', action = 'store_true', default = False,
-        help = 'This will replace \'/\' with \'.\' in gmail labels (make sure you realize the implications)')
-
-    parser_set.add_argument ('--no-replace-slash-with-dot', action = 'store_true', default = False)
-
     parser_set.add_argument ('--drop-non-existing-labels', action = 'store_true', default = False,
         help = 'Allow missing labels on the GMail side to be dropped (see https://github.com/gauteh/gmailieer/issues/48)')
 
     parser_set.add_argument ('--no-drop-non-existing-labels', action = 'store_true', default = False)
 
+    # Enabel or disable user label translation
+    group_set = parser_set.add_mutually_exclusive_group()
+    group_set.add_argument("--user-label-translation", action="store_true",
+                       help=user_label_translatien_help)
+    group_set.add_argument("--no-user-label-translation", action="store_true",
+                       help='Disable user\'s label translation')
+
     parser_set.set_defaults (func = self.set)
 
+    # show label tranlation detailed information
+    parser_label_trans = subparsers.add_parser ('show-label-translation', parents=[common],
+        description = 'Show label translation',
+        help = 'show the current label translation map which would be used for sync')
 
+    group_label_trans = parser_label_trans.add_mutually_exclusive_group()
+    group_label_trans.add_argument ('-d', '--default-map', action='store_true', default=False,
+                              help='show only the default map')
+    group_label_trans.add_argument ('-f', '--map-from-file',
+                              help='show the map that would be created for a given map file')
+
+    parser_label_trans.set_defaults(func=self.show_label_translation)
+
+    # run the selected command
     args        = parser.parse_args (sys.argv[1:])
     self.args   = args
-
     args.func (args)
+
 
   def initialize (self, args):
     self.setup (args, False)
-    self.local.initialize_repository (args.replace_slash_with_dot, args.account)
+    self.local.initialize_repository(args.account,
+                                     args.user_label_translation)
 
     if not args.no_auth:
       self.local.load_repository ()
@@ -180,8 +241,21 @@ class Gmailieer:
       self.local.load_repository ()
       self.remote = Remote (self)
 
+      # Load user label translation file, if enabled in settings
+      if self.local.state.user_label_translation:
+        try:
+          map_file = Gmailieer.user_label_trans_file_name
+          self.label_translator.load_user_translation(map_file)
+          print("User's label translation loaded (file: {})".format(map_file))
+        # except json.decoder.JSONDecodeError as e:
+        except Exception as e:
+          print('Failed to load user map file: {}'.format(map_file))
+          print(e)
+          raise
+
   def sync (self, args):
     self.setup (args, args.dry_run, True)
+
     self.force            = args.force
     self.limit            = args.limit
     self.list_labels      = False
@@ -617,17 +691,25 @@ class Gmailieer:
     if args.timeout is not None:
       self.local.state.set_timeout (args.timeout)
 
-    if args.replace_slash_with_dot:
-      self.local.state.set_replace_slash_with_dot (args.replace_slash_with_dot)
-
-    if args.no_replace_slash_with_dot:
-      self.local.state.set_replace_slash_with_dot (not args.no_replace_slash_with_dot)
-
     if args.drop_non_existing_labels:
       self.local.state.set_drop_non_existing_label (args.drop_non_existing_labels)
 
     if args.no_drop_non_existing_labels:
       self.local.state.set_drop_non_existing_label (not args.no_drop_non_existing_labels)
+
+    new_label_translation_value = None
+    # the following two settings are mutual exclusive. if none of them
+    # is True, leave the state as it is.
+    if args.user_label_translation:
+      new_label_translation_value = True
+    elif args.no_user_label_translation:
+      new_label_translation_value = False
+
+    # if requested to change label translation setting, and the new state
+    # is different from the current state, make the change
+    if new_label_translation_value is not None \
+       and new_label_translation_value != self.local.state.user_label_translation:
+      self.confirm_and_set_label_translation(new_label_translation_value)
 
     print ("Repository info:")
     print ("Account ...........: %s" % self.local.state.account)
@@ -635,7 +717,31 @@ class Gmailieer:
     print ("historyId .........: %d" % self.local.state.last_historyId)
     print ("lastmod ...........: %d" % self.local.state.lastmod)
     print ("drop non labels ...:", self.local.state.drop_non_existing_label)
-    print ("replace . with / ..:", self.local.state.replace_slash_with_dot)
+    print ("Use user's label translation: {}".format(
+      self.local.state.user_label_translation))
 
 
 
+  def confirm_and_set_label_translation(self, new_label_translation_value):
+    """Set the state variable of label translation to new value"""
+
+    msg = "You asked to change the user label translation setting\n" \
+          + "from '{}' to '{}'. Changing this setting might \n" \
+          + "change the way message labels are translated between your\n" \
+          + "GMail account and your Notmuch message tags."
+
+    question = "Are you sure you want to change this setting?"
+
+    print(msg.format(self.local.state.user_label_translation,
+                     new_label_translation_value))
+
+    reply = str(input(question + ' [y/N]: ')).lower().strip()
+
+    if reply[:1] == "y":
+      self.local.state.set_user_label_translation(new_label_translation_value)
+      print(">> User label translation {}".format(
+        ['DISABLED', 'ENABLED'][new_label_translation_value]))
+    else:
+      print(">> User label translation setting not changed")
+
+    print("")

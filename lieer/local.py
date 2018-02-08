@@ -11,34 +11,6 @@ class Local:
   wd      = None
   loaded  = False
 
-
-  translate_labels = {
-                      'INBOX'     : 'inbox',
-                      'SPAM'      : 'spam',
-                      'TRASH'     : 'trash',
-                      'UNREAD'    : 'unread',
-                      'STARRED'   : 'flagged',
-                      'IMPORTANT' : 'important',
-                      'SENT'      : 'sent',
-                      'DRAFT'     : 'draft',
-                      'CHAT'      : 'chat'
-                      }
-
-  labels_translate = { v: k for k, v in translate_labels.items () }
-
-  ignore_labels = set ([
-                        'attachment',
-                        'encrypted',
-                        'signed',
-                        'new',
-                        'passed',
-                        'replied',
-                        'muted',
-                        'mute',
-                        'todo',
-                        'Trash',
-                        ])
-
   class RepositoryException (Exception):
     pass
 
@@ -52,7 +24,6 @@ class Local:
     # this is the last modification id of the notmuch db when the previous push was completed.
     lastmod = 0
 
-    replace_slash_with_dot = False
     account = None
     timeout = 5
     drop_non_existing_label = False
@@ -68,20 +39,20 @@ class Local:
 
       self.last_historyId = self.json.get ('last_historyId', 0)
       self.lastmod = self.json.get ('lastmod', 0)
-      self.replace_slash_with_dot = self.json.get ('replace_slash_with_dot', False)
       self.account = self.json.get ('account', 'me')
       self.timeout = self.json.get ('timeout', 0)
       self.drop_non_existing_label = self.json.get ('drop_non_existing_label', False)
+      self._user_label_translation = self.json.get('user_label_translation', False)
 
     def write (self):
       self.json = {}
 
       self.json['last_historyId'] = self.last_historyId
       self.json['lastmod'] = self.lastmod
-      self.json['replace_slash_with_dot'] = self.replace_slash_with_dot
       self.json['account'] = self.account
       self.json['timeout'] = self.timeout
       self.json['drop_non_existing_label'] = self.drop_non_existing_label
+      self.json['user_label_translation'] = self._user_label_translation
 
       if os.path.exists (self.state_f):
         shutil.copyfile (self.state_f, self.state_f + '.bak')
@@ -106,13 +77,21 @@ class Local:
       self.timeout = t
       self.write ()
 
-    def set_replace_slash_with_dot (self, r):
-      self.replace_slash_with_dot = r
-      self.write ()
-
     def set_drop_non_existing_label (self, r):
       self.drop_non_existing_label = r
       self.write ()
+
+    @property
+    def user_label_translation(self):
+      return self._user_label_translation
+
+    @user_label_translation.setter
+    def user_label_translation(self, val):
+      self._user_label_translation = val
+
+    def set_user_label_translation(self, val=True):
+      self._user_label_translation = val
+      self.write()
 
   def __init__ (self, g):
     self.gmailieer = g
@@ -132,10 +111,12 @@ class Local:
     """
 
     if not os.path.exists (self.state_f):
-      raise Local.RepositoryException ('local repository not initialized: could not find state file')
+      raise Local.RepositoryException (
+        "local repository not initialized: could not find state file '{}'".format(self.state_f))
 
     if not os.path.exists (self.md):
-      raise Local.RepositoryException ('local repository not initialized: could not find mail dir')
+      raise Local.RepositoryException (
+        "local repository not initialized: could not find mail dir '{}'".format(self.md))
 
     self.state = Local.State (self.state_f)
 
@@ -190,11 +171,14 @@ class Local:
     self.loaded = True
 
 
-  def initialize_repository (self, replace_slash_with_dot, account):
+  def initialize_repository(self, account, user_label_translation):
     """
     Sets up a local repository
     """
     print ("initializing repository in: %s.." % self.wd)
+
+
+    print("user_labels_translation is {}".format(user_label_translation))
 
     # check if there is a repository here already or if there is anything that will conflict with setting up one
     if os.path.exists (self.state_f):
@@ -204,8 +188,8 @@ class Local:
       raise Local.RepositoryException ("'mail' exists: this repository seems to already be set up!")
 
     self.state = Local.State (self.state_f)
-    self.state.replace_slash_with_dot = replace_slash_with_dot
     self.state.account = account
+    self.state.user_label_translation = user_label_translation
     self.state.write ()
     os.makedirs (os.path.join (self.md, 'cur'))
     os.makedirs (os.path.join (self.md, 'new'))
@@ -376,13 +360,9 @@ class Local:
     # remove ignored labels
     labels = set(labels)
     labels = list(labels - self.gmailieer.remote.ignore_labels)
-
-    # translate to notmuch tags
-    labels = [self.translate_labels.get (l, l) for l in labels]
-
-    # this is my weirdness
-    if self.state.replace_slash_with_dot:
-      labels = [l.replace ('/', '.') for l in labels]
+    # now 'labels' contains all Gmail's labels for the message.
+    # translate Gmail's labels to their corresponding local tags:
+    labels = self.gmailieer.label_translator.remote_labels_to_local(labels)
 
     if fname is None:
       # this file hopefully already exists and just needs it tags updated,
@@ -430,11 +410,18 @@ class Local:
 
     else:
       # message is already in db, set local tags to match remote tags
-      otags   = set(nmsg.get_tags ())
-      igntags = otags & self.ignore_labels
-      otags   = otags - self.ignore_labels # remove ignored tags while checking
-      if otags != set (labels):
-        labels.extend (igntags) # add back local ignored tags before adding
+      # all local Notmuch tags:
+      local_all_tags = set(nmsg.get_tags())
+      # local tags that are synced with the remote Gmail:
+      local_remote_tags = set(self.gmailieer.label_translator.filter_out_tags(local_all_tags))
+      # tags that are local-only, and not synced with Gmail:
+      local_only_tags = local_all_tags - local_remote_tags
+
+      if local_remote_tags != set(labels):
+        # if remote labels are different from the local tags. update the
+        # message to have exactly the remote labels + the local-only tags.
+        labels.extend(local_only_tags)
+
         if not self.dry_run:
           nmsg.freeze ()
 
@@ -448,7 +435,8 @@ class Local:
           self.__update_cache__ (nmsg, (gid, fname))
 
         else:
-          print ("(dry-run) changing tags on message: %s from: %s to: %s" % (gid, str(otags), str(labels)))
+          print ("(dry-run) changing tags on message: %s from: %s to: %s" % \
+                 (gid, str(local_all_tags), str(labels)))
 
         return True
       else:

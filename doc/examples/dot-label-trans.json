@@ -1,0 +1,11 @@
+{
+    "labels_map": {
+        "TRASH": "deleted",
+        "my-remote": "my-local"
+    },
+    "ignore_patterns": [
+        "new",
+        "par.*"
+    ],
+    "label_sep": "::"
+}
