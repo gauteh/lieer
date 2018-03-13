@@ -320,7 +320,7 @@ class Remote:
 
         time.sleep (1)
 
-        if conn_errors > MAX_CONNECTION_ERRORS:
+        if conn_errors > self.MAX_CONNECTION_ERRORS:
           print ("too many connection errors")
           raise
 
