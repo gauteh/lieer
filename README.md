@@ -112,6 +112,8 @@ bug](https://issuetracker.google.com/issues/36759067) is fixed, the `mute` and `
 
 * The [`todo`](https://github.com/gauteh/gmailieer/issues/52) label seems to be reserved and will be ignored. The same is true for `Trash` (capital `T`), use `trash` (lowercase, see below) to bin messages remotely.
 
+* The `draft` and `sent` labels are read only: They are synced from GMail to local notmuch tags, but not back (if you change them via notmuch).
+
 * [Only one of the tags](https://github.com/gauteh/gmailieer/issues/26) `inbox`, `spam`, and `trash` may be added to an email. For
 the time being, `trash` will be prefered over `spam`, and `spam` over inbox.
 
