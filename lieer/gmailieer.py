@@ -9,7 +9,6 @@ from    oauth2client import tools
 import  googleapiclient
 import  notmuch
 
-from tqdm import tqdm, tqdm_gui
 
 from .remote import *
 from .local  import *
@@ -26,6 +25,9 @@ class Gmailieer:
     common = argparse.ArgumentParser (add_help = False)
     common.add_argument ('-c', '--credentials', type = str, default = None,
         help = 'optional credentials file for google api')
+
+    common.add_argument ('-s', '--no-progress', action = 'store_true',
+        default = False, help = 'Disable progressbar (always off when output is not TTY)')
 
     subparsers = parser.add_subparsers (help = 'actions', dest = 'action')
     subparsers.required = True
@@ -168,9 +170,25 @@ class Gmailieer:
     self.remote.authorize (args.force)
 
   def setup (self, args, dry_run = False, load = False):
+    global tqdm
+
     # common options
     self.dry_run          = dry_run
+    self.HAS_TQDM         = (not args.no_progress)
     self.credentials_file = args.credentials
+
+    if self.HAS_TQDM:
+      if not (sys.stderr.isatty() and sys.stdout.isatty()):
+        self.HAS_TQDM = False
+      else:
+        try:
+          from tqdm import tqdm
+          self.HAS_TQDM = True
+        except ImportError:
+          self.HAS_TQDM = False
+
+    if not self.HAS_TQDM:
+      from .nobar import tqdm
 
     if self.dry_run:
       print ("dry-run: ", self.dry_run)

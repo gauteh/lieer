@@ -19,7 +19,7 @@ While Gmailieer has been used to successfully synchronize millions of messages a
 ## requirements
 
 * Python 3
-* `tqdm`
+* `tqdm` (optional - for progress bar)
 * `google_api_python_client` (sometimes `google-api-python-client`)
 * `oauth2client`
 * `notmuch` python bindings: latest from [git://notmuchmail.org/git/notmuch](https://git.notmuchmail.org/git/notmuch) or `>= 0.25` (when released)
