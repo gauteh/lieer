@@ -1,12 +1,12 @@
 #! /usr/bin/env python3
 #
-# Regular text output drop-in replacement for tqdm
+# Regular non-TTY drop-in replacement for tqdm
 
 import time
 from   math import floor
 
 class tqdm:
-  def __init__ (self, leave = True, total = None, desc = '', *args, **kwargs):
+  def __init__ (self, iterable = None, leave = True, total = None, desc = '', *args, **kwargs):
     self.desc = desc
     self.args = args
     self.kwargs = kwargs
@@ -15,11 +15,30 @@ class tqdm:
       print (desc, '(%d)' % total, '...', end = '', flush = True)
     else:
       print (desc, '...', end = '', flush = True)
+
     self.start = time.perf_counter ()
     self.it    = 0
 
-  def update (self, *args):
-    self.it += 1
+    if iterable is not None:
+      self.iterable = (i for i in iterable)
+
+  def __next__ (self):
+    if self.iterable is not None:
+      self.update (1)
+
+      try:
+        return next(self.iterable)
+      except StopIteration:
+        self.close ()
+        raise
+    else:
+      raise StopIteration
+
+  def __iter__ (self):
+    return self
+
+  def update (self, n, *args):
+    self.it += n
 
     INTERVAL = 10
 
