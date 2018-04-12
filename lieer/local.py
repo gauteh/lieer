@@ -37,6 +37,7 @@ class Local:
                         'mute',
                         'todo',
                         'Trash',
+                        'voicemail',
                         ])
 
   class RepositoryException (Exception):

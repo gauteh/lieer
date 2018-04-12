@@ -110,12 +110,14 @@ You can get an [api key](https://console.developers.google.com/flows/enableapi?a
 * The GMail API does not let you sync `muted` messages. Until [this Google
 bug](https://issuetracker.google.com/issues/36759067) is fixed, the `mute` and `muted` tags are not synchronized with the remote.
 
-* The [`todo`](https://github.com/gauteh/gmailieer/issues/52) label seems to be reserved and will be ignored. The same is true for `Trash` (capital `T`), use `trash` (lowercase, see below) to bin messages remotely.
+* The [`todo`](https://github.com/gauteh/gmailieer/issues/52) and [`voicemail`](https://github.com/gauteh/gmailieer/issues/74) labels seem to be reserved and will be ignored.
 
 * The `draft` and `sent` labels are read only: They are synced from GMail to local notmuch tags, but not back (if you change them via notmuch).
 
 * [Only one of the tags](https://github.com/gauteh/gmailieer/issues/26) `inbox`, `spam`, and `trash` may be added to an email. For
 the time being, `trash` will be prefered over `spam`, and `spam` over inbox.
+
+* `Trash` (capital `T`) is reserved and not allowed, use `trash` (lowercase, see above) to bin messages remotely.
 
 * Sometimes GMail provides a label identifier on a message for a label that does not exist. If you encounter this [issue](https://github.com/gauteh/gmailieer/issues/48) you can get around it by using `gmi set --drop-non-existing-labels` and re-try to pull. The labels will now be ignored, and if this message is ever synced back up the unmapped label ID will be removed. You can list labels with `gmi pull -t`.
 
