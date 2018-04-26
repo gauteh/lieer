@@ -123,3 +123,5 @@ the time being, `trash` will be prefered over `spam`, and `spam` over inbox.
 
 * You [cannot add any new files](https://github.com/gauteh/gmailieer/issues/54) (files starting with `.` will be ignored) to the gmailieer repository. Gmailieer uses the directory content an index of local files. Gmailieer does not push new messages to your account (note that if you send messages with GMail, GMail automatically adds the message to your mailbox).
 
+* If you make changes to the local repository (tags) while syncing you might loose changes.
+
