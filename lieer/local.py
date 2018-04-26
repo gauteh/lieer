@@ -155,6 +155,21 @@ class Local:
       except notmuch.errors.FileError:
         raise Local.RepositoryException ("local mail repository not in notmuch db")
 
+    self.__load_cache__ ()
+
+    # load notmuch config
+    cfg = os.environ.get('NOTMUCH_CONFIG', os.path.expanduser('~/.notmuch-config'))
+    if not os.path.exists (cfg):
+      raise Local.RepositoryException("could not find notmuch-config: %s" % cfg)
+
+    self.nmconfig = configparser.ConfigParser ()
+    self.nmconfig.read (cfg)
+    self.new_tags = self.nmconfig['new']['tags'].split (';')
+    self.new_tags = [t.strip () for t in self.new_tags if len(t.strip()) > 0]
+
+    self.loaded = True
+
+  def __load_cache__ (self):
     ## The Cache:
     ##
     ## this cache is used to know which messages we have a physical copy of.
@@ -177,19 +192,6 @@ class Local:
     for f in self.files:
       m = os.path.basename(f).split (':')[0]
       self.gids[m] = f
-
-    # load notmuch config
-    cfg = os.environ.get('NOTMUCH_CONFIG', os.path.expanduser('~/.notmuch-config'))
-    if not os.path.exists (cfg):
-      raise Local.RepositoryException("could not find notmuch-config: %s" % cfg)
-
-    self.nmconfig = configparser.ConfigParser ()
-    self.nmconfig.read (cfg)
-    self.new_tags = self.nmconfig['new']['tags'].split (';')
-    self.new_tags = [t.strip () for t in self.new_tags if len(t.strip()) > 0]
-
-    self.loaded = True
-
 
   def initialize_repository (self, replace_slash_with_dot, account):
     """
@@ -397,10 +399,15 @@ class Local:
     nmsg  = db.find_message_by_filename (fname)
 
     if not os.path.exists (fname):
-      if not self.dry_run:
-        raise Local.RepositoryException ("tried to update tags on non-existant file: %s" % fname)
-      else:
-        print ("(dry-run) tried to update tags on non-existant file: %s" % fname)
+      print ("missing file: reloading cache to check for changes..", end = '', flush = True)
+      self.__load_cache__ ()
+      print ("done.")
+
+      if not os.path.exists (fname):
+        if not self.dry_run:
+          raise Local.RepositoryException ("tried to update tags on non-existant file: %s" % fname)
+        else:
+          print ("(dry-run) tried to update tags on non-existant file: %s" % fname)
 
     if nmsg is None:
       if self.dry_run:
