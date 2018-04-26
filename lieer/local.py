@@ -1,4 +1,4 @@
-import os, shutil
+import os, shutil, fcntl
 import json
 import base64
 import configparser
@@ -154,6 +154,13 @@ class Local:
 
       except notmuch.errors.FileError:
         raise Local.RepositoryException ("local mail repository not in notmuch db")
+
+    ## Lock repository
+    try:
+      self.lckf = open ('.lock', 'w')
+      fcntl.lockf (self.lckf, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+      raise Local.RepositoryException ("failed to lock repository (probably in use by another gmi instance)")
 
     self.__load_cache__ ()
 
