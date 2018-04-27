@@ -98,6 +98,10 @@ run the conflicts should be resolved, overwriting the local changes with the
 remote changes. You can force the local changes to overwrite the remote changes
 by using `push -f`.
 
+> Note: If changes are being made on the remote, while `gmaileer` is running, on a message that is currentely being synced. These changes may be overwritten or merged in weird ways on the remote.
+
+See below for more [caveats](#caveats).
+
 ## using your own API key
 
 gmailieer ships with an API key that is shared openly, this key shares API quota, but [cannot be used to access data](https://github.com/gauteh/gmailieer/pull/9) unless access is gained to your private `access_token` or `refresh_token`.
@@ -122,6 +126,4 @@ the time being, `trash` will be prefered over `spam`, and `spam` over inbox.
 * Sometimes GMail provides a label identifier on a message for a label that does not exist. If you encounter this [issue](https://github.com/gauteh/gmailieer/issues/48) you can get around it by using `gmi set --drop-non-existing-labels` and re-try to pull. The labels will now be ignored, and if this message is ever synced back up the unmapped label ID will be removed. You can list labels with `gmi pull -t`.
 
 * You [cannot add any new files](https://github.com/gauteh/gmailieer/issues/54) (files starting with `.` will be ignored) to the gmailieer repository. Gmailieer uses the directory content an index of local files. Gmailieer does not push new messages to your account (note that if you send messages with GMail, GMail automatically adds the message to your mailbox).
-
-* If you make changes to the local repository (tags) while syncing you might loose changes.
 
