@@ -403,11 +403,12 @@ class Local:
       # new file
       fname = os.path.join (self.md, 'cur', fname)
 
-    nmsg  = db.find_message_by_filename (fname)
-
     if not os.path.exists (fname):
       print ("missing file: reloading cache to check for changes..", end = '', flush = True)
+
       self.__load_cache__ ()
+      fname = os.path.join (self.md, self.gids[gid])
+
       print ("done.")
 
       if not os.path.exists (fname):
@@ -415,6 +416,8 @@ class Local:
           raise Local.RepositoryException ("tried to update tags on non-existant file: %s" % fname)
         else:
           print ("(dry-run) tried to update tags on non-existant file: %s" % fname)
+
+    nmsg  = db.find_message_by_filename (fname)
 
     if nmsg is None:
       if self.dry_run:
