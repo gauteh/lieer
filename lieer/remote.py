@@ -306,11 +306,13 @@ class Remote:
         i = j # reset
 
       except Remote.BatchException as ex:
-        if max_req > self.MIN_BATCH_REQUEST_SIZE:
-          max_req = max_req / 2
+        max_req = max_req // 2
+
+        if max_req >= self.MIN_BATCH_REQUEST_SIZE:
           i = j # reset
           print ("reducing batch request size to: %d" % max_req)
         else:
+          max_req = self.MIN_BATCH_REQUEST_SIZE
           raise Remote.BatchException ("cannot reduce request any further")
 
       except ConnectionError as ex:
