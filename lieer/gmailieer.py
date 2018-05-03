@@ -588,7 +588,7 @@ class Gmailieer:
             bar.update (1)
             self.local.update_tags (m, None, db)
 
-        self.remote.get_messages (msgids, _got_msgs, 'minimal')
+      self.remote.get_messages (msgids, _got_msgs, 'minimal')
 
       bar.close ()
 
