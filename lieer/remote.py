@@ -231,6 +231,7 @@ class Remote:
     """
 
     max_req = self.BATCH_REQUEST_SIZE
+    req_ok  = 0
     N       = len (gids)
     i       = 0
     j       = 0
@@ -290,11 +291,19 @@ class Remote:
       try:
         batch.execute (http = self.http)
 
-        # gradually reduce if we had 10 ok batches
+        # gradually reduce user delay if we had 10 ok batches
         user_rate_ok += 1
-        if user_rate_ok > 10:
+        if user_rate_delay > 0 and user_rate_ok > 10:
           user_rate_delay = user_rate_delay // 2
+          print ("remote: decreasing delay to %s" % user_rate_delay)
           user_rate_ok    = 0
+
+        # gradually increase batch request size if we had 10 ok requests
+        req_ok += 1
+        if max_req < self.BATCH_REQUEST_SIZE and req_ok > 10:
+          max_req = min (max_req * 2, self.BATCH_REQUEST_SIZE)
+          print ("remote: increasing batch request size to: %d" % max_req)
+          req_ok  = 0
 
         conn_errors = 0
 
@@ -307,10 +316,11 @@ class Remote:
 
       except Remote.BatchException as ex:
         max_req = max_req // 2
+        req_ok  = 0
 
         if max_req >= self.MIN_BATCH_REQUEST_SIZE:
           i = j # reset
-          print ("reducing batch request size to: %d" % max_req)
+          print ("remote: reducing batch request size to: %d" % max_req)
         else:
           max_req = self.MIN_BATCH_REQUEST_SIZE
           raise Remote.BatchException ("cannot reduce request any further")
