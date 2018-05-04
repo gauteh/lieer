@@ -30,7 +30,6 @@ class Local:
                         'attachment',
                         'encrypted',
                         'signed',
-                        'new',
                         'passed',
                         'replied',
                         'muted',

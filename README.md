@@ -42,7 +42,7 @@ $ mkdir account.gmail
 $ cd    account.gmail/
 ```
 
-2. Ignore the `.json` files in notmuch and use `new` for [new tags](https://notmuchmail.org/initial_tagging/). Set up a `post-new` hook as [described](https://notmuchmail.org/initial_tagging/) to process mail and remove the `new` tag afterwards. The `new` tag is not synchronized with the remote by `gmailieer`.
+2. Ignore the `.json` files in notmuch. Any tags listed in `new.tags` will be added to newly pulled messages. Process tags on new messages directly after running gmi, or run `notmuch new` to trigger the `post-new` hook for [initial tagging](https://notmuchmail.org/initial_tagging/). Remove the `new` tag afterwards. You can prevent custom tags from being pushed to the remote by using e.g. `gmi set --ignore-tags new`.
 
 ```
 [new]
