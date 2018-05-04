@@ -121,6 +121,7 @@ class Gmailieer:
     # set option
     parser_set = subparsers.add_parser ('set',
         description = 'set option',
+        parents = [common],
         help = 'set options for repository')
 
     parser_set.add_argument ('-t', '--timeout', type = float,
