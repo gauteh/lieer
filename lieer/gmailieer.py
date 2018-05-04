@@ -137,6 +137,9 @@ class Gmailieer:
 
     parser_set.add_argument ('--no-drop-non-existing-labels', action = 'store_true', default = False)
 
+    parser_set.add_argument ('--ignore-tags', type = str,
+        default = None, help = 'Set custom tags to ignore (comma-separated)')
+
     parser_set.set_defaults (func = self.set)
 
 
@@ -648,6 +651,9 @@ class Gmailieer:
     if args.no_drop_non_existing_labels:
       self.local.state.set_drop_non_existing_label (not args.no_drop_non_existing_labels)
 
+    if args.ignore_tags is not None:
+      self.local.state.set_ignore_tags (args.ignore_tags)
+
     print ("Repository info:")
     print ("Account ...........: %s" % self.local.state.account)
     print ("Timeout ...........: %f" % self.local.state.timeout)
@@ -655,6 +661,7 @@ class Gmailieer:
     print ("lastmod ...........: %d" % self.local.state.lastmod)
     print ("drop non labels ...:", self.local.state.drop_non_existing_label)
     print ("replace . with / ..:", self.local.state.replace_slash_with_dot)
+    print ("ignore tags .......:", self.local.state.ignore_tags)
 
 
 

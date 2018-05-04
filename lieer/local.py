@@ -73,6 +73,7 @@ class Local:
       self.account = self.json.get ('account', 'me')
       self.timeout = self.json.get ('timeout', 0)
       self.drop_non_existing_label = self.json.get ('drop_non_existing_label', False)
+      self.ignore_tags = set(self.json.get ('ignore_tags', []))
 
     def write (self):
       self.json = {}
@@ -83,6 +84,7 @@ class Local:
       self.json['account'] = self.account
       self.json['timeout'] = self.timeout
       self.json['drop_non_existing_label'] = self.drop_non_existing_label
+      self.json['ignore_tags'] = list(self.ignore_tags)
 
       if os.path.exists (self.state_f):
         shutil.copyfile (self.state_f, self.state_f + '.bak')
@@ -115,6 +117,14 @@ class Local:
       self.drop_non_existing_label = r
       self.write ()
 
+    def set_ignore_tags (self, t):
+      if len(t.strip ()) == 0:
+        self.ignore_tags = set()
+      else:
+        self.ignore_tags = set([ tt.strip () for tt in t.split(',') ])
+
+      self.write ()
+
   def __init__ (self, g):
     self.gmailieer = g
     self.wd = os.getcwd ()
@@ -139,6 +149,8 @@ class Local:
       raise Local.RepositoryException ('local repository not initialized: could not find mail dir')
 
     self.state = Local.State (self.state_f)
+
+    self.ignore_labels = self.ignore_labels | self.state.ignore_tags
 
     ## Check if we are in the notmuch db
     with notmuch.Database () as db:
