@@ -491,12 +491,12 @@ class Gmailieer:
     if len (labels_changed) > 0:
       lchanged = 0
       with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
-        bar = tqdm (total = len(labels_changed), leave = True, desc = 'updating tags (0Δ)')
+        bar = tqdm (total = len(labels_changed), leave = True, desc = 'updating tags (0)')
         for m in labels_changed:
           r = self.local.update_tags (m, None, db)
           if r:
             lchanged += 1
-            bar.set_description ('updating tags (%dΔ)' % lchanged)
+            bar.set_description ('updating tags (%d)' % lchanged)
 
           bar.update (1)
         bar.close ()
