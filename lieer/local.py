@@ -54,7 +54,7 @@ class Local:
 
     replace_slash_with_dot = False
     account = None
-    timeout = 5
+    timeout = 0
     drop_non_existing_label = False
 
     def __init__ (self, state_f):

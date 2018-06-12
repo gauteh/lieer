@@ -125,7 +125,7 @@ class Gmailieer:
         help = 'set options for repository')
 
     parser_set.add_argument ('-t', '--timeout', type = float,
-        default = None, help = 'Set HTTP timeout in seconds (0 means system timeout)')
+        default = None, help = 'Set HTTP timeout in seconds (0 means forever or system timeout)')
 
     parser_set.add_argument ('--replace-slash-with-dot', action = 'store_true', default = False,
         help = 'This will replace \'/\' with \'.\' in gmail labels (make sure you realize the implications)')

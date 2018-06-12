@@ -17,7 +17,7 @@ class Remote:
   # nothing to see here, move along..
   #
   # no seriously: this is not dangerous to keep here, in order to gain
-  # access an users account the access_token and/or refresh_token must be
+  # access to an users account the access_token and/or refresh_token must be
   # compromised. these are stored locally.
   #
   # * https://github.com/gauteh/gmailieer/pull/9
