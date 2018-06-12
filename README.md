@@ -42,7 +42,7 @@ $ mkdir account.gmail
 $ cd    account.gmail/
 ```
 
-2. Ignore the `.json` files in notmuch. Any tags listed in `new.tags` will be added to newly pulled messages. Process tags on new messages directly after running gmi, or run `notmuch new` to trigger the `post-new` hook for [initial tagging](https://notmuchmail.org/initial_tagging/). Remove the `new` tag afterwards. You can prevent custom tags from being pushed to the remote by using e.g. `gmi set --ignore-tags new`.
+2. Ignore the `.json` files in notmuch. Any tags listed in `new.tags` will be added to newly pulled messages. Process tags on new messages directly after running gmi, or run `notmuch new` to trigger the `post-new` hook for [initial tagging](https://notmuchmail.org/initial_tagging/). The `new.tags` are not ignored by default if you do not remove them, but you can prevent custom tags from being pushed to the remote by using e.g. `gmi set --ignore-tags new`.
 
 ```
 [new]
@@ -98,7 +98,7 @@ run the conflicts should be resolved, overwriting the local changes with the
 remote changes. You can force the local changes to overwrite the remote changes
 by using `push -f`.
 
-> Note: If changes are being made on the remote, while `gmaileer` is running, on a message that is currentely being synced. These changes may be overwritten or merged in weird ways on the remote.
+> Note: If changes are being made on the remote, on a message that is currently being synced with `gmailieer`, the changes may be overwritten or merged in weird ways.
 
 See below for more [caveats](#caveats).
 
