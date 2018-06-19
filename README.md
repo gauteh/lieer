@@ -30,17 +30,18 @@ After cloning this repository, symlink `gmi` to somewhere on your path, or use `
 
 # usage
 
-This assumes your root mail folder is in `~/.mail`, all commands
-should be run from the local mail repository unless otherwise specified.
+This assumes your root mail folder is in `~/.mail` and that this folder is _already_ set up with notmuch.
 
-
-1. Make a directory for the gmailieer storage and state files
+1. Make a directory for the gmailieer storage and state files (local repository).
 
 ```sh
 $ cd    ~/.mail
 $ mkdir account.gmail
 $ cd    account.gmail/
 ```
+
+All commands should be run from the local mail repository unless otherwise specified.
+
 
 2. Ignore the `.json` files in notmuch. Any tags listed in `new.tags` will be added to newly pulled messages. Process tags on new messages directly after running gmi, or run `notmuch new` to trigger the `post-new` hook for [initial tagging](https://notmuchmail.org/initial_tagging/). The `new.tags` are not ignored by default if you do not remove them, but you can prevent custom tags from being pushed to the remote by using e.g. `gmi set --ignore-tags new`.
 
