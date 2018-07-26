@@ -19,7 +19,7 @@ class Gmailieer:
     self.home = os.path.join (xdg_data_home, 'gmailieer')
 
   def main (self):
-    parser = argparse.ArgumentParser ('Gmailieer', parents = [tools.argparser])
+    parser = argparse.ArgumentParser ('gmi', parents = [tools.argparser])
     self.parser = parser
 
     common = argparse.ArgumentParser (add_help = False)
