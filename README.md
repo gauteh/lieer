@@ -128,3 +128,5 @@ the time being, `trash` will be prefered over `spam`, and `spam` over inbox.
 
 * You [cannot add any new files](https://github.com/gauteh/gmailieer/issues/54) (files starting with `.` will be ignored) to the gmailieer repository. Gmailieer uses the directory content an index of local files. Gmailieer does not push new messages to your account (note that if you send messages with GMail, GMail automatically adds the message to your mailbox).
 
+* Make sure that you use the same domain for you GMail account as you initially created your account with: usually `@gmail.com`, but sometimes `@googlemail.com`. Otherwise you might get a [`Delegation denied` error](https://github.com/gauteh/gmailieer/issues/88).
+
