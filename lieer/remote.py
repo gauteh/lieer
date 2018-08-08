@@ -34,6 +34,7 @@ class Remote:
         "redirect_uris":["urn:ietf:wg:oauth:2.0:oob", "http://localhost"]
     }
 
+  # Not used, here for documentation purposes
   special_labels = [  'INBOX',
                       'SPAM',
                       'TRASH',
@@ -54,12 +55,15 @@ class Remote:
   read_only_labels = set(['SENT', 'DRAFT'])
   read_only_tags   = set(['sent', 'draft'])
 
-  ignore_labels = set([ 'CATEGORY_PERSONAL',
-                        'CATEGORY_SOCIAL',
-                        'CATEGORY_PROMOTIONS',
-                        'CATEGORY_UPDATES',
-                        'CATEGORY_FORUMS',
-                      ])
+  DEFAULT_IGNORE_LABELS = [ 'CATEGORY_PERSONAL',
+                            'CATEGORY_SOCIAL',
+                            'CATEGORY_PROMOTIONS',
+                            'CATEGORY_UPDATES',
+                            'CATEGORY_FORUMS',
+                          ]
+
+  ignore_labels = set()
+
   # query to use
   query = '-in:chats'
 
@@ -102,6 +106,8 @@ class Remote:
     self.CLIENT_SECRET_FILE = g.credentials_file
     self.account = g.local.state.account
     self.dry_run = g.dry_run
+
+    self.ignore_labels = self.gmailieer.local.state.ignore_remote_labels
 
   def __require_auth__ (func):
     def func_wrap (self, *args, **kwargs):

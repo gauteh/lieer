@@ -6,6 +6,7 @@ from pathlib import Path
 import tempfile
 
 import notmuch
+from .remote import Remote
 
 class Local:
   wd      = None
@@ -21,7 +22,13 @@ class Local:
                       'IMPORTANT' : 'important',
                       'SENT'      : 'sent',
                       'DRAFT'     : 'draft',
-                      'CHAT'      : 'chat'
+                      'CHAT'      : 'chat',
+
+                      'CATEGORY_PERSONAL'     : 'personal',
+                      'CATEGORY_SOCIAL'       : 'social',
+                      'CATEGORY_PROMOTIONS'   : 'promotions',
+                      'CATEGORY_UPDATES'      : 'updates',
+                      'CATEGORY_FORUMS'       : 'forums',
                       }
 
   labels_translate = { v: k for k, v in translate_labels.items () }
@@ -56,6 +63,8 @@ class Local:
     account = None
     timeout = 0
     drop_non_existing_label = False
+    ignore_tags = None
+    ignore_remote_labels = None
 
     def __init__ (self, state_f):
       self.state_f = state_f
@@ -73,6 +82,7 @@ class Local:
       self.timeout = self.json.get ('timeout', 0)
       self.drop_non_existing_label = self.json.get ('drop_non_existing_label', False)
       self.ignore_tags = set(self.json.get ('ignore_tags', []))
+      self.ignore_remote_labels = set(self.json.get ('ignore_remote_labels', Remote.DEFAULT_IGNORE_LABELS))
 
     def write (self):
       self.json = {}
@@ -84,6 +94,7 @@ class Local:
       self.json['timeout'] = self.timeout
       self.json['drop_non_existing_label'] = self.drop_non_existing_label
       self.json['ignore_tags'] = list(self.ignore_tags)
+      self.json['ignore_remote_labels'] = list(self.ignore_remote_labels)
 
       if os.path.exists (self.state_f):
         shutil.copyfile (self.state_f, self.state_f + '.bak')
@@ -121,6 +132,14 @@ class Local:
         self.ignore_tags = set()
       else:
         self.ignore_tags = set([ tt.strip () for tt in t.split(',') ])
+
+      self.write ()
+
+    def set_ignore_remote_labels (self, t):
+      if len(t.strip ()) == 0:
+        self.ignore_remote_labels = set()
+      else:
+        self.ignore_remote_labels = set([ tt.strip () for tt in t.split(',') ])
 
       self.write ()
 

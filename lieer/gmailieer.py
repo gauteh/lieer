@@ -137,8 +137,11 @@ class Gmailieer:
 
     parser_set.add_argument ('--no-drop-non-existing-labels', action = 'store_true', default = False)
 
-    parser_set.add_argument ('--ignore-tags', type = str,
-        default = None, help = 'Set custom tags to ignore (comma-separated)')
+    parser_set.add_argument ('--ignore-tags-local', type = str,
+        default = None, help = 'Set custom tags to ignore when syncing from local to remote (comma-separated, after translations)')
+
+    parser_set.add_argument ('--ignore-tags-remote', type = str,
+        default = None, help = 'Set custom tags to ignore when syncing from remote to local (comma-separated, before translations)')
 
     parser_set.set_defaults (func = self.set)
 
@@ -651,8 +654,11 @@ class Gmailieer:
     if args.no_drop_non_existing_labels:
       self.local.state.set_drop_non_existing_label (not args.no_drop_non_existing_labels)
 
-    if args.ignore_tags is not None:
-      self.local.state.set_ignore_tags (args.ignore_tags)
+    if args.ignore_tags_local is not None:
+      self.local.state.set_ignore_tags (args.ignore_tags_local)
+
+    if args.ignore_tags_remote is not None:
+      self.local.state.set_ignore_remote_labels (args.ignore_tags_remote)
 
     print ("Repository info:")
     print ("Account ...........: %s" % self.local.state.account)
@@ -661,7 +667,8 @@ class Gmailieer:
     print ("lastmod ...........: %d" % self.local.state.lastmod)
     print ("drop non labels ...:", self.local.state.drop_non_existing_label)
     print ("replace . with / ..:", self.local.state.replace_slash_with_dot)
-    print ("ignore tags .......:", self.local.state.ignore_tags)
+    print ("ignore tags (local) .......:", self.local.state.ignore_tags)
+    print ("ignore labels (remote) ....:", self.local.state.ignore_remote_labels)
 
 
 

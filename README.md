@@ -43,7 +43,7 @@ $ cd    account.gmail/
 All commands should be run from the local mail repository unless otherwise specified.
 
 
-2. Ignore the `.json` files in notmuch. Any tags listed in `new.tags` will be added to newly pulled messages. Process tags on new messages directly after running gmi, or run `notmuch new` to trigger the `post-new` hook for [initial tagging](https://notmuchmail.org/initial_tagging/). The `new.tags` are not ignored by default if you do not remove them, but you can prevent custom tags from being pushed to the remote by using e.g. `gmi set --ignore-tags new`.
+2. Ignore the `.json` files in notmuch. Any tags listed in `new.tags` will be added to newly pulled messages. Process tags on new messages directly after running gmi, or run `notmuch new` to trigger the `post-new` hook for [initial tagging](https://notmuchmail.org/initial_tagging/). The `new.tags` are not ignored by default if you do not remove them, but you can prevent custom tags from being pushed to the remote by using e.g. `gmi set --ignore-tags-local new`.
 
 ```
 [new]
@@ -110,7 +110,11 @@ gmailieer ships with an API key that is shared openly, this key shares API quota
 You can get an [api key](https://console.developers.google.com/flows/enableapi?apiid=gmail) for a CLI application to use for yourself. Store the `client_secret.json` file somewhere safe and specify it to `gmi auth -c`. You can do this on a repository that is already initialized.
 
 
-# caveats
+# caveats and notes
+
+* Changing ignored tags, or `replace-slash-with-dot`, after the initial sync might cause the ignored tags to be lost on either remote or local side when the messages are synced at a later time.
+
+* The category labels (the Personal/Promotions/etc tabs in your GMail inbox) are ignored by default. These can be unignored by doing: `gmi set --ignore-tags-remote ""`. Note that this setting expects [untranslated labels](https://github.com/gauteh/gmailieer/blob/master/lieer/local.py#L15).
 
 * The GMail API does not let you sync `muted` messages. Until [this Google
 bug](https://issuetracker.google.com/issues/36759067) is fixed, the `mute` and `muted` tags are not synchronized with the remote.
