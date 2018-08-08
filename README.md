@@ -1,4 +1,4 @@
-# gmailieer
+# Gmailieer
 
 <img src="doc/demo.png">
 
@@ -7,7 +7,7 @@ account and store them locally in a maildir with the labels synchronized with a
 [notmuch](https://notmuchmail.org/) database. The changes to tags in the
 notmuch database may be pushed back remotely to your GMail account.
 
-## disclaimer
+## Disclaimer
 
 Gmailieer will not and can not:
 
@@ -16,7 +16,7 @@ Gmailieer will not and can not:
 
 While Gmailieer has been used to successfully synchronize millions of messages and tags by now, it comes with **NO WARRANTIES**.
 
-## requirements
+## Requirements
 
 * Python 3
 * `notmuch >= 0.25` python bindings
@@ -24,11 +24,11 @@ While Gmailieer has been used to successfully synchronize millions of messages a
 * `oauth2client`
 * `tqdm` (optional - for progress bar)
 
-## installation
+## Installation
 
 After cloning this repository, symlink `gmi` to somewhere on your path, or use `python setup.py`.
 
-# usage
+# Usage
 
 This assumes your root mail folder is in `~/.mail` and that this folder is _already_ set up with notmuch.
 
@@ -65,7 +65,7 @@ $ gmi init your.email@gmail.com
 
 > Use `gmi -h` or `gmi command -h` to get more usage information.
 
-# pull
+## Pull
 
 will pull down all remote changes since last time, overwriting any local tag
 changes of the affected messages.
@@ -76,7 +76,7 @@ $ gmi pull
 
 the first time you do this, or if a full synchronization is needed it will take longer.
 
-# push
+## Push
 
 will push up all changes since last push, conflicting changes will be ignored
 unless `-f` is specified. these will be overwritten with the remote changes at
@@ -86,7 +86,7 @@ the next `pull`.
 $ gmi push
 ```
 
-# normal synchronization routine
+## Normal synchronization routine
 
 ```sh
 $ cd ~/.mail/account.gmail
@@ -103,18 +103,73 @@ by using `push -f`.
 
 See below for more [caveats](#caveats).
 
-## using your own API key
+# Settings
 
-gmailieer ships with an API key that is shared openly, this key shares API quota, but [cannot be used to access data](https://github.com/gauteh/gmailieer/pull/9) unless access is gained to your private `access_token` or `refresh_token`.
+Gmailieer can be configured using `gmi set`. Use without any options to get a list of the current settings as well as the current history ID and notmuch revision.
+
+**`Account`** is the GMail account the repository is synced with. Configured during setup with [`gmi init`](#usage).
+
+**`historyId`** is the latest synced GMail revision. Anything since this ID will be fetched on the next [`gmi pull`](#pull) (partial).
+
+**`lastmod`** is the latest synced Notmuch database revision. Anything changed after this revision will be pushed on [`gmi push`](#ush).
+
+**`Timeout`** is the timeout in seconds used for the HTTP connection to GMail. `0` means the forever or system error/timeout, [whichever occurs first](https://github.com/gauteh/gmailieer/issues/83#issuecomment-396487919).
+
+**`Drop non existing labels`** can be used to silently ignore errors where GMail gives us a label identifier which is not associated with a label. See [Caveats](#caveats).
+
+**`Replace slash with dot`** is used to replace the sub-label separator (`/`) with a dot (`.`). I think this is easier to work with. *Important*: See note below on [changing this setting after initial sync](#changing-ignored-tags-and-translation-after-initial-sync).
+
+**`Ignore tags (local)`** can be used to specify a list of tags which should not be synced from local to remote (e.g. [`new`](#usage)). In addition to the user-configured tags these tags are ignored: `'attachment', 'encrypted', 'signed', 'passed', 'replied', 'muted', 'mute', 'todo', 'Trash', 'voicemail'`. Some are special tags in notmuch and some are unsupported by GMail. See [Caveats](#caveats) below for more explanations. *Note:* This setting expects [_translated_ tags](#translation-between-labels-and-tags).
+  
+  *Important*: See note below on [changing this setting after initial sync](#changing-ignored-tags-and-translation-after-initial-sync).
+
+**`Ignore tags (remote)`** can be used to specify a list of tags (labels) which should not be synced from remote (GMail) to local. By default the [`CATEGORY_*` type](https://developers.google.com/gmail/api/guides/labels) labels which are mapped to the Personal/Promotions/etc tabs in the GMail interface are ignored. You can specify that no label should ignored by doing: `gmi set --ignore-tags-remote ""`. *Note:* This setting expects [_*un*translated_ tags](#translation-between-labels-and-tags).
+  
+  *Important*: See note below on [changing this setting after initial sync](#changing-ignored-tags-and-translation-after-initial-sync).
+
+
+## Changing ignored tags and translation after initial sync
+
+If you change the [ignored tags](#settings) after the initial sync this will not update already synced messages. This means that if a change is made locally on an already synced message the previously ignored remote labels may be deleted. Conversely, if a change occurs remotely on a message which previously which has local tags that were ignored before, these ignored tags may be deleted.
+
+The best way to deal with this is to do a full push or pull after having changed one of the settings. **Do not change both `--ignore-tags-locally` and `--ignore-tags-remote` at the same time.**
+
+Before changing either setting make sure you are fully synchronized. After changing e.g. `--ignore-tags-remote` do first a dry-run and then a real run of full `gmi pull -f --dry-run`. This will fetch the full tag list for all messages and overwrite the local tags of all your messages with the remote labels.
+
+When changing the opposite setting: `--ignore-tags-local`, do a full push (dry-run first): `gmi push -f --dry-run`.
+
+The same goes for the option `--replace-slash-with-dot`. I prefer to do `gmi pull -f --dry-run` after changing this option. This will overwrite the local tags with the remote labels.
+
+# Translation between labels and tags
+
+We translate some of the GMail labels to other tags. The map of labels to tags are:
+
+```py
+  'INBOX'     : 'inbox',
+  'SPAM'      : 'spam',
+  'TRASH'     : 'trash',
+  'UNREAD'    : 'unread',
+  'STARRED'   : 'flagged',
+  'IMPORTANT' : 'important',
+  'SENT'      : 'sent',
+  'DRAFT'     : 'draft',
+  'CHAT'      : 'chat',
+
+  'CATEGORY_PERSONAL'     : 'personal',
+  'CATEGORY_SOCIAL'       : 'social',
+  'CATEGORY_PROMOTIONS'   : 'promotions',
+  'CATEGORY_UPDATES'      : 'updates',
+  'CATEGORY_FORUMS'       : 'forums',
+```
+
+# Using your own API key
+
+Gmailieer ships with an API key that is shared openly, this key shares API quota, but [cannot be used to access data](https://github.com/gauteh/gmailieer/pull/9) unless access is gained to your private `access_token` or `refresh_token`.
 
 You can get an [api key](https://console.developers.google.com/flows/enableapi?apiid=gmail) for a CLI application to use for yourself. Store the `client_secret.json` file somewhere safe and specify it to `gmi auth -c`. You can do this on a repository that is already initialized.
 
 
-# caveats and notes
-
-* Changing ignored tags, or `replace-slash-with-dot`, after the initial sync might cause the ignored tags to be lost on either remote or local side when the messages are synced at a later time.
-
-* The category labels (the Personal/Promotions/etc tabs in your GMail inbox) are ignored by default. These can be unignored by doing: `gmi set --ignore-tags-remote ""`. Note that this setting expects [untranslated labels](https://github.com/gauteh/gmailieer/blob/master/lieer/local.py#L15).
+# Caveats
 
 * The GMail API does not let you sync `muted` messages. Until [this Google
 bug](https://issuetracker.google.com/issues/36759067) is fixed, the `mute` and `muted` tags are not synchronized with the remote.

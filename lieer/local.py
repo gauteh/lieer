@@ -13,6 +13,7 @@ class Local:
   loaded  = False
 
 
+  # NOTE: Update README when changing this map.
   translate_labels = {
                       'INBOX'     : 'inbox',
                       'SPAM'      : 'spam',

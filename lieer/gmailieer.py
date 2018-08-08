@@ -128,7 +128,7 @@ class Gmailieer:
         default = None, help = 'Set HTTP timeout in seconds (0 means forever or system timeout)')
 
     parser_set.add_argument ('--replace-slash-with-dot', action = 'store_true', default = False,
-        help = 'This will replace \'/\' with \'.\' in gmail labels (make sure you realize the implications)')
+        help = 'This will replace \'/\' with \'.\' in gmail labels (Important: see the manual and make sure you realize the implications)')
 
     parser_set.add_argument ('--no-replace-slash-with-dot', action = 'store_true', default = False)
 
@@ -138,10 +138,10 @@ class Gmailieer:
     parser_set.add_argument ('--no-drop-non-existing-labels', action = 'store_true', default = False)
 
     parser_set.add_argument ('--ignore-tags-local', type = str,
-        default = None, help = 'Set custom tags to ignore when syncing from local to remote (comma-separated, after translations)')
+        default = None, help = 'Set custom tags to ignore when syncing from local to remote (comma-separated, after translations). Important: see the manual.')
 
     parser_set.add_argument ('--ignore-tags-remote', type = str,
-        default = None, help = 'Set custom tags to ignore when syncing from remote to local (comma-separated, before translations)')
+        default = None, help = 'Set custom tags to ignore when syncing from remote to local (comma-separated, before translations). Important: see the manual.')
 
     parser_set.set_defaults (func = self.set)
 
@@ -660,15 +660,15 @@ class Gmailieer:
     if args.ignore_tags_remote is not None:
       self.local.state.set_ignore_remote_labels (args.ignore_tags_remote)
 
-    print ("Repository info:")
+    print ("Repository information and settings:")
     print ("Account ...........: %s" % self.local.state.account)
-    print ("Timeout ...........: %f" % self.local.state.timeout)
     print ("historyId .........: %d" % self.local.state.last_historyId)
     print ("lastmod ...........: %d" % self.local.state.lastmod)
-    print ("drop non labels ...:", self.local.state.drop_non_existing_label)
-    print ("replace . with / ..:", self.local.state.replace_slash_with_dot)
-    print ("ignore tags (local) .......:", self.local.state.ignore_tags)
-    print ("ignore labels (remote) ....:", self.local.state.ignore_remote_labels)
+    print ("Timeout ...........: %f" % self.local.state.timeout)
+    print ("Drop non existing labels...:", self.local.state.drop_non_existing_label)
+    print ("Replace . with / ..........:", self.local.state.replace_slash_with_dot)
+    print ("Ignore tags (local) .......:", self.local.state.ignore_tags)
+    print ("Ignore labels (remote) ....:", self.local.state.ignore_remote_labels)
 
 
 
