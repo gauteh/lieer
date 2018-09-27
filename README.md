@@ -189,3 +189,5 @@ the time being, `trash` will be prefered over `spam`, and `spam` over inbox.
 
 * Make sure that you use the same domain for you GMail account as you initially created your account with: usually `@gmail.com`, but sometimes `@googlemail.com`. Otherwise you might get a [`Delegation denied` error](https://github.com/gauteh/gmailieer/issues/88).
 
+* Any tags listed as `excluded_tags` in `.notmuch-config` will still be synchronized by Gmailieer. Use `--ignore-tags-local` or `--ignore-tags-remote` as appropriate to prevent synchronizing tags between the local notmuch repository and GMail.
+
