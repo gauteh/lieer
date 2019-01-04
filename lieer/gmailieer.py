@@ -143,6 +143,9 @@ class Gmailieer:
     parser_set.add_argument ('--ignore-tags-remote', type = str,
         default = None, help = 'Set custom tags to ignore when syncing from remote to local (comma-separated, before translations). Important: see the manual.')
 
+    parser_set.add_argument ('--file-extension', type = str, default = None,
+        help = 'Add a file extension before the maildir status flags (e.g., "mbox")')
+
     parser_set.set_defaults (func = self.set)
 
 
@@ -660,11 +663,15 @@ class Gmailieer:
     if args.ignore_tags_remote is not None:
       self.local.state.set_ignore_remote_labels (args.ignore_tags_remote)
 
+    if args.file_extension is not None:
+      self.local.state.set_file_extension (args.file_extension)
+
     print ("Repository information and settings:")
     print ("Account ...........: %s" % self.local.state.account)
     print ("historyId .........: %d" % self.local.state.last_historyId)
     print ("lastmod ...........: %d" % self.local.state.lastmod)
     print ("Timeout ...........: %f" % self.local.state.timeout)
+    print ("File extension ....: %s" % self.local.state.file_extension)
     print ("Drop non existing labels...:", self.local.state.drop_non_existing_label)
     print ("Replace . with / ..........:", self.local.state.replace_slash_with_dot)
     print ("Ignore tags (local) .......:", self.local.state.ignore_tags)

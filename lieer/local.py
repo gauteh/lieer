@@ -66,6 +66,7 @@ class Local:
     drop_non_existing_label = False
     ignore_tags = None
     ignore_remote_labels = None
+    file_extension = None
 
     def __init__ (self, state_f):
       self.state_f = state_f
@@ -84,6 +85,7 @@ class Local:
       self.drop_non_existing_label = self.json.get ('drop_non_existing_label', False)
       self.ignore_tags = set(self.json.get ('ignore_tags', []))
       self.ignore_remote_labels = set(self.json.get ('ignore_remote_labels', Remote.DEFAULT_IGNORE_LABELS))
+      self.file_extension = self.json.get ('file_extension', '')
 
     def write (self):
       self.json = {}
@@ -96,6 +98,7 @@ class Local:
       self.json['drop_non_existing_label'] = self.drop_non_existing_label
       self.json['ignore_tags'] = list(self.ignore_tags)
       self.json['ignore_remote_labels'] = list(self.ignore_remote_labels)
+      self.json['file_extension'] = self.file_extension
 
       if os.path.exists (self.state_f):
         shutil.copyfile (self.state_f, self.state_f + '.bak')
@@ -142,6 +145,10 @@ class Local:
       else:
         self.ignore_remote_labels = set([ tt.strip () for tt in t.split(',') ])
 
+      self.write ()
+
+    def set_file_extension (self, t):
+      self.file_extension = t.strip ()
       self.write ()
 
   def __init__ (self, g):
@@ -228,7 +235,7 @@ class Local:
 
     self.gids = {}
     for f in self.files:
-      m = os.path.basename(f).split (':')[0]
+      m = self.__filename_to_gid__ (os.path.basename (f))
       self.gids[m] = f
 
   def initialize_repository (self, replace_slash_with_dot, account):
@@ -284,7 +291,7 @@ class Local:
         # there might be more GIDs (and files) for each NotmuchMessage, if so,
         # the last matching file will be used in the gids map.
 
-        _m = new_f.name.split (':')[0]
+        _m = self.__filename_to_gid__ (new_f.name)
         self.gids[_m] = os.path.join (new_f.parent.name, new_f.name)
         self.files.append (os.path.join (new_f.parent.name, new_f.name))
 
@@ -303,16 +310,23 @@ class Local:
           print ("'%s' is not in this repository, ignoring." % fname)
         else:
           # get gmail id
-          gid = os.path.basename (fname).split (':')[0]
+          gid = self.__filename_to_gid__ (os.path.basename (fname))
           gids.append (gid)
           messages.append (m)
 
     return (messages, gids)
 
 
+  def __filename_to_gid__ (self, fname):
+    return fname.split (':')[0].split('.')[0]
+
   def __make_maildir_name__ (self, m, labels):
     # http://cr.yp.to/proto/maildir.html
-    p = m + ':'
+    ext = ''
+    if self.state.file_extension:
+        ext = '.' + self.state.file_extension
+
+    p = m + ext + ':'
     info = '2,'
 
     # must be ascii sorted
