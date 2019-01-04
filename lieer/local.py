@@ -148,8 +148,11 @@ class Local:
       self.write ()
 
     def set_file_extension (self, t):
-      self.file_extension = t.strip ()
-      self.write ()
+      if '.' in t or ':' in t:
+        print('File extensions may not contain the "." or ":" characters!')
+      else:
+        self.file_extension = t.strip ()
+        self.write ()
 
   def __init__ (self, g):
     self.gmailieer = g
