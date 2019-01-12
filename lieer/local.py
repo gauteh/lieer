@@ -148,11 +148,15 @@ class Local:
       self.write ()
 
     def set_file_extension (self, t):
-      if '.' in t or ':' in t:
-        print('File extensions may not contain the "." or ":" characters!')
-      else:
+      try:
+        with tempfile.NamedTemporaryFile (dir = os.path.dirname (self.state_f), suffix = t) as fd:
+          pass
+
         self.file_extension = t.strip ()
         self.write ()
+      except OSError:
+        print ("Failed creating test file with file extension: " + t + ", not set.")
+        raise
 
   def __init__ (self, g):
     self.gmailieer = g
@@ -314,14 +318,24 @@ class Local:
         else:
           # get gmail id
           gid = self.__filename_to_gid__ (os.path.basename (fname))
-          gids.append (gid)
-          messages.append (m)
+          if gid:
+            gids.append (gid)
+            messages.append (m)
 
     return (messages, gids)
 
-
   def __filename_to_gid__ (self, fname):
-    return fname.split (':')[0].split('.')[0]
+    ext = ''
+    if self.state.file_extension:
+        ext = '.' + self.state.file_extension
+    ext += ':2,'
+
+    f = fname.rfind (ext)
+    if f > 5:
+      return fname[:f]
+    else:
+      print ("'%s' does not contain valid maildir delimter, correct file name extension, or does not seem to have a valid GID, ignoring.")
+      return None
 
   def __make_maildir_name__ (self, m, labels):
     # http://cr.yp.to/proto/maildir.html

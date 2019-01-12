@@ -115,7 +115,9 @@ Gmailieer can be configured using `gmi set`. Use without any options to get a li
 
 **`Timeout`** is the timeout in seconds used for the HTTP connection to GMail. `0` means the forever or system error/timeout, [whichever occurs first](https://github.com/gauteh/gmailieer/issues/83#issuecomment-396487919).
 
-**`File extension`** is an optional argument to include the specified extension in local file names (e.g., `mbox`) which can be useful for indexing them with third-party programs. Existing files are not renamed.
+**`File extension`** is an optional argument to include the specified extension in local file names (e.g., `mbox`) which can be useful for indexing them with third-party programs.  
+
+*Important:* If you change this setting after synchronizing, the best case scenario is that all files will apear to not have being pulled down and will be re-downloaded (and duplicated with a different extension in the maildir). There might also be changes to tags. You should in theory be able to change it by renaming all files, but since this will update the lastmod you will get a check on all files.
 
 **`Drop non existing labels`** can be used to silently ignore errors where GMail gives us a label identifier which is not associated with a label. See [Caveats](#caveats).
 

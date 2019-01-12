@@ -144,7 +144,7 @@ class Gmailieer:
         default = None, help = 'Set custom tags to ignore when syncing from remote to local (comma-separated, before translations). Important: see the manual.')
 
     parser_set.add_argument ('--file-extension', type = str, default = None,
-        help = 'Add a file extension before the maildir status flags (e.g., "mbox")')
+        help = 'Add a file extension before the maildir status flags (e.g.: "mbox"). Important: see the manual about changing this setting after initial sync.')
 
     parser_set.set_defaults (func = self.set)
 
