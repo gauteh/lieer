@@ -173,6 +173,10 @@ Gmailieer ships with an API key that is shared openly, this key shares API quota
 You can get an [api key](https://console.developers.google.com/flows/enableapi?apiid=gmail) for a CLI application to use for yourself. Store the `client_secret.json` file somewhere safe and specify it to `gmi auth -c`. You can do this on a repository that is already initialized.
 
 
+# Privacy policy
+
+  No data is sent or stored outside the local repository gmailieer operates on.
+
 # Caveats
 
 * The GMail API does not let you sync `muted` messages. Until [this Google
