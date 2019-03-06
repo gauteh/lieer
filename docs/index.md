@@ -175,7 +175,7 @@ You can get an [api key](https://console.developers.google.com/flows/enableapi?a
 
 # Privacy policy
 
-  No data is sent or stored outside the local repository gmailieer operates on.
+  Gmailieer downloads e-mail and labels to your local computer. No data is sent elsewhere.
 
 # Caveats
 
