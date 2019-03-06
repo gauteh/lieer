@@ -1,6 +1,6 @@
 # Gmailieer
 
-<img src="doc/demo.png">
+<img src="docs/demo.png">
 
 This program can pull email and labels (and changes to labels) from your GMail
 account and store them locally in a maildir with the labels synchronized with a
