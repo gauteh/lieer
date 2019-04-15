@@ -29,6 +29,8 @@ class Gmailieer:
     common.add_argument ('-s', '--no-progress', action = 'store_true',
         default = False, help = 'Disable progressbar (always off when output is not TTY)')
 
+    common.add_argument ('account', type = str, help = 'GMail account to use')
+
     subparsers = parser.add_subparsers (help = 'actions', dest = 'action')
     subparsers.required = True
 
@@ -112,8 +114,6 @@ class Gmailieer:
 
     parser_init.add_argument ('--no-auth', action = 'store_true', default = False,
         help = 'Do not immediately authorize as well (you will need to run \'auth\' afterwards)')
-
-    parser_init.add_argument ('account', type = str, help = 'GMail account to use')
 
     parser_init.set_defaults (func = self.initialize)
 
@@ -643,39 +643,42 @@ class Gmailieer:
     self.setup (args, False, True)
 
     if args.timeout is not None:
-      self.local.state.set_timeout (args.timeout)
+      self.local.config.set(self.args.account, "timeout", args.timeout)
 
     if args.replace_slash_with_dot:
-      self.local.state.set_replace_slash_with_dot (args.replace_slash_with_dot)
+      self.local.config.set(self.args.account, "replace_slash_with_dot", "true")
 
     if args.no_replace_slash_with_dot:
-      self.local.state.set_replace_slash_with_dot (not args.no_replace_slash_with_dot)
+      self.local.config.set(self.args.account, "replace_slash_with_dot", "false")
 
     if args.drop_non_existing_labels:
-      self.local.state.set_drop_non_existing_label (args.drop_non_existing_labels)
+      self.local.config.set(self.args.account, "drop_non_existing_label", "true")
 
     if args.no_drop_non_existing_labels:
-      self.local.state.set_drop_non_existing_label (not args.no_drop_non_existing_labels)
+      self.local.config.set(self.args.account, "drop_non_existing_label", "false")
 
     if args.ignore_tags_local is not None:
-      self.local.state.set_ignore_tags (args.ignore_tags_local)
+      self.local.config.set(self.args.account, "ignore_tags_local", args.ignore_tags_local)
 
     if args.ignore_tags_remote is not None:
-      self.local.state.set_ignore_remote_labels (args.ignore_tags_remote)
+      self.local.config.set(self.args.account, "ignore_tags_remote", args.ignore_tags_remote)
 
     if args.file_extension is not None:
-      self.local.state.set_file_extension (args.file_extension)
+      self.local.config.set(self.args.account, "file_extension", args.file_extension)
+
+    with open(self.local.config_f, mode="w") as fd:
+      self.local.config.write(fd)
 
     print ("Repository information and settings:")
-    print ("Account ...........: %s" % self.local.state.account)
+    print ("Account ...........: %s" % self.args.account)
     print ("historyId .........: %d" % self.local.state.last_historyId)
     print ("lastmod ...........: %d" % self.local.state.lastmod)
-    print ("Timeout ...........: %f" % self.local.state.timeout)
-    print ("File extension ....: %s" % self.local.state.file_extension)
-    print ("Drop non existing labels...:", self.local.state.drop_non_existing_label)
-    print ("Replace . with / ..........:", self.local.state.replace_slash_with_dot)
-    print ("Ignore tags (local) .......:", self.local.state.ignore_tags)
-    print ("Ignore labels (remote) ....:", self.local.state.ignore_remote_labels)
+    print ("Timeout ...........: %f" % int(self.local.config.get(self.args.account, "timeout")))
+    print ("File extension ....: %s" % self.local.config.get(self.args.account, "file_extension"))
+    print ("Drop non existing labels...:", self.local.config.get(self.args.account, "drop_non_existing_label"))
+    print ("Replace . with / ..........:", self.local.config.get(self.args.account, "replace_slash_with_dot"))
+    print ("Ignore tags (local) .......:", self.local.config.get(self.args.account, "ignore_tags"))
+    print ("Ignore labels (remote) ....:", self.local.config.get(self.args.account, "ignore_remote_labels"))
 
 
 

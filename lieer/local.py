@@ -9,6 +9,7 @@ import notmuch
 from .remote import Remote
 
 class Local:
+  config  = None
   wd      = None
   loaded  = False
 
@@ -61,15 +62,8 @@ class Local:
     # this is the last modification id of the notmuch db when the previous push was completed.
     lastmod = 0
 
-    replace_slash_with_dot = False
-    account = None
-    timeout = 0
-    drop_non_existing_label = False
-    ignore_tags = None
-    ignore_remote_labels = None
-    file_extension = None
-
     def __init__ (self, state_f):
+
       self.state_f = state_f
 
       if os.path.exists (self.state_f):
@@ -80,29 +74,17 @@ class Local:
 
       self.last_historyId = self.json.get ('last_historyId', 0)
       self.lastmod = self.json.get ('lastmod', 0)
-      self.replace_slash_with_dot = self.json.get ('replace_slash_with_dot', False)
-      self.account = self.json.get ('account', 'me')
-      self.timeout = self.json.get ('timeout', 0)
-      self.drop_non_existing_label = self.json.get ('drop_non_existing_label', False)
-      self.ignore_tags = set(self.json.get ('ignore_tags', []))
-      self.ignore_remote_labels = set(self.json.get ('ignore_remote_labels', Remote.DEFAULT_IGNORE_LABELS))
-      self.file_extension = self.json.get ('file_extension', '')
 
     def write (self):
       self.json = {}
 
       self.json['last_historyId'] = self.last_historyId
       self.json['lastmod'] = self.lastmod
-      self.json['replace_slash_with_dot'] = self.replace_slash_with_dot
-      self.json['account'] = self.account
-      self.json['timeout'] = self.timeout
-      self.json['drop_non_existing_label'] = self.drop_non_existing_label
-      self.json['ignore_tags'] = list(self.ignore_tags)
-      self.json['ignore_remote_labels'] = list(self.ignore_remote_labels)
-      self.json['file_extension'] = self.file_extension
 
       if os.path.exists (self.state_f):
         shutil.copyfile (self.state_f, self.state_f + '.bak')
+      else:
+        os.mkdir(os.path.dirname(self.state_f), 0o755)
 
       with tempfile.NamedTemporaryFile (mode = 'w+', dir = os.path.dirname (self.state_f), delete = False) as fd:
         json.dump (self.json, fd)
@@ -116,52 +98,39 @@ class Local:
       self.lastmod = m
       self.write ()
 
-    def set_account (self, a):
-      self.account = a
-      self.write ()
-
-    def set_timeout (self, t):
-      self.timeout = t
-      self.write ()
-
-    def set_replace_slash_with_dot (self, r):
-      self.replace_slash_with_dot = r
-      self.write ()
-
-    def set_drop_non_existing_label (self, r):
-      self.drop_non_existing_label = r
-      self.write ()
-
-    def set_ignore_tags (self, t):
-      if len(t.strip ()) == 0:
-        self.ignore_tags = set()
-      else:
-        self.ignore_tags = set([ tt.strip () for tt in t.split(',') ])
-
-      self.write ()
-
-    def set_ignore_remote_labels (self, t):
-      if len(t.strip ()) == 0:
-        self.ignore_remote_labels = set()
-      else:
-        self.ignore_remote_labels = set([ tt.strip () for tt in t.split(',') ])
-
-      self.write ()
-
-    def set_file_extension (self, t):
-      try:
-        with tempfile.NamedTemporaryFile (dir = os.path.dirname (self.state_f), suffix = t) as fd:
-          pass
-
-        self.file_extension = t.strip ()
-        self.write ()
-      except OSError:
-        print ("Failed creating test file with file extension: " + t + ", not set.")
-        raise
-
   def __init__ (self, g):
     self.gmailieer = g
-    self.wd = os.getcwd ()
+
+    xdg_config_home = os.getenv ('XDG_CONFIG_HOME', os.path.expanduser ('~/.config'))
+    self.config_f = os.path.join(xdg_config_home, "gmailieer", "config")
+
+    self.config = configparser.ConfigParser({
+        'maildir_base': '~/.mail',
+        'replace_slash_with_dot': 'false',
+        'timeout': '0',
+        'drop_non_existing_label': 'false',
+        'ignore_tags': '',
+        'ignore_remote_labels': ','.join(
+            ['CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS',
+                'CATEGORY_UPDATES', 'CATEGORY_FORUMS' ]),
+        'file_extension': ''
+        })
+    self.config.read(self.config_f)
+    subdir = ""
+    try:
+      subdir = self.config.get(g.args.account, "dir")
+    except configparser.NoSectionError:
+      self.config.add_section(g.args.account)
+      self.config.set(g.args.account, "dir", g.args.account)
+    except configparser.NoOptionError:
+      self.config.set(g.args.account, "dir", g.args.account)
+    finally:
+      with open(self.config_f, mode="w") as fd:
+        self.config.write(fd)
+      subdir = self.config.get(g.args.account, "dir")
+    maildir_base = self.config.get(g.args.account, "maildir_base")
+
+    self.wd = os.path.expanduser(os.path.join(maildir_base, subdir))
     self.dry_run = g.dry_run
 
     # state file for local repository
@@ -184,7 +153,7 @@ class Local:
 
     self.state = Local.State (self.state_f)
 
-    self.ignore_labels = self.ignore_labels | self.state.ignore_tags
+    self.ignore_labels = self.ignore_labels | set(self.config.get(self.gmailieer.args.account, "ignore_tags").split(","))
 
     ## Check if we are in the notmuch db
     with notmuch.Database () as db:
@@ -260,9 +229,10 @@ class Local:
       raise Local.RepositoryException ("'mail' exists: this repository seems to already be set up!")
 
     self.state = Local.State (self.state_f)
-    self.state.replace_slash_with_dot = replace_slash_with_dot
-    self.state.account = account
-    self.state.write ()
+    self.state.write()
+    self.config.set(self.gmailieer.args.account, "replace_slash_with_dot", "true" if replace_slash_with_dot else "false")
+    with open(self.config_f, mode="w") as fd:
+      self.config.write(fd)
     os.makedirs (os.path.join (self.md, 'cur'))
     os.makedirs (os.path.join (self.md, 'new'))
     os.makedirs (os.path.join (self.md, 'tmp'))
@@ -327,8 +297,8 @@ class Local:
 
   def __filename_to_gid__ (self, fname):
     ext = ''
-    if self.state.file_extension:
-        ext = '.' + self.state.file_extension
+    if self.config.get(self.gmailieer.args.account, "file_extension"):
+        ext = '.' + self.config.get(self.gmailieer.args.account, "file_extension")
     ext += ':2,'
 
     f = fname.rfind (ext)
@@ -341,8 +311,8 @@ class Local:
   def __make_maildir_name__ (self, m, labels):
     # http://cr.yp.to/proto/maildir.html
     ext = ''
-    if self.state.file_extension:
-        ext = '.' + self.state.file_extension
+    if self.config.get(self.gmailieer.args.account, "file_extension"):
+        ext = '.' + self.config.get(self.gmailieer.args.account, "file_extension")
 
     p = m + ext + ':'
     info = '2,'
@@ -441,7 +411,7 @@ class Local:
     for l in glabels:
       ll = self.gmailieer.remote.labels.get(l, None)
 
-      if ll is None and not self.state.drop_non_existing_label:
+      if ll is None and self.config.get(self.gmailieer.args.account, "drop_non_existing_label").lower() != "true":
         err = "error: GMail supplied a label that there exists no record for! You can `gmi set --drop-non-existing-labels` to work around the issue (https://github.com/gauteh/lieer/issues/48)"
         print (err)
         raise Local.RepositoryException (err)
@@ -458,7 +428,7 @@ class Local:
     labels = [self.translate_labels.get (l, l) for l in labels]
 
     # this is my weirdness
-    if self.state.replace_slash_with_dot:
+    if self.config.get(self.gmailieer.args.account, "replace_slash_with_dot").lower() == "true":
       labels = [l.replace ('/', '.') for l in labels]
 
     if fname is None:

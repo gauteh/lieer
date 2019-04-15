@@ -104,10 +104,10 @@ class Remote:
     assert g.local.loaded, "local repository must be loaded!"
 
     self.CLIENT_SECRET_FILE = g.credentials_file
-    self.account = g.local.state.account
+    self.account = g.args.account
     self.dry_run = g.dry_run
 
-    self.ignore_labels = self.gmailieer.local.state.ignore_remote_labels
+    self.ignore_labels = set(self.gmailieer.local.config.get(self.account, "ignore_remote_labels").split(","))
 
   def __require_auth__ (func):
     def func_wrap (self, *args, **kwargs):
@@ -378,7 +378,7 @@ class Remote:
 
     self.credentials = self.__get_credentials__ ()
 
-    timeout = self.gmailieer.local.state.timeout
+    timeout = int(self.gmailieer.local.config.get(self.account, "timeout"))
     if timeout == 0: timeout = None
 
     self.http = self.credentials.authorize (httplib2.Http(timeout = timeout))
@@ -469,7 +469,7 @@ class Remote:
     for l in glabels:
       ll = self.labels.get(l, None)
 
-      if ll is None and not self.gmailieer.local.state.drop_non_existing_label:
+      if ll is None and self.gmailieer.local.config.get(self.account, "drop_non_existing_label").lower() != "true":
         err = "error: GMail supplied a label that there exists no record for! You can `gmi set --drop-non-existing-labels` to work around the issue (https://github.com/gauteh/lieer/issues/48)"
         print (err)
         raise Remote.GenericException (err)
@@ -486,7 +486,7 @@ class Remote:
     labels = [self.gmailieer.local.translate_labels.get (l, l) for l in labels]
 
     # this is my weirdness
-    if self.gmailieer.local.state.replace_slash_with_dot:
+    if self.gmailieer.local.config.get(self.account, "replace_slash_with_dot").lower() == "true":
       labels = [l.replace ('/', '.') for l in labels]
 
     labels = set(labels)
@@ -504,7 +504,7 @@ class Remote:
     add = [self.gmailieer.local.labels_translate.get (k, k) for k in add]
     rem = [self.gmailieer.local.labels_translate.get (k, k) for k in rem]
 
-    if self.gmailieer.local.state.replace_slash_with_dot:
+    if self.gmailieer.local.config.get(self.account, "replace_slash_with_dot").lower() == "true":
       add = [a.replace ('.', '/') for a in add]
       rem = [r.replace ('.', '/') for r in rem]
 
