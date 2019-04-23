@@ -122,11 +122,9 @@ class Local:
     except configparser.NoSectionError:
       self.config.add_section(g.args.account)
       self.config.set(g.args.account, "dir", g.args.account)
+      subdir = self.config.get(g.args.account, "dir")
     except configparser.NoOptionError:
       self.config.set(g.args.account, "dir", g.args.account)
-    finally:
-      with open(self.config_f, mode="w") as fd:
-        self.config.write(fd)
       subdir = self.config.get(g.args.account, "dir")
     maildir_base = self.config.get(g.args.account, "maildir_base")
 
@@ -231,8 +229,11 @@ class Local:
     self.state = Local.State (self.state_f)
     self.state.write()
     self.config.set(self.gmailieer.args.account, "replace_slash_with_dot", "true" if replace_slash_with_dot else "false")
-    with open(self.config_f, mode="w") as fd:
-      self.config.write(fd)
+    try:
+      with open(self.config_f, mode="w") as fd:
+        self.config.write(fd)
+    except PermissionError:
+      print ("config file %s not writable" % self.config_f)
     os.makedirs (os.path.join (self.md, 'cur'))
     os.makedirs (os.path.join (self.md, 'new'))
     os.makedirs (os.path.join (self.md, 'tmp'))
