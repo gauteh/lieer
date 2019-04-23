@@ -30,20 +30,29 @@ After cloning this repository, symlink `gmi` to somewhere on your path, or use `
 
 # Usage
 
-This assumes your root mail folder is in `~/.mail` and that this folder is _already_ set up with notmuch.
+This assumes your root mail folder is _already_ set up with notmuch.
 
-1. Make a directory for the lieer storage and state files (local repository).
+1. Configure the base mail directory (defaults to `~/.mail`), in
+   `$XDG_CONFIG_HOME/lieer/config`:
 
-```sh
-$ cd    ~/.mail
-$ mkdir account.gmail
-$ cd    account.gmail/
+```ini
+[DEFAULT]
+maildir_base = ~/Mail
 ```
 
-All commands should be run from the local mail repository unless otherwise specified.
+2. Optionally set up accounts to be stored in specific directories under
+   `maildir_base` (defaults to account name, i.e.\ email address), in
+   `$XDG_CONFIG_HOME/gmailieer/config`:
 
+```ini
+[your.email@gmail.com]
+dir = personal_mail
 
-2. Ignore the `.json` files in notmuch. Any tags listed in `new.tags` will be added to newly pulled messages. Process tags on new messages directly after running gmi, or run `notmuch new` to trigger the `post-new` hook for [initial tagging](https://notmuchmail.org/initial_tagging/). The `new.tags` are not ignored by default if you do not remove them, but you can prevent custom tags from being pushed to the remote by using e.g. `gmi set --ignore-tags-local new`.
+[your.work.email@gmail.com]
+dir = work_email
+```
+
+3. Ignore the `.json` files in notmuch. Any tags listed in `new.tags` will be added to newly pulled messages. Process tags on new messages directly after running gmi, or run `notmuch new` to trigger the `post-new` hook for [initial tagging](https://notmuchmail.org/initial_tagging/). The `new.tags` are not ignored by default if you do not remove them, but you can prevent custom tags from being pushed to the remote by using e.g. `gmi set --ignore-tags-local new`.
 
 ```
 [new]
@@ -51,7 +60,7 @@ tags=new
 ignore=/.*[.](json|lock|bak)$/
 ```
 
-3. Initialize the mail storage:
+4. Initialize the mail storage:
 
 ```sh
 $ gmi init your.email@gmail.com
@@ -61,7 +70,7 @@ $ gmi init your.email@gmail.com
 
 > The access token is stored in `.credentials.gmailieer.json` in the local mail repository. If you wish, you can specify [your own api key](#using-your-own-api-key) that should be used.
 
-4. You're now set up, and you can do the initial pull.
+5. You're now set up, and you can do the initial pull.
 
 > Use `gmi -h` or `gmi command -h` to get more usage information.
 
@@ -105,7 +114,7 @@ See below for more [caveats](#caveats).
 
 # Settings
 
-Lieer can be configured using `gmi set`. Use without any options to get a list of the current settings as well as the current history ID and notmuch revision.
+Lieer can be configured using `gmi set`. Use with an account to get a list of the current settings as well as the current history ID and notmuch revision.
 
 **`Account`** is the GMail account the repository is synced with. Configured during setup with [`gmi init`](#usage).
 
