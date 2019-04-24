@@ -421,6 +421,10 @@ class Local:
       with open (tmp_p, 'wb') as fd:
         fd.write (msg_str)
 
+      # Set atime and mtime of the message file to Gmail receive date
+      internalDate = int(m['internalDate']) / 1000  # ms to s
+      os.utime(tmp_p, (internalDate, internalDate))
+
       os.rename (tmp_p, p)
 
     # add to notmuch
