@@ -95,7 +95,7 @@ class Gmailieer:
     # auth
     parser_auth = subparsers.add_parser ('auth', parents = [common],
         description = 'authorize',
-        help = 'authorize gmailieer with your GMail account')
+        help = 'authorize lieer with your GMail account')
 
     parser_auth.add_argument ('-f', '--force', action = 'store_true',
         default = False, help = 'Re-authorize')
@@ -133,7 +133,7 @@ class Gmailieer:
     parser_set.add_argument ('--no-replace-slash-with-dot', action = 'store_true', default = False)
 
     parser_set.add_argument ('--drop-non-existing-labels', action = 'store_true', default = False,
-        help = 'Allow missing labels on the GMail side to be dropped (see https://github.com/gauteh/gmailieer/issues/48)')
+        help = 'Allow missing labels on the GMail side to be dropped (see https://github.com/gauteh/lieer/issues/48)')
 
     parser_set.add_argument ('--no-drop-non-existing-labels', action = 'store_true', default = False)
 

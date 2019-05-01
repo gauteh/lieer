@@ -1,5 +1,5 @@
 
-“This program” is Gmailieer.
+“This program” is Lieer.
 
     Copyright (c) 2017  Gaute Hope <eg@gaute.vetsj.com>
 
