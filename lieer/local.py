@@ -441,7 +441,7 @@ class Local:
       ll = self.gmailieer.remote.labels.get(l, None)
 
       if ll is None and not self.state.drop_non_existing_label:
-        err = "error: GMail supplied a label that there exists no record for! You can `gmi set --drop-non-existing-labels` to work around the issue (https://github.com/gauteh/gmailieer/issues/48)"
+        err = "error: GMail supplied a label that there exists no record for! You can `gmi set --drop-non-existing-labels` to work around the issue (https://github.com/gauteh/lieer/issues/48)"
         print (err)
         raise Local.RepositoryException (err)
       elif ll is None:

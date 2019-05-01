@@ -10,7 +10,7 @@ from pathlib import Path
 
 class Remote:
   SCOPES = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/gmail.modify'
-  APPLICATION_NAME   = 'Gmailieer'
+  APPLICATION_NAME   = 'Lieer'
   CLIENT_SECRET_FILE = None
   authorized         = False
 
@@ -20,7 +20,7 @@ class Remote:
   # access to an users account the access_token and/or refresh_token must be
   # compromised. these are stored locally.
   #
-  # * https://github.com/gauteh/gmailieer/pull/9
+  # * https://github.com/gauteh/lieer/pull/9
   # * https://stackoverflow.com/questions/25957027/oauth-2-installed-application-client-secret-considerationsgoogle-api/43061998#43061998
   # * https://stackoverflow.com/questions/19615372/client-secret-in-oauth-2-0?rq=1
   #
@@ -263,7 +263,7 @@ class Remote:
 
         elif type(excep) is googleapiclient.errors.HttpError and excep.resp.status == 400:
           # message id invalid, probably caused by stray files in the mail repo
-          print ("remote: message id: %s is invalid! are there any non-gmailieer files created in the gmailieer repository?" % gids[j])
+          print ("remote: message id: %s is invalid! are there any non-lieer files created in the lieer repository?" % gids[j])
           j += 1
           return
 
@@ -470,7 +470,7 @@ class Remote:
       ll = self.labels.get(l, None)
 
       if ll is None and not self.gmailieer.local.state.drop_non_existing_label:
-        err = "error: GMail supplied a label that there exists no record for! You can `gmi set --drop-non-existing-labels` to work around the issue (https://github.com/gauteh/gmailieer/issues/48)"
+        err = "error: GMail supplied a label that there exists no record for! You can `gmi set --drop-non-existing-labels` to work around the issue (https://github.com/gauteh/lieer/issues/48)"
         print (err)
         raise Remote.GenericException (err)
       elif ll is None:
@@ -591,7 +591,7 @@ class Remote:
 
         elif type(excep) is googleapiclient.errors.HttpError and excep.resp.status == 400:
           # message id invalid, probably caused by stray files in the mail repo
-          print ("remote: message id: %s is invalid! are there any non-gmailieer files created in the gmailieer repository?" % gids[j])
+          print ("remote: message id: %s is invalid! are there any non-lieer files created in the lieer repository?" % gids[j])
           j += 1
           return
 

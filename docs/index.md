@@ -1,6 +1,6 @@
-# Gmailieer
+# Lieer 
 
-<img src="https://gauteh.github.io/gmailieer/demo.png">
+<img src="https://gauteh.github.io/lieer/demo.png">
 
 This program can pull email and labels (and changes to labels) from your GMail
 account and store them locally in a maildir with the labels synchronized with a
@@ -9,12 +9,12 @@ notmuch database may be pushed back remotely to your GMail account.
 
 ## Disclaimer
 
-Gmailieer will not and can not:
+Lieer will not and can not:
 
 * Add or delete messages on your remote account (except syncing the `trash` or `spam` label to messages, and those messages will eventually be [deleted](https://support.google.com/mail/answer/7401?co=GENIE.Platform%3DDesktop&hl=en))
 * Modify messages other than their labels
 
-While Gmailieer has been used to successfully synchronize millions of messages and tags by now, it comes with **NO WARRANTIES**.
+While Lieer has been used to successfully synchronize millions of messages and tags by now, it comes with **NO WARRANTIES**.
 
 ## Requirements
 
@@ -32,7 +32,7 @@ After cloning this repository, symlink `gmi` to somewhere on your path, or use `
 
 This assumes your root mail folder is in `~/.mail` and that this folder is _already_ set up with notmuch.
 
-1. Make a directory for the gmailieer storage and state files (local repository).
+1. Make a directory for the lieer storage and state files (local repository).
 
 ```sh
 $ cd    ~/.mail
@@ -99,13 +99,13 @@ run the conflicts should be resolved, overwriting the local changes with the
 remote changes. You can force the local changes to overwrite the remote changes
 by using `push -f`.
 
-> Note: If changes are being made on the remote, on a message that is currently being synced with `gmailieer`, the changes may be overwritten or merged in weird ways.
+> Note: If changes are being made on the remote, on a message that is currently being synced with `lieer`, the changes may be overwritten or merged in weird ways.
 
 See below for more [caveats](#caveats).
 
 # Settings
 
-Gmailieer can be configured using `gmi set`. Use without any options to get a list of the current settings as well as the current history ID and notmuch revision.
+Lieer can be configured using `gmi set`. Use without any options to get a list of the current settings as well as the current history ID and notmuch revision.
 
 **`Account`** is the GMail account the repository is synced with. Configured during setup with [`gmi init`](#usage).
 
@@ -113,7 +113,7 @@ Gmailieer can be configured using `gmi set`. Use without any options to get a li
 
 **`lastmod`** is the latest synced Notmuch database revision. Anything changed after this revision will be pushed on [`gmi push`](#ush).
 
-**`Timeout`** is the timeout in seconds used for the HTTP connection to GMail. `0` means the forever or system error/timeout, [whichever occurs first](https://github.com/gauteh/gmailieer/issues/83#issuecomment-396487919).
+**`Timeout`** is the timeout in seconds used for the HTTP connection to GMail. `0` means the forever or system error/timeout, [whichever occurs first](https://github.com/gauteh/lieer/issues/83#issuecomment-396487919).
 
 **`File extension`** is an optional argument to include the specified extension in local file names (e.g., `mbox`) which can be useful for indexing them with third-party programs.  
 
@@ -168,32 +168,32 @@ We translate some of the GMail labels to other tags. The map of labels to tags a
 
 # Using your own API key
 
-Gmailieer ships with an API key that is shared openly, this key shares API quota, but [cannot be used to access data](https://github.com/gauteh/gmailieer/pull/9) unless access is gained to your private `access_token` or `refresh_token`.
+Lieer ships with an API key that is shared openly, this key shares API quota, but [cannot be used to access data](https://github.com/gauteh/lieer/pull/9) unless access is gained to your private `access_token` or `refresh_token`.
 
 You can get an [api key](https://console.developers.google.com/flows/enableapi?apiid=gmail) for a CLI application to use for yourself. Store the `client_secret.json` file somewhere safe and specify it to `gmi auth -c`. You can do this on a repository that is already initialized.
 
 
 # Privacy policy
 
-  Gmailieer downloads e-mail and labels to your local computer. No data is sent elsewhere.
+  Lieer downloads e-mail and labels to your local computer. No data is sent elsewhere.
 
 # Caveats
 
 * The GMail API does not let you sync `muted` messages. Until [this Google
 bug](https://issuetracker.google.com/issues/36759067) is fixed, the `mute` and `muted` tags are not synchronized with the remote.
 
-* The [`todo`](https://github.com/gauteh/gmailieer/issues/52) and [`voicemail`](https://github.com/gauteh/gmailieer/issues/74) labels seem to be reserved and will be ignored.
+* The [`todo`](https://github.com/gauteh/lieer/issues/52) and [`voicemail`](https://github.com/gauteh/lieer/issues/74) labels seem to be reserved and will be ignored.
 
 * The `draft` and `sent` labels are read only: They are synced from GMail to local notmuch tags, but not back (if you change them via notmuch).
 
-* [Only one of the tags](https://github.com/gauteh/gmailieer/issues/26) `inbox`, `spam`, and `trash` may be added to an email. For
+* [Only one of the tags](https://github.com/gauteh/lieer/issues/26) `inbox`, `spam`, and `trash` may be added to an email. For
 the time being, `trash` will be prefered over `spam`, and `spam` over `inbox`.
 
 * `Trash` (capital `T`) is reserved and not allowed, use `trash` (lowercase, see above) to bin messages remotely.
 
-* Sometimes GMail provides a label identifier on a message for a label that does not exist. If you encounter this [issue](https://github.com/gauteh/gmailieer/issues/48) you can get around it by using `gmi set --drop-non-existing-labels` and re-try to pull. The labels will now be ignored, and if this message is ever synced back up the unmapped label ID will be removed. You can list labels with `gmi pull -t`.
+* Sometimes GMail provides a label identifier on a message for a label that does not exist. If you encounter this [issue](https://github.com/gauteh/lieer/issues/48) you can get around it by using `gmi set --drop-non-existing-labels` and re-try to pull. The labels will now be ignored, and if this message is ever synced back up the unmapped label ID will be removed. You can list labels with `gmi pull -t`.
 
-* You [cannot add any new files](https://github.com/gauteh/gmailieer/issues/54) (files starting with `.` will be ignored) to the gmailieer repository. Gmailieer uses the directory content an index of local files. Gmailieer does not push new messages to your account (note that if you send messages with GMail, GMail automatically adds the message to your mailbox).
+* You [cannot add any new files](https://github.com/gauteh/lieer/issues/54) (files starting with `.` will be ignored) to the lieer repository. Lieer uses the directory content an index of local files. Lieer does not push new messages to your account (note that if you send messages with GMail, GMail automatically adds the message to your mailbox).
 
-* Make sure that you use the same domain for you GMail account as you initially created your account with: usually `@gmail.com`, but sometimes `@googlemail.com`. Otherwise you might get a [`Delegation denied` error](https://github.com/gauteh/gmailieer/issues/88).
+* Make sure that you use the same domain for you GMail account as you initially created your account with: usually `@gmail.com`, but sometimes `@googlemail.com`. Otherwise you might get a [`Delegation denied` error](https://github.com/gauteh/lieer/issues/88).
 
