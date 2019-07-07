@@ -1,4 +1,4 @@
-# Lieer 
+# Lieer
 
 <img src="https://gauteh.github.io/lieer/demo.png">
 
@@ -190,6 +190,8 @@ bug](https://issuetracker.google.com/issues/36759067) is fixed, the `mute` and `
 the time being, `trash` will be prefered over `spam`, and `spam` over `inbox`.
 
 * `Trash` (capital `T`) is reserved and not allowed, use `trash` (lowercase, see above) to bin messages remotely.
+
+* `archive` is reserved and [not allowed](https://github.com/gauteh/lieer/issues/109). To archive e-mails remove the `inbox` tag.
 
 * Sometimes GMail provides a label identifier on a message for a label that does not exist. If you encounter this [issue](https://github.com/gauteh/lieer/issues/48) you can get around it by using `gmi set --drop-non-existing-labels` and re-try to pull. The labels will now be ignored, and if this message is ever synced back up the unmapped label ID will be removed. You can list labels with `gmi pull -t`.
 

@@ -35,6 +35,7 @@ class Local:
   labels_translate = { v: k for k, v in translate_labels.items () }
 
   ignore_labels = set ([
+                        'archive',
                         'attachment',
                         'encrypted',
                         'signed',
