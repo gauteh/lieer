@@ -48,7 +48,7 @@ All commands should be run from the local mail repository unless otherwise speci
 ```
 [new]
 tags=new
-ignore=*.json;
+ignore=/.*[.]json$/
 ```
 
 3. Initialize the mail storage:
