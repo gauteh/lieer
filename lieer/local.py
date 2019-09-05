@@ -102,7 +102,7 @@ class Local:
     self.gmailieer = g
 
     xdg_config_home = os.getenv ('XDG_CONFIG_HOME', os.path.expanduser ('~/.config'))
-    self.config_f = os.path.join(xdg_config_home, "gmailieer", "config")
+    self.config_f = os.path.join(xdg_config_home, "lieer", "config")
 
     self.config = configparser.ConfigParser({
         'maildir_base': '~/.mail',
