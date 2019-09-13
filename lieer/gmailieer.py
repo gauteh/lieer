@@ -643,39 +643,39 @@ class Gmailieer:
     self.setup (args, False, True)
 
     if args.timeout is not None:
-      self.local.state.set_timeout (args.timeout)
+      self.local.config.set_timeout (args.timeout)
 
     if args.replace_slash_with_dot:
-      self.local.state.set_replace_slash_with_dot (args.replace_slash_with_dot)
+      self.local.config.set_replace_slash_with_dot (args.replace_slash_with_dot)
 
     if args.no_replace_slash_with_dot:
-      self.local.state.set_replace_slash_with_dot (not args.no_replace_slash_with_dot)
+      self.local.config.set_replace_slash_with_dot (not args.no_replace_slash_with_dot)
 
     if args.drop_non_existing_labels:
-      self.local.state.set_drop_non_existing_label (args.drop_non_existing_labels)
+      self.local.config.set_drop_non_existing_label (args.drop_non_existing_labels)
 
     if args.no_drop_non_existing_labels:
-      self.local.state.set_drop_non_existing_label (not args.no_drop_non_existing_labels)
+      self.local.config.set_drop_non_existing_label (not args.no_drop_non_existing_labels)
 
     if args.ignore_tags_local is not None:
-      self.local.state.set_ignore_tags (args.ignore_tags_local)
+      self.local.config.set_ignore_tags (args.ignore_tags_local)
 
     if args.ignore_tags_remote is not None:
-      self.local.state.set_ignore_remote_labels (args.ignore_tags_remote)
+      self.local.config.set_ignore_remote_labels (args.ignore_tags_remote)
 
     if args.file_extension is not None:
-      self.local.state.set_file_extension (args.file_extension)
+      self.local.config.set_file_extension (args.file_extension)
 
     print ("Repository information and settings:")
-    print ("Account ...........: %s" % self.local.state.account)
+    print ("Account ...........: %s" % self.local.config.account)
     print ("historyId .........: %d" % self.local.state.last_historyId)
     print ("lastmod ...........: %d" % self.local.state.lastmod)
-    print ("Timeout ...........: %f" % self.local.state.timeout)
-    print ("File extension ....: %s" % self.local.state.file_extension)
-    print ("Drop non existing labels...:", self.local.state.drop_non_existing_label)
-    print ("Replace . with / ..........:", self.local.state.replace_slash_with_dot)
-    print ("Ignore tags (local) .......:", self.local.state.ignore_tags)
-    print ("Ignore labels (remote) ....:", self.local.state.ignore_remote_labels)
+    print ("Timeout ...........: %f" % self.local.config.timeout)
+    print ("File extension ....: %s" % self.local.config.file_extension)
+    print ("Drop non existing labels...:", self.local.config.drop_non_existing_label)
+    print ("Replace . with / ..........:", self.local.config.replace_slash_with_dot)
+    print ("Ignore tags (local) .......:", self.local.config.ignore_tags)
+    print ("Ignore labels (remote) ....:", self.local.config.ignore_remote_labels)
 
 
 

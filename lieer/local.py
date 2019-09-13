@@ -51,16 +51,8 @@ class Local:
   class RepositoryException (Exception):
     pass
 
-  class State:
-    # last historyid of last synchronized message, anything that has happened
-    # remotely after this needs to be synchronized. gmail may return a 404 error
-    # if the history records have been deleted, in which case we have to do a full
-    # sync.
-    last_historyId = 0
 
-    # this is the last modification id of the notmuch db when the previous push was completed.
-    lastmod = 0
-
+  class Config:
     replace_slash_with_dot = False
     account = None
     timeout = 0
@@ -69,17 +61,15 @@ class Local:
     ignore_remote_labels = None
     file_extension = None
 
-    def __init__ (self, state_f):
-      self.state_f = state_f
+    def __init__ (self, config_f):
+      self.config_f = config_f
 
-      if os.path.exists (self.state_f):
-        with open (self.state_f, 'r') as fd:
+      if os.path.exists (self.config_f):
+        with open (self.config_f, 'r') as fd:
           self.json = json.load (fd)
       else:
         self.json = {}
 
-      self.last_historyId = self.json.get ('last_historyId', 0)
-      self.lastmod = self.json.get ('lastmod', 0)
       self.replace_slash_with_dot = self.json.get ('replace_slash_with_dot', False)
       self.account = self.json.get ('account', 'me')
       self.timeout = self.json.get ('timeout', 0)
@@ -91,8 +81,6 @@ class Local:
     def write (self):
       self.json = {}
 
-      self.json['last_historyId'] = self.last_historyId
-      self.json['lastmod'] = self.lastmod
       self.json['replace_slash_with_dot'] = self.replace_slash_with_dot
       self.json['account'] = self.account
       self.json['timeout'] = self.timeout
@@ -101,20 +89,12 @@ class Local:
       self.json['ignore_remote_labels'] = list(self.ignore_remote_labels)
       self.json['file_extension'] = self.file_extension
 
-      if os.path.exists (self.state_f):
-        shutil.copyfile (self.state_f, self.state_f + '.bak')
+      if os.path.exists (self.config_f):
+        shutil.copyfile (self.config_f, self.config_f + '.bak')
 
-      with tempfile.NamedTemporaryFile (mode = 'w+', dir = os.path.dirname (self.state_f), delete = False) as fd:
+      with tempfile.NamedTemporaryFile (mode = 'w+', dir = os.path.dirname (self.config_f), delete = False) as fd:
         json.dump (self.json, fd)
-        os.rename (fd.name, self.state_f)
-
-    def set_last_history_id (self, hid):
-      self.last_historyId = hid
-      self.write ()
-
-    def set_lastmod (self, m):
-      self.lastmod = m
-      self.write ()
+        os.rename (fd.name, self.config_f)
 
     def set_account (self, a):
       self.account = a
@@ -159,13 +139,62 @@ class Local:
         print ("Failed creating test file with file extension: " + t + ", not set.")
         raise
 
+
+  class State:
+    # last historyid of last synchronized message, anything that has happened
+    # remotely after this needs to be synchronized. gmail may return a 404 error
+    # if the history records have been deleted, in which case we have to do a full
+    # sync.
+    last_historyId = 0
+
+    # this is the last modification id of the notmuch db when the previous push was completed.
+    lastmod = 0
+
+    def __init__ (self, state_f, config_f):
+      self.state_f = state_f
+
+      if os.path.exists (self.state_f):
+        with open (self.state_f, 'r') as fd:
+          self.json = json.load (fd)
+      elif os.path.exists (config_f):
+        with open (config_f, 'r') as fd:
+          self.json = json.load (fd)
+      else:
+        self.json = {}
+
+      self.last_historyId = self.json.get ('last_historyId', 0)
+      self.lastmod = self.json.get ('lastmod', 0)
+
+    def write (self):
+      self.json = {}
+
+      self.json['last_historyId'] = self.last_historyId
+      self.json['lastmod'] = self.lastmod
+
+      if os.path.exists (self.state_f):
+        shutil.copyfile (self.state_f, self.state_f + '.bak')
+
+      with tempfile.NamedTemporaryFile (mode = 'w+', dir = os.path.dirname (self.state_f), delete = False) as fd:
+        json.dump (self.json, fd)
+        os.rename (fd.name, self.state_f)
+
+    def set_last_history_id (self, hid):
+      self.last_historyId = hid
+      self.write ()
+
+    def set_lastmod (self, m):
+      self.lastmod = m
+      self.write ()
+
+
   def __init__ (self, g):
     self.gmailieer = g
     self.wd = os.getcwd ()
     self.dry_run = g.dry_run
 
-    # state file for local repository
-    self.state_f = os.path.join (self.wd, '.gmailieer.json')
+    # config and state files for local repository
+    self.config_f = os.path.join (self.wd, '.gmailieer.json')
+    self.state_f = os.path.join (self.wd, '.state.gmailieer.json')
     self.credentials_f = os.path.join (self.wd, '.credentials.gmailieer.json')
 
     # mail store
@@ -176,15 +205,16 @@ class Local:
     Loads the current local repository
     """
 
-    if not os.path.exists (self.state_f):
-      raise Local.RepositoryException ('local repository not initialized: could not find state file')
+    if not os.path.exists (self.config_f):
+      raise Local.RepositoryException ('local repository not initialized: could not find config file')
 
     if not os.path.exists (self.md):
       raise Local.RepositoryException ('local repository not initialized: could not find mail dir')
 
-    self.state = Local.State (self.state_f)
+    self.config = Local.Config (self.config_f)
+    self.state = Local.State (self.state_f, self.config_f)
 
-    self.ignore_labels = self.ignore_labels | self.state.ignore_tags
+    self.ignore_labels = self.ignore_labels | self.config.ignore_tags
 
     ## Check if we are in the notmuch db
     with notmuch.Database () as db:
@@ -253,16 +283,16 @@ class Local:
     print ("initializing repository in: %s.." % self.wd)
 
     # check if there is a repository here already or if there is anything that will conflict with setting up one
-    if os.path.exists (self.state_f):
+    if os.path.exists (self.config_f):
       raise Local.RepositoryException ("'.gmailieer.json' exists: this repository seems to already be set up!")
 
     if os.path.exists (self.md):
       raise Local.RepositoryException ("'mail' exists: this repository seems to already be set up!")
 
-    self.state = Local.State (self.state_f)
-    self.state.replace_slash_with_dot = replace_slash_with_dot
-    self.state.account = account
-    self.state.write ()
+    self.config = Local.Config (self.config_f)
+    self.config.replace_slash_with_dot = replace_slash_with_dot
+    self.config.account = account
+    self.config.write ()
     os.makedirs (os.path.join (self.md, 'cur'))
     os.makedirs (os.path.join (self.md, 'new'))
     os.makedirs (os.path.join (self.md, 'tmp'))
@@ -327,8 +357,8 @@ class Local:
 
   def __filename_to_gid__ (self, fname):
     ext = ''
-    if self.state.file_extension:
-        ext = '.' + self.state.file_extension
+    if self.config.file_extension:
+        ext = '.' + self.config.file_extension
     ext += ':2,'
 
     f = fname.rfind (ext)
@@ -341,8 +371,8 @@ class Local:
   def __make_maildir_name__ (self, m, labels):
     # http://cr.yp.to/proto/maildir.html
     ext = ''
-    if self.state.file_extension:
-        ext = '.' + self.state.file_extension
+    if self.config.file_extension:
+        ext = '.' + self.config.file_extension
 
     p = m + ext + ':'
     info = '2,'
@@ -441,7 +471,7 @@ class Local:
     for l in glabels:
       ll = self.gmailieer.remote.labels.get(l, None)
 
-      if ll is None and not self.state.drop_non_existing_label:
+      if ll is None and not self.config.drop_non_existing_label:
         err = "error: GMail supplied a label that there exists no record for! You can `gmi set --drop-non-existing-labels` to work around the issue (https://github.com/gauteh/lieer/issues/48)"
         print (err)
         raise Local.RepositoryException (err)
@@ -458,7 +488,7 @@ class Local:
     labels = [self.translate_labels.get (l, l) for l in labels]
 
     # this is my weirdness
-    if self.state.replace_slash_with_dot:
+    if self.config.replace_slash_with_dot:
       labels = [l.replace ('/', '.') for l in labels]
 
     if fname is None:
