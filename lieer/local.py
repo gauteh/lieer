@@ -150,20 +150,30 @@ class Local:
     # this is the last modification id of the notmuch db when the previous push was completed.
     lastmod = 0
 
-    def __init__ (self, state_f, config_f):
+    def __init__ (self, state_f, config):
       self.state_f = state_f
+
+      # True if config file contains state keys and should be migrated.
+      # We will write both state and config after load if true.
+      migrate_from_config = False
 
       if os.path.exists (self.state_f):
         with open (self.state_f, 'r') as fd:
           self.json = json.load (fd)
-      elif os.path.exists (config_f):
-        with open (config_f, 'r') as fd:
+      elif os.path.exists (config.config_f):
+        with open (config.config_f, 'r') as fd:
           self.json = json.load (fd)
+        if any(k in self.json.keys () for k in ['last_historyId', 'lastmod']):
+          migrate_from_config = True
       else:
         self.json = {}
 
       self.last_historyId = self.json.get ('last_historyId', 0)
       self.lastmod = self.json.get ('lastmod', 0)
+
+      if migrate_from_config:
+        self.write ()
+        config.write ()
 
     def write (self):
       self.json = {}
@@ -212,7 +222,7 @@ class Local:
       raise Local.RepositoryException ('local repository not initialized: could not find mail dir')
 
     self.config = Local.Config (self.config_f)
-    self.state = Local.State (self.state_f, self.config_f)
+    self.state = Local.State (self.state_f, self.config)
 
     self.ignore_labels = self.ignore_labels | self.config.ignore_tags
 
