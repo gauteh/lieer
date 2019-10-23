@@ -23,7 +23,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.10',
+    version='0.11',
 
     description='Fast fetch and two-way tag synchronization between notmuch and GMail',
     long_description=long_description,
@@ -68,7 +68,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['oauth2client', 'google_api_python_client', 'tqdm'],
+    install_requires=['oauth2client', 'google-api-python-client', 'tqdm'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
