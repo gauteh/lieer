@@ -137,6 +137,11 @@ class Gmailieer:
 
     parser_set.add_argument ('--no-drop-non-existing-labels', action = 'store_true', default = False)
 
+    parser_set.add_argument ('--ignore-empty-history', action = 'store_true', default = False,
+        help = 'Sometimes GMail indicates more changes, but an empty set is returned (see https://github.com/gauteh/lieer/issues/120)')
+
+    parser_set.add_argument ('--no-ignore-empty-history', action = 'store_true', default = False)
+
     parser_set.add_argument ('--ignore-tags-local', type = str,
         default = None, help = 'Set custom tags to ignore when syncing from local to remote (comma-separated, after translations). Important: see the manual.')
 
@@ -657,6 +662,12 @@ class Gmailieer:
     if args.no_drop_non_existing_labels:
       self.local.config.set_drop_non_existing_label (not args.no_drop_non_existing_labels)
 
+    if args.ignore_empty_history:
+      self.local.config.set_ignore_empty_history (True)
+
+    if args.no_ignore_empty_history:
+      self.local.config.set_ignore_empty_history (False)
+
     if args.ignore_tags_local is not None:
       self.local.config.set_ignore_tags (args.ignore_tags_local)
 
@@ -673,6 +684,7 @@ class Gmailieer:
     print ("Timeout ...........: %f" % self.local.config.timeout)
     print ("File extension ....: %s" % self.local.config.file_extension)
     print ("Drop non existing labels...:", self.local.config.drop_non_existing_label)
+    print ("Ignore empty history ......:", self.local.config.ignore_empty_history)
     print ("Replace . with / ..........:", self.local.config.replace_slash_with_dot)
     print ("Ignore tags (local) .......:", self.local.config.ignore_tags)
     print ("Ignore labels (remote) ....:", self.local.config.ignore_remote_labels)

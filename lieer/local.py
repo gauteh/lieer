@@ -57,6 +57,7 @@ class Local:
     account = None
     timeout = 0
     drop_non_existing_label = False
+    ignore_empty_history = False
     ignore_tags = None
     ignore_remote_labels = None
     file_extension = None
@@ -74,6 +75,7 @@ class Local:
       self.account = self.json.get ('account', 'me')
       self.timeout = self.json.get ('timeout', 0)
       self.drop_non_existing_label = self.json.get ('drop_non_existing_label', False)
+      self.ignore_empty_history = self.json.get ('ignore_empty_history', False)
       self.ignore_tags = set(self.json.get ('ignore_tags', []))
       self.ignore_remote_labels = set(self.json.get ('ignore_remote_labels', Remote.DEFAULT_IGNORE_LABELS))
       self.file_extension = self.json.get ('file_extension', '')
@@ -85,6 +87,7 @@ class Local:
       self.json['account'] = self.account
       self.json['timeout'] = self.timeout
       self.json['drop_non_existing_label'] = self.drop_non_existing_label
+      self.json['ignore_empty_history'] = self.ignore_empty_history
       self.json['ignore_tags'] = list(self.ignore_tags)
       self.json['ignore_remote_labels'] = list(self.ignore_remote_labels)
       self.json['file_extension'] = self.file_extension
@@ -111,6 +114,10 @@ class Local:
     def set_drop_non_existing_label (self, r):
       self.drop_non_existing_label = r
       self.write ()
+
+    def set_ignore_empty_history (self, r):
+      self.ignore_empty_history = r
+      self.write()
 
     def set_ignore_tags (self, t):
       if len(t.strip ()) == 0:

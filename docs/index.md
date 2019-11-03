@@ -195,6 +195,8 @@ the time being, `trash` will be prefered over `spam`, and `spam` over `inbox`.
 
 * Sometimes GMail provides a label identifier on a message for a label that does not exist. If you encounter this [issue](https://github.com/gauteh/lieer/issues/48) you can get around it by using `gmi set --drop-non-existing-labels` and re-try to pull. The labels will now be ignored, and if this message is ever synced back up the unmapped label ID will be removed. You can list labels with `gmi pull -t`.
 
+* Sometimes GMail [indicates that there are more changes](https://github.com/gauteh/lieer/issues/120) when doing a partial pull, but an empty set is returned. The default is to fail, but you can ignore empty history by setting: `gmi set --ignore-empty-history`.
+
 * You [cannot add any new files](https://github.com/gauteh/lieer/issues/54) (files starting with `.` will be ignored) to the lieer repository. Lieer uses the directory content an index of local files. Lieer does not push new messages to your account (note that if you send messages with GMail, GMail automatically adds the message to your mailbox).
 
 * Make sure that you use the same domain for you GMail account as you initially created your account with: usually `@gmail.com`, but sometimes `@googlemail.com`. Otherwise you might get a [`Delegation denied` error](https://github.com/gauteh/lieer/issues/88).

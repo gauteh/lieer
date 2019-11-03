@@ -25,7 +25,7 @@ class Remote:
   # * https://stackoverflow.com/questions/19615372/client-secret-in-oauth-2-0?rq=1
   #
   OAUTH2_CLIENT_SECRET = {
-       "client_id":"753933720722-ju82fu305lii0v9rdo6mf9hj40l5juv0.apps.googleusercontent.com",
+        "client_id":"753933720722-ju82fu305lii0v9rdo6mf9hj40l5juv0.apps.googleusercontent.com",
         "project_id":"capable-pixel-160614",
         "auth_uri":"https://accounts.google.com/o/oauth2/auth",
         "token_uri":"https://accounts.google.com/o/oauth2/token",
@@ -199,8 +199,12 @@ class Remote:
         yield results['history']
       else:
         print ("remote: no 'history' when more pages were indicated.")
-        self.__request_done__ (False)
-        raise Remote.NoHistoryException ()
+        if not self.gmailieer.local.config.ignore_empty_history:
+          self.__request_done__ (False)
+          print ("You can ignore this error with: gmi set --ignore-empty-history (https://github.com/gauteh/lieer/issues/120)")
+          raise Remote.NoHistoryException ()
+        else:
+          self.__request_done__ (True)
 
   @__require_auth__
   def all_messages (self, limit = None):
