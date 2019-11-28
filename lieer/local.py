@@ -66,8 +66,12 @@ class Local:
       self.config_f = config_f
 
       if os.path.exists (self.config_f):
-        with open (self.config_f, 'r') as fd:
-          self.json = json.load (fd)
+        try:
+          with open (self.config_f, 'r') as fd:
+            self.json = json.load (fd)
+        except json.decoder.JSONDecodeError:
+          print ("Failed to decode config file `{}`.".format (self.config_f))
+          raise
       else:
         self.json = {}
 
@@ -165,11 +169,20 @@ class Local:
       migrate_from_config = False
 
       if os.path.exists (self.state_f):
-        with open (self.state_f, 'r') as fd:
-          self.json = json.load (fd)
+        try:
+          with open (self.state_f, 'r') as fd:
+            self.json = json.load (fd)
+        except json.decoder.JSONDecodeError:
+          print ("Failed to decode state file `{}`.".format (self.state_f))
+          raise
+
       elif os.path.exists (config.config_f):
-        with open (config.config_f, 'r') as fd:
-          self.json = json.load (fd)
+        try:
+          with open (config.config_f, 'r') as fd:
+            self.json = json.load (fd)
+        except json.decoder.JSONDecodeError:
+          print ("Failed to decode config file `{}`.".format (config.config_f))
+          raise
         if any(k in self.json.keys () for k in ['last_historyId', 'lastmod']):
           migrate_from_config = True
       else:
