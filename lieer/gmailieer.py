@@ -202,7 +202,7 @@ class Gmailieer:
     self.dry_run          = dry_run
     self.HAS_TQDM         = (not args.no_progress)
     self.credentials_file = args.credentials
-    self.age = args.age if hasattr(args, 'property') else None
+    self.age = args.age if hasattr(args, 'age') else None
 
     if self.HAS_TQDM:
       if not (sys.stderr.isatty() and sys.stdout.isatty()):
