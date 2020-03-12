@@ -83,6 +83,9 @@ class Gmailieer:
     parser_sync.add_argument ('--limit', type = int, default = None,
         help = 'Maximum number of messages to sync, note that this may upset the tally of synchronized messages.')
 
+    parser_sync.add_argument ('--age', type = int, default = None,
+        help = 'Maximum age (unit: month) of messages to pull')
+
     parser_sync.add_argument ('-d', '--dry-run', action='store_true',
         default = False, help = 'do not make any changes')
 
@@ -199,7 +202,7 @@ class Gmailieer:
     self.dry_run          = dry_run
     self.HAS_TQDM         = (not args.no_progress)
     self.credentials_file = args.credentials
-    self.age = args.age
+    self.age = args.age if hasattr(args, 'property') else None
 
     if self.HAS_TQDM:
       if not (sys.stderr.isatty() and sys.stdout.isatty()):
@@ -654,7 +657,6 @@ class Gmailieer:
     return need_content
 
   def set (self, args):
-    args.credentials = '' # for setup()
     self.setup (args, False, True)
 
     if args.timeout is not None:
