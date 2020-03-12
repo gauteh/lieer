@@ -111,11 +111,13 @@ Lieer can be configured using `gmi set`. Use without any options to get a list o
 
 **`historyId`** is the latest synced GMail revision. Anything since this ID will be fetched on the next [`gmi pull`](#pull) (partial).
 
+**`age`** is the maximum age of email. This is an partial implementation of [the `newer_than` search operator](https://support.google.com/mail/answer/7190?hl=en). Anything email newer than this age (unit: month) will be fetched on the next [`gmi pull`](#pull). If you change this parameter to an older age, you need to do a full pull.
+
 **`lastmod`** is the latest synced Notmuch database revision. Anything changed after this revision will be pushed on [`gmi push`](#ush).
 
 **`Timeout`** is the timeout in seconds used for the HTTP connection to GMail. `0` means the forever or system error/timeout, [whichever occurs first](https://github.com/gauteh/lieer/issues/83#issuecomment-396487919).
 
-**`File extension`** is an optional argument to include the specified extension in local file names (e.g., `mbox`) which can be useful for indexing them with third-party programs.  
+**`File extension`** is an optional argument to include the specified extension in local file names (e.g., `mbox`) which can be useful for indexing them with third-party programs.
 
 *Important:* If you change this setting after synchronizing, the best case scenario is that all files will apear to not have being pulled down and will be re-downloaded (and duplicated with a different extension in the maildir). There might also be changes to tags. You should in theory be able to change it by renaming all files, but since this will update the lastmod you will get a check on all files.
 
@@ -124,11 +126,11 @@ Lieer can be configured using `gmi set`. Use without any options to get a list o
 **`Replace slash with dot`** is used to replace the sub-label separator (`/`) with a dot (`.`). I think this is easier to work with. *Important*: See note below on [changing this setting after initial sync](#changing-ignored-tags-and-translation-after-initial-sync).
 
 **`Ignore tags (local)`** can be used to specify a list of tags which should not be synced from local to remote (e.g. [`new`](#usage)). In addition to the user-configured tags these tags are ignored: `'attachment', 'encrypted', 'signed', 'passed', 'replied', 'muted', 'mute', 'todo', 'Trash', 'voicemail'`. Some are special tags in notmuch and some are unsupported by GMail. See [Caveats](#caveats) below for more explanations. *Note:* This setting expects [_translated_ tags](#translation-between-labels-and-tags).
-  
+
   *Important*: See note below on [changing this setting after initial sync](#changing-ignored-tags-and-translation-after-initial-sync).
 
 **`Ignore tags (remote)`** can be used to specify a list of tags (labels) which should not be synced from remote (GMail) to local. By default the [`CATEGORY_*` type](https://developers.google.com/gmail/api/guides/labels) labels which are mapped to the Personal/Promotions/etc tabs in the GMail interface are ignored. You can specify that no label should ignored by doing: `gmi set --ignore-tags-remote ""`. *Note:* This setting expects [_*un*translated_ tags](#translation-between-labels-and-tags).
-  
+
   *Important*: See note below on [changing this setting after initial sync](#changing-ignored-tags-and-translation-after-initial-sync).
 
 

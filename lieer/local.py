@@ -73,11 +73,13 @@ class Local:
           print ("Failed to decode config file `{}`.".format (self.config_f))
           raise
       else:
+
         self.json = {}
 
       self.replace_slash_with_dot = self.json.get ('replace_slash_with_dot', False)
       self.account = self.json.get ('account', 'me')
       self.timeout = self.json.get ('timeout', 0)
+      self.age = self.json.get ('age', None)
       self.drop_non_existing_label = self.json.get ('drop_non_existing_label', False)
       self.ignore_empty_history = self.json.get ('ignore_empty_history', False)
       self.ignore_tags = set(self.json.get ('ignore_tags', []))
@@ -90,6 +92,7 @@ class Local:
       self.json['replace_slash_with_dot'] = self.replace_slash_with_dot
       self.json['account'] = self.account
       self.json['timeout'] = self.timeout
+      self.json['age'] = self.age
       self.json['drop_non_existing_label'] = self.drop_non_existing_label
       self.json['ignore_empty_history'] = self.ignore_empty_history
       self.json['ignore_tags'] = list(self.ignore_tags)
@@ -109,6 +112,10 @@ class Local:
 
     def set_timeout (self, t):
       self.timeout = t
+      self.write ()
+
+    def set_age (self, a):
+      self.age = a
       self.write ()
 
     def set_replace_slash_with_dot (self, r):
@@ -221,6 +228,7 @@ class Local:
     self.gmailieer = g
     self.wd = os.getcwd ()
     self.dry_run = g.dry_run
+    self.age = g.age
 
     # config and state files for local repository
     self.config_f = os.path.join (self.wd, '.gmailieer.json')
@@ -246,6 +254,7 @@ class Local:
 
     self.ignore_labels = self.ignore_labels | self.config.ignore_tags
 
+    self.age = self.age if self.age else self.config.age
     ## Check if we are in the notmuch db
     with notmuch.Database () as db:
       try:
@@ -306,7 +315,7 @@ class Local:
       m = self.__filename_to_gid__ (os.path.basename (f))
       self.gids[m] = f
 
-  def initialize_repository (self, replace_slash_with_dot, account):
+  def initialize_repository (self, replace_slash_with_dot, account, age):
     """
     Sets up a local repository
     """
@@ -322,6 +331,7 @@ class Local:
     self.config = Local.Config (self.config_f)
     self.config.replace_slash_with_dot = replace_slash_with_dot
     self.config.account = account
+    self.config.age = age
     self.config.write ()
     os.makedirs (os.path.join (self.md, 'cur'))
     os.makedirs (os.path.join (self.md, 'new'))

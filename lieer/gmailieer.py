@@ -45,6 +45,8 @@ class Gmailieer:
     parser_pull.add_argument ('--limit', type = int, default = None,
         help = 'Maximum number of messages to pull (soft limit, GMail may return more), note that this may upset the tally of synchronized messages.')
 
+    parser_pull.add_argument ('--age', type = int, default = None,
+        help = 'Maximum age (unit: month) of messages to pull')
 
     parser_pull.add_argument ('-d', '--dry-run', action='store_true',
         default = False, help = 'do not make any changes')
@@ -110,6 +112,9 @@ class Gmailieer:
     parser_init.add_argument ('--replace-slash-with-dot', action = 'store_true', default = False,
         help = 'This will replace \'/\' with \'.\' in gmail labels (make sure you realize the implications)')
 
+    parser_init.add_argument ('--age', type = int, default = None,
+        help = 'Maximum age (unit: month) of messages to pull')
+
     parser_init.add_argument ('--no-auth', action = 'store_true', default = False,
         help = 'Do not immediately authorize as well (you will need to run \'auth\' afterwards)')
 
@@ -126,6 +131,9 @@ class Gmailieer:
 
     parser_set.add_argument ('-t', '--timeout', type = float,
         default = None, help = 'Set HTTP timeout in seconds (0 means forever or system timeout)')
+
+    parser_set.add_argument ('--age', type = int, default = None,
+        help = 'Maximum age (unit: month) of messages to pull')
 
     parser_set.add_argument ('--replace-slash-with-dot', action = 'store_true', default = False,
         help = 'This will replace \'/\' with \'.\' in gmail labels (Important: see the manual and make sure you realize the implications)')
@@ -191,6 +199,7 @@ class Gmailieer:
     self.dry_run          = dry_run
     self.HAS_TQDM         = (not args.no_progress)
     self.credentials_file = args.credentials
+    self.age = args.age
 
     if self.HAS_TQDM:
       if not (sys.stderr.isatty() and sys.stdout.isatty()):
@@ -327,6 +336,7 @@ class Gmailieer:
       self.list_labels      = args.list_labels
       self.force            = args.force
       self.limit            = args.limit
+      self.age              = args.age
 
       self.remote.get_labels () # to make sure label map is initialized
 
@@ -650,6 +660,9 @@ class Gmailieer:
     if args.timeout is not None:
       self.local.config.set_timeout (args.timeout)
 
+    if args.age is not None:
+      self.local.config.set_age (args.age)
+
     if args.replace_slash_with_dot:
       self.local.config.set_replace_slash_with_dot (args.replace_slash_with_dot)
 
@@ -682,6 +695,7 @@ class Gmailieer:
     print ("historyId .........: %d" % self.local.state.last_historyId)
     print ("lastmod ...........: %d" % self.local.state.lastmod)
     print ("Timeout ...........: %f" % self.local.config.timeout)
+    print ("Age ...............: %d" % self.local.config.age)
     print ("File extension ....: %s" % self.local.config.file_extension)
     print ("Drop non existing labels...:", self.local.config.drop_non_existing_label)
     print ("Ignore empty history ......:", self.local.config.ignore_empty_history)
