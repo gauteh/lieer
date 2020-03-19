@@ -14,15 +14,13 @@ from .remote import *
 from .local  import *
 
 class Gmailieer:
-  def __init__ (self):
-    xdg_data_home = os.getenv ('XDG_DATA_HOME', os.path.expanduser ('~/.local/share'))
-    self.home = os.path.join (xdg_data_home, 'gmailieer')
-
   def main (self):
     parser = argparse.ArgumentParser ('gmi', parents = [tools.argparser])
     self.parser = parser
 
     common = argparse.ArgumentParser (add_help = False)
+    common.add_argument ('-C', '--path', type = str, default = None, help = 'path')
+
     common.add_argument ('-c', '--credentials', type = str, default = None,
         help = 'optional credentials file for google api')
 
@@ -188,6 +186,17 @@ class Gmailieer:
     global tqdm
 
     # common options
+    if args.path is not None:
+      print("path: %s" % args.path)
+      if args.action == "init" and not os.path.exists(args.path):
+        os.makedirs(args.path)
+
+      if os.path.isdir(args.path):
+        os.chdir(args.path)
+      else:
+        print("error: %s is not a valid path!" % args.path)
+        raise NotADirectoryError("error: %s is not a valid path!" % args.path)
+
     self.dry_run          = dry_run
     self.HAS_TQDM         = (not args.no_progress)
     self.credentials_file = args.credentials
