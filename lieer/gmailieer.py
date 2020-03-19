@@ -669,7 +669,7 @@ class Gmailieer:
 
   def send (self, args):
     self.setup (args, args.dry_run, True)
-    self.remote.get_labels () # to make sure label map is initialized
+    self.remote.get_labels ()
 
     if args.message == '-':
       msg = sys.stdin.buffer.read()
@@ -682,8 +682,28 @@ class Gmailieer:
       print ("sending message (%s).." % fn)
       msg = open(fn, 'rb').read()
 
+    # check if in-reply-to is set and find threadId
+    threadId = None
+
+    import email
+    eml = email.message_from_bytes(msg)
+    if 'In-Reply-To' in eml:
+      repl = eml['In-Reply-To'].strip('<>')
+      with notmuch.Database (mode = notmuch.Database.MODE.READ_ONLY) as db:
+        nmsg = db.find_message(repl)
+        if nmsg is not None:
+          (_, gids) = self.local.messages_to_gids([nmsg])
+          if len(gids) > 0:
+            gmsg = self.remote.get_message(gids[0])
+            threadId = gmsg['threadId']
+            print("found existing thread for new message: %s" % threadId)
+          else:
+            print("warning: could not find gid of parent message, sent message will not be associated in the same thread")
+        else:
+          print("warning: could not find parent message, sent message will not be associated in the same thread")
+
     if not args.dry_run:
-      msg = self.remote.send(msg)
+      msg = self.remote.send(msg, threadId)
       self.get_content([msg['id']])
       self.get_meta([msg['id']])
 
