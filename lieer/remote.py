@@ -687,3 +687,20 @@ class Remote:
       return (None, None)
 
 
+  @__require_auth__
+  def send (self, message):
+    """
+    Send message
+
+    message: MIME message as bytes
+
+    Returns:
+
+      Message
+    """
+    import base64
+    message = { 'raw': base64.urlsafe_b64encode(message).decode() }
+    msg = self.service.users().messages().send(userId = self.account, body = message).execute()
+
+    return msg
+

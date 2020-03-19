@@ -9,11 +9,12 @@ from    oauth2client import tools
 import  googleapiclient
 import  notmuch
 
-
 from .remote import *
 from .local  import *
 
 class Gmailieer:
+  cwd = None
+
   def main (self):
     parser = argparse.ArgumentParser ('gmi', parents = [tools.argparser])
     self.parser = parser
@@ -70,6 +71,19 @@ class Gmailieer:
         default = False, help = 'Push even when there has been remote changes (might overwrite remote tag-changes)')
 
     parser_push.set_defaults (func = self.push)
+
+    # send
+    parser_send = subparsers.add_parser ('send', parents = [common],
+        description = 'send',
+        help = 'send message')
+
+    parser_send.add_argument ('-d', '--dry-run', action='store_true',
+        default = False, help = 'do not actually send message')
+
+    parser_send.add_argument('message', nargs = '?', default = '-',
+        help = 'MIME message to send (or stdin "-", default)')
+
+    parser_send.set_defaults (func = self.send)
 
     # sync
     parser_sync = subparsers.add_parser ('sync', parents = [common],
@@ -192,6 +206,7 @@ class Gmailieer:
         os.makedirs(args.path)
 
       if os.path.isdir(args.path):
+        self.cwd = os.getcwd()
         os.chdir(args.path)
       else:
         print("error: %s is not a valid path!" % args.path)
@@ -651,6 +666,28 @@ class Gmailieer:
       print ("receiving content: everything up-to-date.")
 
     return need_content
+
+  def send (self, args):
+    self.setup (args, args.dry_run, True)
+    self.remote.get_labels () # to make sure label map is initialized
+
+    if args.message == '-':
+      msg = sys.stdin.buffer.read()
+      print ("sending message (from stdin)..")
+    else:
+      if os.path.isabs(args.message):
+        fn = args.message
+      else:
+        fn = os.path.join(self.cwd, args.message)
+      print ("sending message (%s).." % fn)
+      msg = open(fn, 'rb').read()
+
+    if not args.dry_run:
+      msg = self.remote.send(msg)
+      self.get_content([msg['id']])
+      self.get_meta([msg['id']])
+
+    print("message sent successfully: %s" % msg['id'])
 
   def set (self, args):
     args.credentials = '' # for setup()
