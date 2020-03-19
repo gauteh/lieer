@@ -688,7 +688,7 @@ class Remote:
 
 
   @__require_auth__
-  def send (self, message):
+  def send (self, message, threadId = None):
     """
     Send message
 
@@ -699,7 +699,12 @@ class Remote:
       Message
     """
     import base64
+
     message = { 'raw': base64.urlsafe_b64encode(message).decode() }
+
+    if threadId is not None:
+      message['threadId'] = threadId
+
     msg = self.service.users().messages().send(userId = self.account, body = message).execute()
 
     return msg
