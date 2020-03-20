@@ -673,13 +673,12 @@ class Gmailieer:
 
     if args.message == '-':
       msg = sys.stdin.buffer.read()
-      print ("sending message (from stdin)..")
+      fn = 'stdin'
     else:
       if os.path.isabs(args.message):
         fn = args.message
       else:
         fn = os.path.join(self.cwd, args.message)
-      print ("sending message (%s).." % fn)
       msg = open(fn, 'rb').read()
 
     # check if in-reply-to is set and find threadId
@@ -687,6 +686,8 @@ class Gmailieer:
 
     import email
     eml = email.message_from_bytes(msg)
+    print ("sending message (%s), from: %s.." % (fn, eml.get('From')))
+
     if 'In-Reply-To' in eml:
       repl = eml['In-Reply-To'].strip('<>')
       with notmuch.Database (mode = notmuch.Database.MODE.READ_ONLY) as db:
