@@ -2,10 +2,11 @@
 
 <img src="https://gauteh.github.io/lieer/demo.png">
 
-This program can pull email and labels (and changes to labels) from your GMail
-account and store them locally in a maildir with the labels synchronized with a
-[notmuch](https://notmuchmail.org/) database. The changes to tags in the
-notmuch database may be pushed back remotely to your GMail account.
+This program can pull, and send, email and labels (and changes to labels) from
+your GMail account and store them locally in a maildir with the labels
+synchronized with a [notmuch](https://notmuchmail.org/) database. The changes
+to tags in the notmuch database may be pushed back remotely to your GMail
+account.
 
 ## Disclaimer
 
@@ -102,6 +103,22 @@ by using `push -f`.
 > Note: If changes are being made on the remote, on a message that is currently being synced with `lieer`, the changes may be overwritten or merged in weird ways.
 
 See below for more [caveats](#caveats).
+
+## Sending
+
+Lieer may be used as a simple stand-in for the `sendmail` MTA. A typical configuration for a MUA send command might be:
+
+```sh
+gmi send -C ~/.mail/account.gmail
+```
+
+the raw message is either read from `stdin` or a filename may be supplied.
+Lieer will try to associate the sent message with the existing thread if it has
+an `In-Reply-To` header.
+
+> If the email address in the `From:` header does not match exactly the one of
+> your account, it seems like GMail resets the from to your account _address_
+> only.
 
 # Settings
 
