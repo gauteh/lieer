@@ -111,7 +111,7 @@ Lieer can be configured using `gmi set`. Use without any options to get a list o
 
 **`historyId`** is the latest synced GMail revision. Anything since this ID will be fetched on the next [`gmi pull`](#pull) (partial).
 
-**`age`** is the maximum age of email. This is an partial implementation of [the `newer_than` search operator](https://support.google.com/mail/answer/7190?hl=en). Anything email newer than this age (unit: month) will be fetched on the next [`gmi pull`](#pull). If you change this parameter to an older age, you need to do a full pull.
+**`age`** is the maximum age of email. This is an partial implementation of [the `newer_than` search operator](https://support.google.com/mail/answer/7190?hl=en). Any email newer than this age (unit: month) will be fetched on the next [`gmi pull`](#pull). If you change this parameter to an older age, you need to do a full pull.
 
 **`lastmod`** is the latest synced Notmuch database revision. Anything changed after this revision will be pushed on [`gmi push`](#ush).
 

@@ -228,7 +228,6 @@ class Local:
     self.gmailieer = g
     self.wd = os.getcwd ()
     self.dry_run = g.dry_run
-    self.age = g.age
 
     # config and state files for local repository
     self.config_f = os.path.join (self.wd, '.gmailieer.json')
@@ -254,7 +253,7 @@ class Local:
 
     self.ignore_labels = self.ignore_labels | self.config.ignore_tags
 
-    self.age = self.age if self.age else self.config.age
+    self.age = self.config.age
     ## Check if we are in the notmuch db
     with notmuch.Database () as db:
       try:

@@ -45,9 +45,6 @@ class Gmailieer:
     parser_pull.add_argument ('--limit', type = int, default = None,
         help = 'Maximum number of messages to pull (soft limit, GMail may return more), note that this may upset the tally of synchronized messages.')
 
-    parser_pull.add_argument ('--age', type = int, default = None,
-        help = 'Maximum age (unit: month) of messages to pull')
-
     parser_pull.add_argument ('-d', '--dry-run', action='store_true',
         default = False, help = 'do not make any changes')
 
@@ -83,9 +80,6 @@ class Gmailieer:
     parser_sync.add_argument ('--limit', type = int, default = None,
         help = 'Maximum number of messages to sync, note that this may upset the tally of synchronized messages.')
 
-    parser_sync.add_argument ('--age', type = int, default = None,
-        help = 'Maximum age (unit: month) of messages to pull')
-
     parser_sync.add_argument ('-d', '--dry-run', action='store_true',
         default = False, help = 'do not make any changes')
 
@@ -114,9 +108,6 @@ class Gmailieer:
 
     parser_init.add_argument ('--replace-slash-with-dot', action = 'store_true', default = False,
         help = 'This will replace \'/\' with \'.\' in gmail labels (make sure you realize the implications)')
-
-    parser_init.add_argument ('--age', type = int, default = None,
-        help = 'Maximum age (unit: month) of messages to pull')
 
     parser_init.add_argument ('--no-auth', action = 'store_true', default = False,
         help = 'Do not immediately authorize as well (you will need to run \'auth\' afterwards)')
@@ -339,7 +330,6 @@ class Gmailieer:
       self.list_labels      = args.list_labels
       self.force            = args.force
       self.limit            = args.limit
-      self.age              = args.age
 
       self.remote.get_labels () # to make sure label map is initialized
 

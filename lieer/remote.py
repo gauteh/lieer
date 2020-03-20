@@ -106,8 +106,8 @@ class Remote:
     self.CLIENT_SECRET_FILE = g.credentials_file
     self.account = g.local.config.account
     self.dry_run = g.dry_run
-    if g.local.age:
-       self.query = "newer_than:{}m".format(g.local.age)
+    if g.local.config.age:
+       self.query += " newer_than:{}m".format(g.local.config.age)
 
     self.ignore_labels = self.gmailieer.local.config.ignore_remote_labels
 
