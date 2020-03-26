@@ -92,7 +92,8 @@ class Local:
       self.json['replace_slash_with_dot'] = self.replace_slash_with_dot
       self.json['account'] = self.account
       self.json['timeout'] = self.timeout
-      self.json['age'] = self.age
+      if self.age != -1:
+          self.json['age'] = self.age
       self.json['drop_non_existing_label'] = self.drop_non_existing_label
       self.json['ignore_empty_history'] = self.ignore_empty_history
       self.json['ignore_tags'] = list(self.ignore_tags)
@@ -114,8 +115,12 @@ class Local:
       self.timeout = t
       self.write ()
 
-    def set_age (self, a):
-      self.age = a
+    def set_age (self, n):
+      """set age
+
+      if n=-1, age parameter will be unset when saving the config
+      """
+      self.age = n
       self.write ()
 
     def set_replace_slash_with_dot (self, r):

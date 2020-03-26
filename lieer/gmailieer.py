@@ -129,6 +129,8 @@ class Gmailieer:
     parser_set.add_argument ('--age', type = int, default = None,
         help = 'Maximum age (unit: month) of messages to pull')
 
+    parser_set.add_argument ('--unset-age', action = 'store_true', default = False)
+
     parser_set.add_argument ('--replace-slash-with-dot', action = 'store_true', default = False,
         help = 'This will replace \'/\' with \'.\' in gmail labels (Important: see the manual and make sure you realize the implications)')
 
@@ -193,7 +195,6 @@ class Gmailieer:
     self.dry_run          = dry_run
     self.HAS_TQDM         = (not args.no_progress)
     self.credentials_file = args.credentials
-    self.age = args.age if hasattr(args, 'age') else None
 
     if self.HAS_TQDM:
       if not (sys.stderr.isatty() and sys.stdout.isatty()):
@@ -655,6 +656,9 @@ class Gmailieer:
     if args.age is not None:
       self.local.config.set_age (args.age)
 
+    if args.unset_age:
+      self.local.config.set_age (-1)
+
     if args.replace_slash_with_dot:
       self.local.config.set_replace_slash_with_dot (args.replace_slash_with_dot)
 
@@ -687,7 +691,9 @@ class Gmailieer:
     print ("historyId .........: %d" % self.local.state.last_historyId)
     print ("lastmod ...........: %d" % self.local.state.lastmod)
     print ("Timeout ...........: %f" % self.local.config.timeout)
-    print ("Age ...............: %d" % self.local.config.age)
+    age = self.local.config.age
+    if age and self.local.config.age != -1 :
+        print ("Age ...............: %d months" % self.local.config.age)
     print ("File extension ....: %s" % self.local.config.file_extension)
     print ("Drop non existing labels...:", self.local.config.drop_non_existing_label)
     print ("Ignore empty history ......:", self.local.config.ignore_empty_history)
