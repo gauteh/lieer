@@ -689,11 +689,15 @@ class Gmailieer:
     print ("sending message (%s), from: %s.." % (fn, eml.get('From')))
 
     if 'In-Reply-To' in eml:
-      repl = eml['In-Reply-To'].strip('<>')
+      repl = eml['In-Reply-To'].strip().strip('<>')
+      print("looking for original message: %s" % repl)
       with notmuch.Database (mode = notmuch.Database.MODE.READ_ONLY) as db:
         nmsg = db.find_message(repl)
         if nmsg is not None:
           (_, gids) = self.local.messages_to_gids([nmsg])
+          if nmsg.get_header('Subject') != eml['Subject']:
+            print("warning: subject does not match, might not be able to associate with existing thread.")
+
           if len(gids) > 0:
             gmsg = self.remote.get_message(gids[0])
             threadId = gmsg['threadId']
