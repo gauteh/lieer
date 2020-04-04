@@ -196,7 +196,7 @@ class Gmailieer:
     self.setup (args, False, True)
     self.remote.authorize (args.force)
 
-  def setup (self, args, dry_run = False, load = False):
+  def setup (self, args, dry_run = False, load = False, block = False):
     global tqdm
 
     # common options
@@ -234,7 +234,7 @@ class Gmailieer:
 
     self.local  = Local (self)
     if load:
-      self.local.load_repository ()
+      self.local.load_repository (block)
       self.remote = Remote (self)
 
   def sync (self, args):
@@ -668,7 +668,7 @@ class Gmailieer:
     return need_content
 
   def send (self, args):
-    self.setup (args, args.dry_run, True)
+    self.setup (args, args.dry_run, True, True)
     self.remote.get_labels ()
 
     if args.message == '-':

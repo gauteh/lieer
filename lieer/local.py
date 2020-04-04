@@ -230,9 +230,11 @@ class Local:
     # mail store
     self.md = os.path.join (self.wd, 'mail')
 
-  def load_repository (self):
+  def load_repository (self, block = False):
     """
     Loads the current local repository
+
+    block (boolean): if repository is in use, wait for lock to be freed (default: False)
     """
 
     if not os.path.exists (self.config_f):
@@ -264,7 +266,10 @@ class Local:
     ## Lock repository
     try:
       self.lckf = open ('.lock', 'w')
-      fcntl.lockf (self.lckf, fcntl.LOCK_EX | fcntl.LOCK_NB)
+      if block:
+        fcntl.lockf (self.lckf, fcntl.LOCK_EX)
+      else:
+        fcntl.lockf (self.lckf, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
       raise Local.RepositoryException ("failed to lock repository (probably in use by another gmi instance)")
 
