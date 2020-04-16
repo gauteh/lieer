@@ -240,8 +240,9 @@ class Local:
     if not os.path.exists (self.config_f):
       raise Local.RepositoryException ('local repository not initialized: could not find config file')
 
-    if not os.path.exists (self.md):
-      raise Local.RepositoryException ('local repository not initialized: could not find mail dir')
+    if any ([not os.path.exists (os.path.join (self.md, mail_dir))
+             for mail_dir in ('cur', 'new', 'tmp')]):
+      raise Local.RepositoryException ('local repository not initialized: could not find mail dir structure')
 
     self.config = Local.Config (self.config_f)
     self.state = Local.State (self.state_f, self.config)
