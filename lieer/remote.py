@@ -340,11 +340,11 @@ class Remote:
         i = j # reset
         conn_errors += 1
 
-        time.sleep (1)
-
         if conn_errors > self.MAX_CONNECTION_ERRORS:
           print ("too many connection errors")
           raise
+
+        time.sleep (1)
 
       finally:
         # handle batch
