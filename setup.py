@@ -27,6 +27,7 @@ setup(
 
     description='Fast fetch and two-way tag synchronization between notmuch and GMail',
     long_description=long_description,
+    long_description_content_type='text/markdown',
 
     # The project's main homepage.
     url='https://github.com/gauteh/lieer',
