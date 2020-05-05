@@ -120,6 +120,13 @@ an `In-Reply-To` header.
 > your account, it seems like GMail resets the from to your account _address_
 > only.
 
+Note that the following flags are ignored for `sendmail` compatability:
+
+  - `-t` (always implied, make sure you supply a `To:` header)
+  - `-f` (ignored, set envelope `From:` yourself)
+  - `-o` (ignored)
+  - `-i` (always implied, not bothered by single `.`'s)
+
 # Settings
 
 Lieer can be configured using `gmi set`. Use without any options to get a list of the current settings as well as the current history ID and notmuch revision.
