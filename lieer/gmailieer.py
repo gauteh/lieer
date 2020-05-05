@@ -205,6 +205,7 @@ class Gmailieer:
       if args.action == "init" and not os.path.exists(args.path):
         os.makedirs(args.path)
 
+      args.path = os.path.expanduser(args.path)
       if os.path.isdir(args.path):
         self.cwd = os.getcwd()
         os.chdir(args.path)
