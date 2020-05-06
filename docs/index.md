@@ -130,6 +130,8 @@ Note that the following flags are ignored for `sendmail` compatability:
   - `-o` (ignored)
   - `-i` (always implied, not bothered by single `.`'s)
 
+There are instructions for using this in your email client (for example Emacs) on the [wiki](https://github.com/gauteh/lieer/wiki).
+
 # Settings
 
 Lieer can be configured using `gmi set`. Use without any options to get a list of the current settings as well as the current history ID and notmuch revision.
