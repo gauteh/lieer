@@ -28,6 +28,9 @@ class Gmailieer:
     common.add_argument ('-s', '--no-progress', action = 'store_true',
         default = False, help = 'Disable progressbar (always off when output is not TTY)')
 
+    common.add_argument ('-q', '--quiet', action = 'store_true',
+        default = False, help = 'Produce less output (implies -s)')
+
     subparsers = parser.add_subparsers (help = 'actions', dest = 'action')
     subparsers.required = True
 
@@ -181,6 +184,9 @@ class Gmailieer:
     args        = parser.parse_args (sys.argv[1:])
     self.args   = args
 
+    if args.quiet:
+      args.no_progress = True
+
     args.func (args)
 
   def initialize (self, args):
@@ -213,7 +219,7 @@ class Gmailieer:
 
     # common options
     if args.path is not None:
-      print("path: %s" % args.path)
+      self.vprint ("path: %s" % args.path)
       if args.action == "init" and not os.path.exists(args.path):
         os.makedirs(args.path)
 
@@ -280,7 +286,7 @@ class Gmailieer:
       (rev, uuid) = db.get_revision ()
 
       if rev == self.local.state.lastmod:
-        print ("push: everything is up-to-date.")
+        self.vprint ("push: everything is up-to-date.")
         return
 
       qry = "path:%s/** and lastmod:%d..%d" % (self.local.nm_relative, self.local.state.lastmod, rev)
@@ -299,24 +305,24 @@ class Gmailieer:
 
       # get meta-data on changed messages from remote
       remote_messages = []
-      bar = tqdm (leave = True, total = len(gids), desc = 'receiving metadata')
+      self.bar_create (leave = True, total = len(gids), desc = 'receiving metadata')
 
       def _got_msgs (ms):
         for m in ms:
-          bar.update (1)
+          self.bar_update (1)
           remote_messages.append (m)
 
       self.remote.get_messages (gids, _got_msgs, 'minimal')
-      bar.close ()
+      self.bar_close ()
 
       # resolve changes
-      bar = tqdm (leave = True, total = len(gids), desc = 'resolving changes')
+      self.bar_create (leave = True, total = len(gids), desc = 'resolving changes')
       actions = []
       for rm, nm in zip(remote_messages, messages):
         actions.append (self.remote.update (rm, nm, self.local.state.last_historyId, self.force))
-        bar.update (1)
+        self.bar_update (1)
 
-      bar.close ()
+      self.bar_close ()
 
       # remove no-ops
       actions = [ a for a in actions if a ]
@@ -327,20 +333,21 @@ class Gmailieer:
 
       # push changes
       if len(actions) > 0:
-        bar = tqdm (leave = True, total = len(actions), desc = 'pushing, 0 changed')
+        self.bar_create (leave = True, total = len(actions), desc = 'pushing, 0 changed')
         changed = 0
 
         def cb (resp):
           nonlocal changed
-          bar.update (1)
+          self.bar_update (1)
           changed += 1
-          bar.set_description ('pushing, %d changed' % changed)
+          if not self.args.quiet and self.bar:
+            self.bar.set_description ('pushing, %d changed' % changed)
 
         self.remote.push_changes (actions, cb)
 
-        bar.close ()
+        self.bar_close ()
       else:
-        print ('push: nothing to push')
+        self.vprint ('push: nothing to push')
 
     if not self.remote.all_updated:
       # will not set last_mod, this forces messages to be pushed again at next push
@@ -355,7 +362,7 @@ class Gmailieer:
     if not self.dry_run and self.remote.all_updated:
       self.local.state.set_lastmod (rev)
 
-    print ("remote historyId: %d" % self.remote.get_current_history_id (self.local.state.last_historyId))
+    self.vprint ("remote historyId: %d" % self.remote.get_current_history_id (self.local.state.last_historyId))
 
   def pull (self, args, setup = False):
     if not setup:
@@ -377,19 +384,19 @@ class Gmailieer:
       return
 
     if self.force:
-      print ("pull: full synchronization (forced)")
+      self.vprint ("pull: full synchronization (forced)")
       self.full_pull ()
 
     elif self.local.state.last_historyId == 0:
-      print ("pull: full synchronization (no previous synchronization state)")
+      self.vprint ("pull: full synchronization (no previous synchronization state)")
       self.full_pull ()
 
     elif self.remove:
-      print ("pull: full synchronization (removing deleted messages)")
+      self.vprint ("pull: full synchronization (removing deleted messages)")
       self.full_pull ()
 
     else:
-      print ("pull: partial synchronization.. (hid: %d)" % self.local.state.last_historyId)
+      self.vprint ("pull: partial synchronization.. (hid: %d)" % self.local.state.last_historyId)
       self.partial_pull ()
 
   def partial_pull (self):
@@ -403,9 +410,9 @@ class Gmailieer:
         history.extend (hist)
 
         if bar is None:
-          bar = tqdm (leave = True, desc = 'fetching changes')
+          self.bar_create (leave = True, desc = 'fetching changes')
 
-        bar.update (len(hist))
+        self.bar_update (len(hist))
 
         if self.limit is not None and len(history) >= self.limit:
           break
@@ -423,7 +430,7 @@ class Gmailieer:
       raise
 
     finally:
-      if bar is not None: bar.close ()
+      if bar is not None: self.bar_close ()
 
     # figure out which changes need to be applied
     added_messages   = [] # added messages, if they are later deleted they will be
@@ -452,7 +459,7 @@ class Gmailieer:
       return False
 
     if len(history) > 0:
-      bar = tqdm (total = len(history), leave = True, desc = 'resolving changes')
+      self.bar_create (total = len(history), leave = True, desc = 'resolving changes')
     else:
       bar = None
 
@@ -512,9 +519,9 @@ class Gmailieer:
               remove_from_list (deleted_messages, mm)
               deleted_messages.append (mm)
 
-      bar.update (1)
+      self.bar_update (1)
 
-    if bar: bar.close ()
+    if bar: self.bar_close ()
 
     changed = False
     # fetching new messages
@@ -539,32 +546,33 @@ class Gmailieer:
     if len (labels_changed) > 0:
       lchanged = 0
       with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
-        bar = tqdm (total = len(labels_changed), leave = True, desc = 'updating tags (0)')
+        self.bar_create (total = len(labels_changed), leave = True, desc = 'updating tags (0)')
         for m in labels_changed:
           r = self.local.update_tags (m, None, db)
           if r:
             lchanged += 1
-            bar.set_description ('updating tags (%d)' % lchanged)
+            if not self.args.quiet and self.bar:
+              self.bar.set_description ('updating tags (%d)' % lchanged)
 
-          bar.update (1)
-        bar.close ()
+          self.bar_update (1)
+        self.bar_close ()
 
 
       changed = True
 
     if not changed:
-      print ("pull: everything is up-to-date.")
+      self.vprint ("pull: everything is up-to-date.")
 
     if not self.dry_run:
       self.local.state.set_last_history_id (last_id)
 
     if (last_id > 0):
-      print ('current historyId: %d' % last_id)
+      self.vprint ('current historyId: %d' % last_id)
 
   def full_pull (self):
     total = 1
 
-    bar = tqdm (leave = True, total = total, desc = 'fetching messages')
+    self.bar_create (leave = True, total = total, desc = 'fetching messages')
 
     # NOTE:
     # this list might grow gigantic for large quantities of e-mail, not really sure
@@ -576,8 +584,8 @@ class Gmailieer:
     for mset in self.remote.all_messages ():
       (total, gids) = mset
 
-      bar.total = total
-      bar.update (len(gids))
+      self.bar.total = total
+      self.bar_update (len(gids))
 
       for m in gids:
         message_gids.append (m['id'])
@@ -585,7 +593,7 @@ class Gmailieer:
       if self.limit is not None and len(message_gids) >= self.limit:
         break
 
-    bar.close ()
+    self.bar_close ()
 
     if self.remove:
       if self.limit and not self.dry_run:
@@ -595,13 +603,13 @@ class Gmailieer:
       all_remote = set (message_gids)
       all_local  = set (self.local.gids.keys ())
       remove     = list(all_local - all_remote)
-      bar = tqdm (leave = True, total = len(remove), desc = 'removing deleted')
+      self.bar_create (leave = True, total = len(remove), desc = 'removing deleted')
       with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
         for m in remove:
           self.local.remove (m, db)
-          bar.update (1)
+          self.bar_update (1)
 
-      bar.close ()
+      self.bar_close ()
 
     if len(message_gids) > 0:
       # get content for new messages
@@ -611,7 +619,7 @@ class Gmailieer:
       needs_update = list(set(message_gids) - set(updated))
       self.get_meta (needs_update)
     else:
-      print ("pull: no messages.")
+      self.vprint ("pull: no messages.")
 
     # set notmuch lastmod time, since we have now synced everything from remote
     # to local
@@ -622,7 +630,7 @@ class Gmailieer:
       self.local.state.set_lastmod (rev)
       self.local.state.set_last_history_id (last_id)
 
-    print ('current historyId: %d, current revision: %d' % (last_id, rev))
+    self.vprint ('current historyId: %d, current revision: %d' % (last_id, rev))
 
   def get_meta (self, msgids):
     """
@@ -631,21 +639,21 @@ class Gmailieer:
 
     if len (msgids) > 0:
 
-      bar = tqdm (leave = True, total = len(msgids), desc = 'receiving metadata')
+      self.bar_create (leave = True, total = len(msgids), desc = 'receiving metadata')
 
       # opening db for whole metadata sync
       def _got_msgs (ms):
         with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
           for m in ms:
-            bar.update (1)
+            self.bar_update (1)
             self.local.update_tags (m, None, db)
 
       self.remote.get_messages (msgids, _got_msgs, 'minimal')
 
-      bar.close ()
+      self.bar_close ()
 
     else:
-      print ("receiving metadata: everything up-to-date.")
+      self.vprint ("receiving metadata: everything up-to-date.")
 
 
   def get_content (self, msgids):
@@ -662,21 +670,21 @@ class Gmailieer:
 
     if len (need_content) > 0:
 
-      bar = tqdm (leave = True, total = len(need_content), desc = 'receiving content')
+      self.bar_create (leave = True, total = len(need_content), desc = 'receiving content')
 
       def _got_msgs (ms):
         # opening db per message batch since it takes some time to download each one
         with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
           for m in ms:
-            bar.update (1)
+            self.bar_update (1)
             self.local.store (m, db)
 
       self.remote.get_messages (need_content, _got_msgs, 'raw')
 
-      bar.close ()
+      self.bar_close ()
 
     else:
-      print ("receiving content: everything up-to-date.")
+      self.vprint ("receiving content: everything up-to-date.")
 
     return need_content
 
@@ -699,33 +707,33 @@ class Gmailieer:
 
     import email
     eml = email.message_from_bytes(msg)
-    print ("sending message (%s), from: %s.." % (fn, eml.get('From')))
+    self.vprint ("sending message (%s), from: %s.." % (fn, eml.get('From')))
 
     if 'In-Reply-To' in eml:
       repl = eml['In-Reply-To'].strip().strip('<>')
-      print("looking for original message: %s" % repl)
+      self.vprint("looking for original message: %s" % repl)
       with notmuch.Database (mode = notmuch.Database.MODE.READ_ONLY) as db:
         nmsg = db.find_message(repl)
         if nmsg is not None:
           (_, gids) = self.local.messages_to_gids([nmsg])
           if nmsg.get_header('Subject') != eml['Subject']:
-            print("warning: subject does not match, might not be able to associate with existing thread.")
+            self.vprint ("warning: subject does not match, might not be able to associate with existing thread.")
 
           if len(gids) > 0:
             gmsg = self.remote.get_message(gids[0])
             threadId = gmsg['threadId']
-            print("found existing thread for new message: %s" % threadId)
+            self.vprint ("found existing thread for new message: %s" % threadId)
           else:
-            print("warning: could not find gid of parent message, sent message will not be associated in the same thread")
+            self.vprint ("warning: could not find gid of parent message, sent message will not be associated in the same thread")
         else:
-          print("warning: could not find parent message, sent message will not be associated in the same thread")
+          self.vprint ("warning: could not find parent message, sent message will not be associated in the same thread")
 
     if not args.dry_run:
       msg = self.remote.send(msg, threadId)
       self.get_content([msg['id']])
       self.get_meta([msg['id']])
 
-    print("message sent successfully: %s" % msg['id'])
+    self.vprint ("message sent successfully: %s" % msg['id'])
 
   def set (self, args):
     args.credentials = '' # for setup()
@@ -773,5 +781,30 @@ class Gmailieer:
     print ("Ignore tags (local) .......:", self.local.config.ignore_tags)
     print ("Ignore labels (remote) ....:", self.local.config.ignore_remote_labels)
 
+  def vprint (self, *args, **kwargs):
+    """
+    Print unless --quiet.
+    """
+    if not self.args.quiet:
+      print (*args, **kwargs)
 
+  def bar_create(self, leave = True, total = None, desc = ''):
+    """
+    Create progress bar.
+    """
+    if not self.args.quiet:
+      self.bar = tqdm (leave = True, total = total, desc = desc)
 
+  def bar_update(self, n):
+    """
+    Update progress bar.
+    """
+    if not self.args.quiet:
+      self.bar.update (n)
+
+  def bar_close(self):
+    """
+    Close progress bar.
+    """
+    if not self.args.quiet:
+      self.bar.close()
