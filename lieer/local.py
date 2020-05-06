@@ -401,7 +401,7 @@ class Local:
     if f > 5:
       return fname[:f]
     else:
-      print ("'%s' does not contain valid maildir delimiter, correct file name extension, or does not seem to have a valid GID, ignoring.")
+      print ("'%s' does not contain valid maildir delimiter, correct file name extension, or does not seem to have a valid GID, ignoring." % fname)
       return None
 
   def __make_maildir_name__ (self, m, labels):
