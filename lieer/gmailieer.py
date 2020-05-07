@@ -26,9 +26,15 @@ import  notmuch
 
 from .remote import *
 from .local  import *
+from .queue  import *
 
 class Gmailieer:
   cwd = None
+
+  QUEUE_DIR = '.lieer.queue'
+
+  def __init__ (self):
+    self.cwd = os.getcwd ()  # save working directory for later
 
   def main (self):
     parser = argparse.ArgumentParser ('gmi', parents = [tools.argparser])
@@ -95,25 +101,37 @@ class Gmailieer:
         description = 'send',
         help = 'send message')
 
-    parser_send.add_argument ('-d', '--dry-run', action='store_true',
-        default = False, help = 'do not actually send message')
+    self._make_send_parser (parser_send)
 
-    # Ignored arguments for sendmail compatability
-    if '-oi' in sys.argv:
-      sys.argv.remove('-oi')
+    parser_send.set_defaults (func = self.send)
 
-    if '-i' in sys.argv:
-      sys.argv.remove('-i')
+    # queue
+    parser_queue = subparsers.add_parser ('queue', parents = [common],
+        description = 'queue',
+        help = 'queue a message')
 
-    parser_send.add_argument('-i', action='store_true', default = None, help = 'Ignored: always implied, allowed for sendmail compatability.', dest = 'i3')
-    parser_send.add_argument('-t', action='store_true', default = None, help = 'Ignored: always implied, allowed for sendmail compatability.', dest = 'i0')
+    self._make_send_parser (parser_queue)
 
-    parser_send.add_argument('-f', type = str, help = 'Ignored: has no effect, allowed for sendmail compatability.', dest = 'i1')
+    parser_queue.set_defaults (func = self.queue)
+
+    # manage queue
+    parser_manage_queue = subparsers.add_parser ('manage_queue', parents = [common],
+        description = 'manage_queue',
+        help = 'manage mail queue)')
 
     parser_send.add_argument('message', nargs = '?', default = '-',
         help = 'MIME message to send (or stdin "-", default)')
 
-    parser_send.set_defaults (func = self.send)
+    parser_manage_queue.add_argument ('-a', '--purge-all', action='store_true',
+        default = False, help = 'purge mail queue')
+
+    parser_manage_queue.add_argument ('-l', '--list', action='store_true',
+        default = True, help = 'list queue')
+
+    parser_manage_queue.add_argument ('-r', '--run', action='store_true',
+        default = False, help = 'run (flush) mail queue')
+
+    parser_manage_queue.set_defaults (func = self.manage_queue)
 
     # sync
     parser_sync = subparsers.add_parser ('sync', parents = [common],
@@ -240,7 +258,6 @@ class Gmailieer:
 
       args.path = os.path.expanduser(args.path)
       if os.path.isdir(args.path):
-        self.cwd = os.getcwd()
         os.chdir(args.path)
       else:
         print("error: %s is not a valid path!" % args.path)
@@ -707,15 +724,7 @@ class Gmailieer:
     self.setup (args, args.dry_run, True, True)
     self.remote.get_labels ()
 
-    if args.message == '-':
-      msg = sys.stdin.buffer.read()
-      fn = 'stdin'
-    else:
-      if os.path.isabs(args.message):
-        fn = args.message
-      else:
-        fn = os.path.join(self.cwd, args.message)
-      msg = open(fn, 'rb').read()
+    msg, fn = self._open_msg (self.cwd, args.message)
 
     # check if in-reply-to is set and find threadId
     threadId = None
@@ -749,6 +758,46 @@ class Gmailieer:
       self.get_meta([msg['id']])
 
     self.vprint ("message sent successfully: %s" % msg['id'])
+
+  def _get_queue (self):
+    return Queue (path=self.QUEUE_DIR, lockfile='lieerq.lock')
+
+  def queue (self, args):
+    if args.path is not None:
+      args.path = os.path.expanduser (args.path)
+      os.chdir (args.path)
+    if not os.path.exists (os.path.join (os.getcwd (), '.gmailieer.json')):
+      print ("could not find local repository, refusing to queue")
+      sys.exit (1)
+    q = self._get_queue ()
+    q.dir_create ()
+    if not args.dry_run:
+      msg, filename = self._open_msg (self.QUEUE_DIR, args.message)
+      q.add (msg, filename)
+
+  def manage_queue (self, args):
+    if args.path is not None:
+      args.path = os.path.expanduser (args.path)
+      os.chdir (args.path)
+    q = self._get_queue ()
+    if not q.dir_exists ():
+      print ("queue directory not found: %s" % self.QUEUE_DIR)
+      sys.exit (1)
+    if args.run:
+      for f in q.files ():
+        args.message = os.path.join(self.QUEUE_DIR, f)
+        if args.path is not None:
+          self.cwd = args.path
+        else:
+          self.cwd = os.getcwd ()
+        args.dry_run = False
+        self.vprint ("processing %s" % (args.message))
+        self.send (args)
+        os.unlink (args.message)
+    elif args.purge_all:
+      q.purge_all ()
+    else:
+      q.list ()
 
   def set (self, args):
     args.credentials = '' # for setup()
@@ -823,3 +872,35 @@ class Gmailieer:
     """
     if not self.args.quiet:
       self.bar.close()
+
+  def _make_send_parser (self, parser):
+    parser.add_argument ('-d', '--dry-run', action='store_true',
+        default = False, help = 'do not actually send message')
+
+    # Ignored arguments for sendmail compatability
+    if '-oi' in sys.argv:
+      sys.argv.remove('-oi')
+
+    if '-i' in sys.argv:
+      sys.argv.remove('-i')
+
+    parser.add_argument('-i', action='store_true', default = None, help = 'Ignored: always implied, allowed for sendmail compatability.', dest = 'i3')
+
+    parser.add_argument('-t', action='store_true', default = None, help = 'Ignored: always implied, allowed for sendmail compatability.', dest = 'i0')
+
+    parser.add_argument('-f', type = str, help = 'Ignored: has no effect, allowed for sendmail compatability.', dest = 'i1')
+
+    parser.add_argument('message', nargs = '?', default = '-',
+        help = 'MIME message to send (or stdin "-", default)')
+
+  def _open_msg (self, path, message):
+    if message == '-':
+      msg = sys.stdin.buffer.read()
+      filename = 'stdin'
+    else:
+      if os.path.isabs(message):
+        filename = message
+      else:
+        filename = os.path.join(path, message)
+      msg = open(filename, 'rb').read()
+    return msg, filename

@@ -132,6 +132,16 @@ Note that the following flags are ignored for `sendmail` compatability:
 
 There are instructions for using this in your email client (for example Emacs) on the [wiki](https://github.com/gauteh/lieer/wiki).
 
+## Queueing emails
+
+Some mail clients will block while waiting to send an email.  To avoid this, you can instead add it to a queue for batch processing.  You can then simply replace the `gmi send` command with `gmi queue`.  That would typically look like this:
+
+``sh
+gmi queue -C ~/.mail/account.gmail
+``
+
+You can list the contents of the queue using `gmi manage_queue -l', and send the emails in it by running `gmi manage_queue -r`.  See `gmi manage_queue --help` for more options.
+
 # Settings
 
 Lieer can be configured using `gmi set`. Use without any options to get a list of the current settings as well as the current history ID and notmuch revision.
