@@ -114,7 +114,10 @@ gmi send -C ~/.mail/account.gmail
 
 the raw message is either read from `stdin` or a filename may be supplied.
 Lieer will try to associate the sent message with the existing thread if it has
-an `In-Reply-To` header.
+an `In-Reply-To` header. According to the [Gmail
+API](https://developers.google.com/gmail/api/v1/reference/users/messages/send#request-body)
+the `Subject:` header must also match, but this does not seem to be necessary
+(at least not where just `Re:` has been prepended).
 
 > If the email address in the `From:` header does not match exactly the one of
 > your account, it seems like GMail resets the from to your account _address_
