@@ -69,9 +69,6 @@ class Gmailieer:
     parser_pull.add_argument ('-f', '--force', action = 'store_true',
         default = False, help = 'Force a full synchronization to be performed')
 
-    parser_pull.add_argument ('-r', '--remove', action = 'store_true',
-        default = False, help = 'Remove files locally when they have been deleted remotely (forces full sync)')
-
     parser_pull.set_defaults (func = self.pull)
 
     # push
@@ -128,9 +125,6 @@ class Gmailieer:
 
     parser_sync.add_argument ('-f', '--force', action = 'store_true',
         default = False, help = 'Push even when there has been remote changes, and force a full remote-to-local synchronization')
-
-    parser_sync.add_argument ('-r', '--remove', action = 'store_true',
-        default = False, help = 'Remove files locally when they have been deleted remotely (forces full sync)')
 
     parser_sync.set_defaults (func = self.sync)
 
@@ -192,6 +186,11 @@ class Gmailieer:
 
     parser_set.add_argument ('--file-extension', type = str, default = None,
         help = 'Add a file extension before the maildir status flags (e.g.: "mbox"). Important: see the manual about changing this setting after initial sync.')
+
+    parser_set.add_argument ('--remove-local-messages', action = 'store_true', default = False,
+        help = 'Remove messages that have been deleted on the remote (default is on)')
+    parser_set.add_argument ('--no-remove-local-messages', action = 'store_true', default = False,
+        help = 'Do not remove messages that have been deleted on the remote')
 
     parser_set.set_defaults (func = self.set)
 
@@ -389,11 +388,7 @@ class Gmailieer:
 
       self.remote.get_labels () # to make sure label map is initialized
 
-    self.remove           = args.remove
-
     if self.list_labels:
-      if self.remove or self.force or self.limit:
-        raise argparse.ArgumentError ("-t cannot be specified together with -f, -r or --limit")
       for k,l in self.remote.labels.items ():
         print ("{0: <30} {1}".format (l, k))
       return
@@ -404,10 +399,6 @@ class Gmailieer:
 
     elif self.local.state.last_historyId == 0:
       self.vprint ("pull: full synchronization (no previous synchronization state)")
-      self.full_pull ()
-
-    elif self.remove:
-      self.vprint ("pull: full synchronization (removing deleted messages)")
       self.full_pull ()
 
     else:
@@ -551,7 +542,7 @@ class Gmailieer:
 
       changed = True
 
-    if len (deleted_messages) > 0:
+    if self.local.config.remove_local_messages and len(deleted_messages) > 0:
       with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
         for m in tqdm (deleted_messages, leave = True, desc = 'removing messages'):
           self.local.remove (m['id'], db)
@@ -610,9 +601,9 @@ class Gmailieer:
 
     self.bar_close ()
 
-    if self.remove:
+    if self.local.config.remove_local_messages:
       if self.limit and not self.dry_run:
-        raise argparse.ArgumentError ('--limit with --remove will cause lots of messages to be deleted')
+        raise argparse.ArgumentError ('--limit with "remove_local_messages" will cause lots of messages to be deleted')
 
       # removing files that have been deleted remotely
       all_remote = set (message_gids)
@@ -775,6 +766,12 @@ class Gmailieer:
     if args.no_ignore_empty_history:
       self.local.config.set_ignore_empty_history (False)
 
+    if args.remove_local_messages:
+      self.local.config.set_remove_local_messages (True)
+
+    if args.no_remove_local_messages:
+      self.local.config.set_remove_local_messages (False)
+
     if args.ignore_tags_local is not None:
       self.local.config.set_ignore_tags (args.ignore_tags_local)
 
@@ -790,6 +787,7 @@ class Gmailieer:
     print ("lastmod ...........: %d" % self.local.state.lastmod)
     print ("Timeout ...........: %f" % self.local.config.timeout)
     print ("File extension ....: %s" % self.local.config.file_extension)
+    print ("Remove local messages .....:", self.local.config.remove_local_messages)
     print ("Drop non existing labels...:", self.local.config.drop_non_existing_label)
     print ("Ignore empty history ......:", self.local.config.ignore_empty_history)
     print ("Replace . with / ..........:", self.local.config.replace_slash_with_dot)
