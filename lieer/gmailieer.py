@@ -106,12 +106,13 @@ class Gmailieer:
       sys.argv.remove('-i')
 
     parser_send.add_argument('-i', action='store_true', default = None, help = 'Ignored: always implied, allowed for sendmail compatability.', dest = 'i3')
-    parser_send.add_argument('-t', action='store_true', default = None, help = 'Ignored: always implied, allowed for sendmail compatability.', dest = 'i0')
+    parser_send.add_argument('-t', '--read-recipients', action='store_true',
+                             default = False, dest = 'read_recipients')
 
     parser_send.add_argument('-f', type = str, help = 'Ignored: has no effect, allowed for sendmail compatability.', dest = 'i1')
 
-    parser_send.add_argument('message', nargs = '?', default = '-',
-        help = 'MIME message to send (or stdin "-", default)')
+    parser_send.add_argument('recipients', nargs = '*', default = [],
+        help = 'Recipients to send this message to')
 
     parser_send.set_defaults (func = self.send)
 
@@ -707,22 +708,36 @@ class Gmailieer:
     self.setup (args, args.dry_run, True, True)
     self.remote.get_labels ()
 
-    if args.message == '-':
-      msg = sys.stdin.buffer.read()
-      fn = 'stdin'
-    else:
-      if os.path.isabs(args.message):
-        fn = args.message
-      else:
-        fn = os.path.join(self.cwd, args.message)
-      msg = open(fn, 'rb').read()
+    msg = sys.stdin.buffer.read()
 
     # check if in-reply-to is set and find threadId
     threadId = None
 
     import email
     eml = email.message_from_bytes(msg)
-    self.vprint ("sending message (%s), from: %s.." % (fn, eml.get('From')))
+
+    # If there are recipients passed on the CLI, we need to compare them with
+    # what's in the message headers, as they need to match the message body
+    # (we can't express other recipients via the GMail API)
+
+    cli_recipients = set(args.recipients)
+
+    # construct existing recipient address list from To, Cc, Bcc headers
+    header_recipients = set()
+    for field_name in ("To", "Cc", "Bcc"):
+      field_values = eml.get_all(field_name, [])
+      field_addrs = map(lambda x: email.utils.parseaddr(x)[1], field_values)
+      header_recipients = header_recipients.union(field_addrs)
+
+    if args.read_recipients:
+      if not header_recipients.issuperset(cli_recipients):
+          raise argparse.ArgumentError (
+            "Recipients passed via sendmail(1) arguments, but not part of message headers: {}".format(", ".join(cli_recipients.difference(header_recipients))))
+    elif not header_recipients == cli_recipients:
+      raise argparse.ArgumentError (
+        "Recipients passed via sendmail(1) arguments ({}) differ from those in message headers ({})".format(", ".join(cli_recipients), ", ".join(header_recipients)))
+
+    self.vprint ("sending message, from: %s.." % (eml.get('From')))
 
     if 'In-Reply-To' in eml:
       repl = eml['In-Reply-To'].strip().strip('<>')
