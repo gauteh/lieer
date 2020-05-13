@@ -72,7 +72,7 @@ class Local:
   class Config:
     replace_slash_with_dot = False
     account = None
-    timeout = 0
+    timeout = 10 * 60
     drop_non_existing_label = False
     ignore_empty_history = False
     ignore_tags = None
@@ -94,7 +94,7 @@ class Local:
 
       self.replace_slash_with_dot = self.json.get ('replace_slash_with_dot', False)
       self.account = self.json.get ('account', 'me')
-      self.timeout = self.json.get ('timeout', 0)
+      self.timeout = self.json.get ('timeout', 10 * 60)
       self.drop_non_existing_label = self.json.get ('drop_non_existing_label', False)
       self.ignore_empty_history = self.json.get ('ignore_empty_history', False)
       self.ignore_tags = set(self.json.get ('ignore_tags', []))
