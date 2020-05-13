@@ -112,7 +112,30 @@ Lieer may be used as a simple stand-in for the `sendmail` MTA. A typical configu
 gmi send -C ~/.mail/account.gmail
 ```
 
-the raw message is either read from `stdin` or a filename may be supplied.
+Like the real sendmail program, the raw message is read from `stdin`.
+
+Most sendmail implementations allow passing additional recipients in additional
+arguments, but there's no way to express this to the GMail API - it basically
+only supports the `-t` (`--read-recipients`) mode of sendmail, without
+additional recipients.
+
+However, MUA can make use of both `-t` and additional recipients, even in a
+redundant fashion (with `-t` set, providing recipients in the message AND as
+recipient in the CLI).
+
+We need to check if the MUA asks us to do something we can't do.
+
+The following combinations are OK:
+
+ - When `-t` is passed, we need to check for the CLI-passed recipients to be
+   equal or a subset of the ones passed in the headers.
+
+ - When `-t` is not passed, all header-passed recipients need to be provided in
+   the CLI as well.
+
+This avoids silently not sending mail to some recipients (pretending we did),
+or sending mail to recipients we didn't want to send to again.
+
 Lieer will try to associate the sent message with the existing thread if it has
 an `In-Reply-To` header. According to the [Gmail
 API](https://developers.google.com/gmail/api/v1/reference/users/messages/send#request-body)
@@ -125,7 +148,6 @@ the `Subject:` header must also match, but this does not seem to be necessary
 
 Note that the following flags are ignored for `sendmail` compatability:
 
-  - `-t` (always implied, make sure you supply a `To:` header)
   - `-f` (ignored, set envelope `From:` yourself)
   - `-o` (ignored)
   - `-i` (always implied, not bothered by single `.`'s)
