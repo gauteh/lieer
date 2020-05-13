@@ -112,7 +112,8 @@ Lieer may be used as a simple stand-in for the `sendmail` MTA. A typical configu
 gmi send -C ~/.mail/account.gmail
 ```
 
-the raw message is either read from `stdin` or a filename may be supplied.
+Like the real sendmail program, the raw message is read from `stdin`.
+Additional recipients can be passed afterwards.
 Lieer will try to associate the sent message with the existing thread if it has
 an `In-Reply-To` header. According to the [Gmail
 API](https://developers.google.com/gmail/api/v1/reference/users/messages/send#request-body)

@@ -106,12 +106,13 @@ class Gmailieer:
       sys.argv.remove('-i')
 
     parser_send.add_argument('-i', action='store_true', default = None, help = 'Ignored: always implied, allowed for sendmail compatability.', dest = 'i3')
+    # Whether to extract recipients from message headers
     parser_send.add_argument('-t', action='store_true', default = None, help = 'Ignored: always implied, allowed for sendmail compatability.', dest = 'i0')
 
     parser_send.add_argument('-f', type = str, help = 'Ignored: has no effect, allowed for sendmail compatability.', dest = 'i1')
 
-    parser_send.add_argument('message', nargs = '?', default = '-',
-        help = 'MIME message to send (or stdin "-", default)')
+    parser_send.add_argument('recipients', nargs = '*', default = [],
+        help = 'Recipients to send this message to')
 
     parser_send.set_defaults (func = self.send)
 
@@ -707,21 +708,27 @@ class Gmailieer:
     self.setup (args, args.dry_run, True, True)
     self.remote.get_labels ()
 
-    if args.message == '-':
-      msg = sys.stdin.buffer.read()
-      fn = 'stdin'
-    else:
-      if os.path.isabs(args.message):
-        fn = args.message
-      else:
-        fn = os.path.join(self.cwd, args.message)
-      msg = open(fn, 'rb').read()
+    msg = sys.stdin.buffer.read()
+    fn = 'stdin'
 
     # check if in-reply-to is set and find threadId
     threadId = None
 
     import email
     eml = email.message_from_bytes(msg)
+
+    # if additional recipients were passed that aren't already part of the
+    # message To:, Cc:, Bcc fields, add them to Bcc
+    if args.recipients != []:
+      # construct existing recipient list from current To, Cc, Bcc
+      header_recipients = set()
+      for field_name in ("To", "Cc", "Bcc"):
+        header_recipients = header_recipients.union(eml.get_all(field_name, []))
+
+      for recipient in args.recipients:
+        if recipient not in header_recipients:
+          eml["Bcc"] = "{}, {}".format(eml["Bcc"], recipient)
+
     self.vprint ("sending message (%s), from: %s.." % (fn, eml.get('From')))
 
     if 'In-Reply-To' in eml:
