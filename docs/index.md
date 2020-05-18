@@ -147,7 +147,7 @@ Note that the following flags are ignored for `sendmail` compatability:
   - `-o` (ignored)
   - `-i` (always implied, not bothered by single `.`'s)
 
-There are instructions for using this in your email client (for example Emacs) on the [wiki](https://github.com/gauteh/lieer/wiki).
+There are instructions for using this in your email client (for example Emacs) in the [wiki](https://github.com/gauteh/lieer/wiki/GNU-Emacs-and-Lieer).
 
 # Settings
 
