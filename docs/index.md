@@ -109,23 +109,18 @@ See below for more [caveats](#caveats).
 Lieer may be used as a simple stand-in for the `sendmail` MTA. A typical configuration for a MUA send command might be:
 
 ```sh
-gmi send -C ~/.mail/account.gmail
+gmi send -t -C ~/.mail/account.gmail
 ```
 
 Like the real sendmail program, the raw message is read from `stdin`.
 
 Most sendmail implementations allow passing additional recipients in additional
-arguments, but there's no way to express this to the GMail API - it basically
-only supports the `-t` (`--read-recipients`) mode of sendmail, without
-additional recipients.
+arguments. However, the GMail API only supports the `-t` (`--read-recipients`) mode of
+sendmail, without additional recipients.
 
-However, MUA can make use of both `-t` and additional recipients, even in a
-redundant fashion (with `-t` set, providing recipients in the message AND as
-recipient in the CLI).
-
-We need to check if the MUA asks us to do something we can't do.
-
-The following combinations are OK:
+We try to support valid combinations from MUAs that make use of recipients
+passed as arguments. Additional recipients are ignored, but validated. The
+following combinations are OK:
 
  - When `-t` is passed, we need to check for the CLI-passed recipients to be
    equal or a subset of the ones passed in the headers.

@@ -104,12 +104,13 @@ class Gmailieer:
 
     parser_send.add_argument('-i', action='store_true', default = None, help = 'Ignored: always implied, allowed for sendmail compatability.', dest = 'i3')
     parser_send.add_argument('-t', '--read-recipients', action='store_true',
-                             default = False, dest = 'read_recipients')
+                             default = False, dest = 'read_recipients',
+                             help = 'Read recipients from message headers. This is always done by GMail. If this option is not specified, the same addresses (as those in the headers) must be specified as additional arguments.')
 
     parser_send.add_argument('-f', type = str, help = 'Ignored: has no effect, allowed for sendmail compatability.', dest = 'i1')
 
     parser_send.add_argument('recipients', nargs = '*', default = [],
-        help = 'Recipients to send this message to')
+        help = 'Recipients to send this message to (these are essentially ignored, but they are validated against the header fields.)')
 
     parser_send.set_defaults (func = self.send)
 
@@ -722,11 +723,11 @@ class Gmailieer:
 
     if args.read_recipients:
       if not header_recipients.issuperset(cli_recipients):
-          raise argparse.ArgumentError (
+          raise ValueError (
             "Recipients passed via sendmail(1) arguments, but not part of message headers: {}".format(", ".join(cli_recipients.difference(header_recipients))))
     elif not header_recipients == cli_recipients:
-      raise argparse.ArgumentError (
-        "Recipients passed via sendmail(1) arguments ({}) differ from those in message headers ({})".format(", ".join(cli_recipients), ", ".join(header_recipients)))
+      raise ValueError (
+          "Recipients passed via sendmail(1) arguments ({}) differ from those in message headers ({}), perhaps you are missing the '-t' option?".format(", ".join(cli_recipients), ", ".join(header_recipients)))
 
     self.vprint ("sending message, from: %s.." % (eml.get('From')))
 
