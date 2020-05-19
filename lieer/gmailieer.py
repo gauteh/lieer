@@ -89,8 +89,8 @@ class Gmailieer:
 
     # send
     parser_send = subparsers.add_parser ('send', parents = [common],
-        description = 'send',
-        help = 'send message')
+        description = 'Read a MIME message from STDIN and send.',
+        help = 'send a MIME message read from STDIN.')
 
     parser_send.add_argument ('-d', '--dry-run', action='store_true',
         default = False, help = 'do not actually send message')
