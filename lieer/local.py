@@ -404,9 +404,7 @@ class Local:
 
     for m in msgs:
       for fname in m.get_filenames ():
-        if not self.contains (fname):
-          print ("'%s' is not in this repository, ignoring." % fname)
-        else:
+        if self.contains (fname):
           # get gmail id
           gid = self.__filename_to_gid__ (os.path.basename (fname))
           if gid:
