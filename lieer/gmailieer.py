@@ -605,7 +605,7 @@ class Gmailieer:
 
     if self.local.config.remove_local_messages:
       if self.limit and not self.dry_run:
-        raise argparse.ArgumentError ('--limit with "remove_local_messages" will cause lots of messages to be deleted')
+        raise ValueError('--limit with "remove_local_messages" will cause lots of messages to be deleted')
 
       # removing files that have been deleted remotely
       all_remote = set (message_gids)
