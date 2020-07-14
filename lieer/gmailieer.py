@@ -604,8 +604,8 @@ class Gmailieer:
     self.bar_close ()
 
     if self.local.config.remove_local_messages:
-      if self.limit and not self.dry_run:
-        raise ValueError('--limit with "remove_local_messages" will cause lots of messages to be deleted')
+      if self.limit and self.local.state.last_historyId != 0:
+        raise AttributeError('Previous synchronization state detected, remove the --limit tag.')
 
       # removing files that have been deleted remotely
       all_remote = set (message_gids)
