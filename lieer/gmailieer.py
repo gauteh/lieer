@@ -276,7 +276,6 @@ class Gmailieer:
   def sync (self, args):
     self.setup (args, args.dry_run, True)
     self.force            = args.force
-    self.limit            = args.limit
     self.list_labels      = False
 
     self.remote.get_labels ()
@@ -294,7 +293,6 @@ class Gmailieer:
       self.setup (args, args.dry_run, True)
 
       self.force            = args.force
-      self.limit            = args.limit
 
       self.remote.get_labels ()
 
@@ -314,8 +312,8 @@ class Gmailieer:
       query = notmuch.Query (db, qry)
 
       messages = list(query.search_messages ())
-      if self.limit is not None and len(messages) > self.limit:
-        messages = messages[:self.limit]
+      if self.local.config.limit is not None and len(messages) > self.local.config.limit:
+        messages = messages[:self.local.config.limit]
 
       # get gids and filter out messages outside this repository
       messages, gids = self.local.messages_to_gids (messages)
@@ -345,8 +343,8 @@ class Gmailieer:
       actions = [ a for a in actions if a ]
 
       # limit
-      if self.limit is not None and len(actions) >= self.limit:
-        actions = actions[:self.limit]
+      if self.local.config.limit is not None and len(actions) >= self.local.config.limit:
+        actions = actions[:self.local.config.limit]
 
       # push changes
       if len(actions) > 0:
@@ -387,7 +385,6 @@ class Gmailieer:
 
       self.list_labels      = args.list_labels
       self.force            = args.force
-      self.limit            = args.limit
 
       self.remote.get_labels () # to make sure label map is initialized
 
@@ -423,7 +420,7 @@ class Gmailieer:
 
         self.bar_update (len(hist))
 
-        if self.limit is not None and len(history) >= self.limit:
+        if self.local.config.limit is not None and len(history) >= self.local.config.limit:
           break
 
     except googleapiclient.errors.HttpError as excep:
@@ -589,7 +586,7 @@ class Gmailieer:
     # simple metadata like message ids.
     message_gids = []
     last_id      = self.remote.get_current_history_id (self.local.state.last_historyId)
-
+    print(self.local.config.limit)
     for mset in self.remote.all_messages ():
       (total, gids) = mset
 
@@ -599,14 +596,12 @@ class Gmailieer:
       for m in gids:
         message_gids.append (m['id'])
 
-      if self.limit is not None and len(message_gids) >= self.limit:
+      if self.local.config.limit is not None and len(message_gids) >= self.local.config.limit:
         break
 
     self.bar_close ()
 
     if self.local.config.remove_local_messages:
-      if self.limit and self.local.state.last_historyId != 0:
-        raise AttributeError('Previous synchronization state detected, remove the --limit tag.')
 
       # removing files that have been deleted remotely
       all_remote = set (message_gids)
