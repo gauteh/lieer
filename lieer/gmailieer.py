@@ -59,10 +59,6 @@ class Gmailieer:
     parser_pull.add_argument ('-t', '--list-labels', action='store_true', default = False,
         help = 'list all remote labels (pull)')
 
-    parser_pull.add_argument ('--limit', type = int, default = None,
-        help = 'Maximum number of messages to pull (soft limit, GMail may return more), note that this may upset the tally of synchronized messages.')
-
-
     parser_pull.add_argument ('-d', '--dry-run', action='store_true',
         default = False, help = 'do not make any changes')
 
@@ -75,9 +71,6 @@ class Gmailieer:
     parser_push = subparsers.add_parser ('push', parents = [common],
         description = 'push',
         help = 'push local tag-changes')
-
-    parser_push.add_argument ('--limit', type = int, default = None,
-        help = 'Maximum number of messages to push, note that this may upset the tally of synchronized messages.')
 
     parser_push.add_argument ('-d', '--dry-run', action='store_true',
         default = False, help = 'do not make any changes')
@@ -118,9 +111,6 @@ class Gmailieer:
     parser_sync = subparsers.add_parser ('sync', parents = [common],
         description = 'sync',
         help = 'sync changes (flags have same meaning as for push and pull)')
-
-    parser_sync.add_argument ('--limit', type = int, default = None,
-        help = 'Maximum number of messages to sync, note that this may upset the tally of synchronized messages.')
 
     parser_sync.add_argument ('-d', '--dry-run', action='store_true',
         default = False, help = 'do not make any changes')
@@ -548,6 +538,17 @@ class Gmailieer:
           self.local.remove (m['id'], db)
 
       changed = True
+
+    #limiting the number of messages in the database to local.config.limit parameter
+    with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
+        query = notmuch.Query(db,'')
+        query.set_sort(notmuch.Query.SORT.NEWEST_FIRST)
+        msglist = list(query.search_messages())
+        if len(msglist) > self.local.config.limit:
+            delete_list = self.local.nm_messages_to_gids(msglist[self.local.config.limit:])
+            for m in delete_list:
+                self.local.remove (m,db)
+            changed = True
 
     if len (labels_changed) > 0:
       lchanged = 0
