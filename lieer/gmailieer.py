@@ -193,7 +193,8 @@ class Gmailieer:
         help = 'Remove messages that have been deleted on the remote (default is on)')
     parser_set.add_argument ('--no-remove-local-messages', action = 'store_true', default = False,
         help = 'Do not remove messages that have been deleted on the remote')
-
+    parser_set.add_argument ('--limit', type = int, default = None,
+        help = 'Maximum number of messages to pull (soft limit, GMail may return more), note that this may upset the tally of synchronized messages.')
     parser_set.set_defaults (func = self.set)
 
 
@@ -785,6 +786,9 @@ class Gmailieer:
     if args.remove_local_messages:
       self.local.config.set_remove_local_messages (True)
 
+    if args.limit is not None:
+   	  self.local.config.set_limit (args.limit)
+
     if args.no_remove_local_messages:
       self.local.config.set_remove_local_messages (False)
 
@@ -802,6 +806,7 @@ class Gmailieer:
     print ("historyId .........: %d" % self.local.state.last_historyId)
     print ("lastmod ...........: %d" % self.local.state.lastmod)
     print ("Timeout ...........: %f" % self.local.config.timeout)
+    print ("Limit .............: %d" % self.local.config.limit)
     print ("File extension ....: %s" % self.local.config.file_extension)
     print ("Remove local messages .....:", self.local.config.remove_local_messages)
     print ("Drop non existing labels...:", self.local.config.drop_non_existing_label)
