@@ -539,31 +539,43 @@ class Gmailieer:
 
       changed = True
 
-    #limiting the number of messages in the database to local.config.limit parameter
-    with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
-        query = notmuch.Query(db,'')
-        query.set_sort(notmuch.Query.SORT.NEWEST_FIRST)
-        thdlist = list(query.search_threads())
-        msglist = []
-        for t in thdlist:
-            msglist += list(t.get_messages())
-        l = len(msglist)
-        i = 0
-        while l > self.local.config.limit: #number of messages to keep, avoiding incomplete threads
-            l -= thdlist[-1-i].get_total_messages()
-            i += 1
-        if len(msglist) > self.local.config.limit:
-            self.bar_create (total = len(msglist)-l, leave = True, desc = 'Removing older messages (0)')
-            delete_list = self.local.nm_messages_to_gids(msglist[l-len(msglist):])
-            deleted = 0
-            for m in delete_list:
-                self.local.remove (m,db)
-                deleted += 1
-                if not self.args.quiet and self.bar:
-                    self.bar.set_description ('Removing older messages (%d)' % deleted)
-                self.bar_update (1)
-            self.bar_close ()
-            changed = True
+    #limiting the number of messages in the database to local.config.limit parameter if it is set
+    if self.local.config.limit is not None:
+        with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
+            query = notmuch.Query(db,'')
+            query.set_sort(notmuch.Query.SORT.NEWEST_FIRST)
+            thdlist = list(query.search_threads())
+            msglist = []
+            for t in thdlist:
+                msglist += list(t.get_messages())
+            n_keep = len(msglist) #initiating the parameter
+            i = 0
+            while n_keep > self.local.config.limit: #number of messages to keep, avoiding incomplete threads
+                n_keep -= thdlist[-1-i].get_total_messages()
+                i += 1
+
+            if len(msglist) > self.local.config.limit:
+                self.bar_create (total = len(msglist)-n_keep, leave = True, desc = 'Removing older messages (0)')
+                delete_msgs = msglist[n_keep-len(msglist):] # list of older messages to be deleted
+                
+                delete_gids=[] # getting the gids for messages to be deleted
+                for m in delete_msgs:
+                  for fname in m.get_filenames ():
+                    if self.contains (fname):
+                      # get gmail id
+                      gid = self.__filename_to_gid__ (os.path.basename (fname))
+                      if gid:
+                        delete_gids.append (gid)
+
+                deleted = 0
+                for m in delete_gids:
+                    self.local.remove (m,db)
+                    deleted += 1
+                    if not self.args.quiet and self.bar:
+                        self.bar.set_description ('Removing older messages (%d)' % deleted)
+                    self.bar_update (1)
+                self.bar_close ()
+                changed = True
 
     if len (labels_changed) > 0:
       lchanged = 0

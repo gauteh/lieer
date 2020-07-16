@@ -422,23 +422,6 @@ class Local:
 
     return (messages, gids)
 
-  def nm_messages_to_gids (self, msgs):
-    """
-    Gets GIDs from a list of NotmuchMessages, the returned list may contain
-    the same NotmuchMessage several times for each matching file. Files outside the
-    repository are filtered out.
-    """
-    gids     = []
-
-    for m in msgs:
-      for fname in m.get_filenames ():
-        if self.contains (fname):
-          # get gmail id
-          gid = self.__filename_to_gid__ (os.path.basename (fname))
-          if gid:
-            gids.append (gid)
-
-    return gids
 
   def __filename_to_gid__ (self, fname):
     ext = ''
