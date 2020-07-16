@@ -184,7 +184,7 @@ class Gmailieer:
     parser_set.add_argument ('--no-remove-local-messages', action = 'store_true', default = False,
         help = 'Do not remove messages that have been deleted on the remote')
     parser_set.add_argument ('--limit', type = int, default = None,
-        help = 'Maximum number of messages to pull (soft limit, GMail may return more), note that this may upset the tally of synchronized messages.')
+        help = 'Maximum number of messages to sync with the local database. To unset any limit, use --limit 0.')
     parser_set.set_defaults (func = self.set)
 
 
@@ -543,11 +543,26 @@ class Gmailieer:
     with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
         query = notmuch.Query(db,'')
         query.set_sort(notmuch.Query.SORT.NEWEST_FIRST)
-        msglist = list(query.search_messages())
+        thdlist = list(query.search_threads())
+        msglist = []
+        for t in thdlist:
+            msglist += list(t.get_messages())
+        l = len(msglist)
+        i = 0
+        while l > self.local.config.limit: #number of messages to keep, avoiding incomplete threads
+            l -= thdlist[-1-i].get_total_messages()
+            i += 1
         if len(msglist) > self.local.config.limit:
-            delete_list = self.local.nm_messages_to_gids(msglist[self.local.config.limit:])
+            self.bar_create (total = len(msglist)-l, leave = True, desc = 'Removing older messages (0)')
+            delete_list = self.local.nm_messages_to_gids(msglist[l-len(msglist):])
+            deleted = 0
             for m in delete_list:
                 self.local.remove (m,db)
+                deleted += 1
+                if not self.args.quiet and self.bar:
+                    self.bar.set_description ('Removing older messages (%d)' % deleted)
+                self.bar_update (1)
+            self.bar_close ()
             changed = True
 
     if len (labels_changed) > 0:
@@ -587,7 +602,7 @@ class Gmailieer:
     # simple metadata like message ids.
     message_gids = []
     last_id      = self.remote.get_current_history_id (self.local.state.last_historyId)
-    print(self.local.config.limit)
+    
     for mset in self.remote.all_messages ():
       (total, gids) = mset
 

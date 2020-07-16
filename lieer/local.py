@@ -177,7 +177,10 @@ class Local:
         raise
 
     def set_limit (self,l):
-        self.limit = l
+        if l != 0:
+            self.limit = l
+        else:
+            self.limit = None
         self.write()
 
 
@@ -421,7 +424,7 @@ class Local:
 
   def nm_messages_to_gids (self, msgs):
     """
-    Gets GIDs from a list of NotmuchMessages, the returned list of tuples may contain
+    Gets GIDs from a list of NotmuchMessages, the returned list may contain
     the same NotmuchMessage several times for each matching file. Files outside the
     repository are filtered out.
     """
