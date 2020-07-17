@@ -561,9 +561,9 @@ class Gmailieer:
                 delete_gids=[] # getting the gids for messages to be deleted
                 for m in delete_msgs:
                   for fname in m.get_filenames ():
-                    if self.contains (fname):
+                    if self.local.contains (fname):
                       # get gmail id
-                      gid = self.__filename_to_gid__ (os.path.basename (fname))
+                      gid = self.local.__filename_to_gid__ (os.path.basename (fname))
                       if gid:
                         delete_gids.append (gid)
 
@@ -606,6 +606,9 @@ class Gmailieer:
   def full_pull (self):
     total = 1
 
+    if self.local.config.limit is not None:
+    	print("Limit parameter set, number of messages that will be fetched:",self.local.config.limit)
+    	
     self.bar_create (leave = True, total = total, desc = 'fetching messages')
 
     # NOTE:
@@ -829,7 +832,7 @@ class Gmailieer:
     print ("historyId .........: %d" % self.local.state.last_historyId)
     print ("lastmod ...........: %d" % self.local.state.lastmod)
     print ("Timeout ...........: %f" % self.local.config.timeout)
-    print ("Limit .............: %d" % self.local.config.limit)
+    print ("Limit .............:",self.local.config.limit)
     print ("File extension ....: %s" % self.local.config.file_extension)
     print ("Remove local messages .....:", self.local.config.remove_local_messages)
     print ("Drop non existing labels...:", self.local.config.drop_non_existing_label)
