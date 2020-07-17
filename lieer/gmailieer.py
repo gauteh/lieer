@@ -184,7 +184,8 @@ class Gmailieer:
     parser_set.add_argument ('--no-remove-local-messages', action = 'store_true', default = False,
         help = 'Do not remove messages that have been deleted on the remote')
     parser_set.add_argument ('--limit', type = int, default = None,
-        help = 'Maximum number of messages to sync with the local database. To unset any limit, use --limit 0.')
+        help = 'Maximum number of messages to sync with the local database')
+    parser_set.add_argument ('--unset-limit',action = 'store_true',default = False, help = 'Do not limit the number of messages to be synced in the local database')
     parser_set.set_defaults (func = self.set)
 
 
@@ -621,7 +622,6 @@ class Gmailieer:
     for mset in self.remote.all_messages ():
       (total, gids) = mset
 
-      self.bar.total = total
       self.bar_update (len(gids))
 
       for m in gids:
@@ -814,6 +814,9 @@ class Gmailieer:
 
     if args.limit is not None:
    	  self.local.config.set_limit (args.limit)
+
+    if args.unset_limit:
+        self.local.config.set_limit (0)
 
     if args.no_remove_local_messages:
       self.local.config.set_remove_local_messages (False)

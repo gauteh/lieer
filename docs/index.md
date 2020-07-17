@@ -159,6 +159,10 @@ Lieer can be configured using `gmi set`. Use without any options to get a list o
 
 **`lastmod`** is the latest synced Notmuch database revision. Anything changed after this revision will be pushed on [`gmi push`](#ush).
 
+**`limit`** is the parameter which limits the number of messages to be saved in the local database. It affects all the pull and push commands and removes older messages to keep the number of messages less than the limit specified. Further, the older messages are removed in a way as to not leave any incomplete threads. This limit can be removed using `gmi set --unset-limit`. 
+
+*Important:* If the limit parameter is changed to a value which is greater than one set previously, the next pull will not be able to fetch extra mails to fill upto the limit. So, a forced pull `gmi pull -f` needs to be performed. This situation would not arise if the new limit parameter is less than the older limit, as the partial pull will limit the number of messages by itself.
+
 **`Timeout`** is the timeout in seconds used for the HTTP connection to GMail. `0` means the forever or system error/timeout, [whichever occurs first](https://github.com/gauteh/lieer/issues/83#issuecomment-396487919).
 
 **`File extension`** is an optional argument to include the specified extension in local file names (e.g., `mbox`) which can be useful for indexing them with third-party programs.  
