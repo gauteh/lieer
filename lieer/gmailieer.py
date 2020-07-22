@@ -717,9 +717,12 @@ class Gmailieer:
     # construct existing recipient address list from To, Cc, Bcc headers
     header_recipients = set()
     for field_name in ("To", "Cc", "Bcc"):
+      # get all field values for the given field
       field_values = eml.get_all(field_name, [])
-      field_addrs = map(lambda x: email.utils.parseaddr(x)[1], field_values)
-      header_recipients = header_recipients.union(field_addrs)
+
+      # parse these into a list of realnames and addresses
+      for (_, address) in email.utils.getaddresses(field_values):
+        header_recipients.add(address)
 
     if args.read_recipients:
       if not header_recipients.issuperset(cli_recipients):
