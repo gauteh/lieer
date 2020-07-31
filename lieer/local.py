@@ -53,6 +53,7 @@ class Local:
 
   ignore_labels = set ([
                         'archive',
+                        'arxiv',
                         'attachment',
                         'encrypted',
                         'signed',
