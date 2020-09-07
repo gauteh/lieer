@@ -59,10 +59,6 @@ class Gmailieer:
     parser_pull.add_argument ('-t', '--list-labels', action='store_true', default = False,
         help = 'list all remote labels (pull)')
 
-    parser_pull.add_argument ('--limit', type = int, default = None,
-        help = 'Maximum number of messages to pull (soft limit, GMail may return more), note that this may upset the tally of synchronized messages.')
-
-
     parser_pull.add_argument ('-d', '--dry-run', action='store_true',
         default = False, help = 'do not make any changes')
 
@@ -75,9 +71,6 @@ class Gmailieer:
     parser_push = subparsers.add_parser ('push', parents = [common],
         description = 'push',
         help = 'push local tag-changes')
-
-    parser_push.add_argument ('--limit', type = int, default = None,
-        help = 'Maximum number of messages to push, note that this may upset the tally of synchronized messages.')
 
     parser_push.add_argument ('-d', '--dry-run', action='store_true',
         default = False, help = 'do not make any changes')
@@ -118,9 +111,6 @@ class Gmailieer:
     parser_sync = subparsers.add_parser ('sync', parents = [common],
         description = 'sync',
         help = 'sync changes (flags have same meaning as for push and pull)')
-
-    parser_sync.add_argument ('--limit', type = int, default = None,
-        help = 'Maximum number of messages to sync, note that this may upset the tally of synchronized messages.')
 
     parser_sync.add_argument ('-d', '--dry-run', action='store_true',
         default = False, help = 'do not make any changes')
@@ -193,7 +183,9 @@ class Gmailieer:
         help = 'Remove messages that have been deleted on the remote (default is on)')
     parser_set.add_argument ('--no-remove-local-messages', action = 'store_true', default = False,
         help = 'Do not remove messages that have been deleted on the remote')
-
+    parser_set.add_argument ('--limit', type = int, default = None,
+        help = 'Maximum number of messages to sync with the local database')
+    parser_set.add_argument ('--unset-limit',action = 'store_true',default = False, help = 'Do not limit the number of messages to be synced in the local database')
     parser_set.set_defaults (func = self.set)
 
 
@@ -275,7 +267,6 @@ class Gmailieer:
   def sync (self, args):
     self.setup (args, args.dry_run, True)
     self.force            = args.force
-    self.limit            = args.limit
     self.list_labels      = False
 
     self.remote.get_labels ()
@@ -293,7 +284,6 @@ class Gmailieer:
       self.setup (args, args.dry_run, True)
 
       self.force            = args.force
-      self.limit            = args.limit
 
       self.remote.get_labels ()
 
@@ -313,8 +303,8 @@ class Gmailieer:
       query = notmuch.Query (db, qry)
 
       messages = list(query.search_messages ())
-      if self.limit is not None and len(messages) > self.limit:
-        messages = messages[:self.limit]
+      if self.local.config.limit is not None and len(messages) > self.local.config.limit:
+        messages = messages[:self.local.config.limit]
 
       # get gids and filter out messages outside this repository
       messages, gids = self.local.messages_to_gids (messages)
@@ -344,8 +334,8 @@ class Gmailieer:
       actions = [ a for a in actions if a ]
 
       # limit
-      if self.limit is not None and len(actions) >= self.limit:
-        actions = actions[:self.limit]
+      if self.local.config.limit is not None and len(actions) >= self.local.config.limit:
+        actions = actions[:self.local.config.limit]
 
       # push changes
       if len(actions) > 0:
@@ -386,7 +376,6 @@ class Gmailieer:
 
       self.list_labels      = args.list_labels
       self.force            = args.force
-      self.limit            = args.limit
 
       self.remote.get_labels () # to make sure label map is initialized
 
@@ -422,7 +411,7 @@ class Gmailieer:
 
         self.bar_update (len(hist))
 
-        if self.limit is not None and len(history) >= self.limit:
+        if self.local.config.limit is not None and len(history) >= self.local.config.limit:
           break
 
     except googleapiclient.errors.HttpError as excep:
@@ -551,6 +540,44 @@ class Gmailieer:
 
       changed = True
 
+    #limiting the number of messages in the database to local.config.limit parameter if it is set
+    if self.local.config.limit is not None:
+        with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
+            query = notmuch.Query(db,'')
+            query.set_sort(notmuch.Query.SORT.NEWEST_FIRST)
+            thdlist = list(query.search_threads())
+            msglist = []
+            for t in thdlist:
+                msglist += list(t.get_messages())
+            n_keep = len(msglist) #initiating the parameter
+            i = 0
+            while n_keep > self.local.config.limit: #number of messages to keep, avoiding incomplete threads
+                n_keep -= thdlist[-1-i].get_total_messages()
+                i += 1
+
+            if len(msglist) > self.local.config.limit:
+                self.bar_create (total = len(msglist)-n_keep, leave = True, desc = 'Removing older messages (0)')
+                delete_msgs = msglist[n_keep-len(msglist):] # list of older messages to be deleted
+                
+                delete_gids=[] # getting the gids for messages to be deleted
+                for m in delete_msgs:
+                  for fname in m.get_filenames ():
+                    if self.local.contains (fname):
+                      # get gmail id
+                      gid = self.local.__filename_to_gid__ (os.path.basename (fname))
+                      if gid:
+                        delete_gids.append (gid)
+
+                deleted = 0
+                for m in delete_gids:
+                    self.local.remove (m,db)
+                    deleted += 1
+                    if not self.args.quiet and self.bar:
+                        self.bar.set_description ('Removing older messages (%d)' % deleted)
+                    self.bar_update (1)
+                self.bar_close ()
+                changed = True
+
     if len (labels_changed) > 0:
       lchanged = 0
       with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
@@ -580,6 +607,9 @@ class Gmailieer:
   def full_pull (self):
     total = 1
 
+    if self.local.config.limit is not None:
+    	print("Limit parameter set, number of messages that will be fetched:",self.local.config.limit)
+    	
     self.bar_create (leave = True, total = total, desc = 'fetching messages')
 
     # NOTE:
@@ -588,24 +618,21 @@ class Gmailieer:
     # simple metadata like message ids.
     message_gids = []
     last_id      = self.remote.get_current_history_id (self.local.state.last_historyId)
-
+    
     for mset in self.remote.all_messages ():
       (total, gids) = mset
 
-      self.bar.total = total
       self.bar_update (len(gids))
 
       for m in gids:
         message_gids.append (m['id'])
 
-      if self.limit is not None and len(message_gids) >= self.limit:
+      if self.local.config.limit is not None and len(message_gids) >= self.local.config.limit:
         break
 
     self.bar_close ()
 
     if self.local.config.remove_local_messages:
-      if self.limit and not self.dry_run:
-        raise ValueError('--limit with "remove_local_messages" will cause lots of messages to be deleted')
 
       # removing files that have been deleted remotely
       all_remote = set (message_gids)
@@ -788,6 +815,12 @@ class Gmailieer:
     if args.remove_local_messages:
       self.local.config.set_remove_local_messages (True)
 
+    if args.limit is not None:
+   	  self.local.config.set_limit (args.limit)
+
+    if args.unset_limit:
+        self.local.config.set_limit (0)
+
     if args.no_remove_local_messages:
       self.local.config.set_remove_local_messages (False)
 
@@ -805,6 +838,7 @@ class Gmailieer:
     print ("historyId .........: %d" % self.local.state.last_historyId)
     print ("lastmod ...........: %d" % self.local.state.lastmod)
     print ("Timeout ...........: %f" % self.local.config.timeout)
+    print ("Limit .............:",self.local.config.limit)
     print ("File extension ....: %s" % self.local.config.file_extension)
     print ("Remove local messages .....:", self.local.config.remove_local_messages)
     print ("Drop non existing labels...:", self.local.config.drop_non_existing_label)

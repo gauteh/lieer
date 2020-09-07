@@ -103,6 +103,7 @@ class Local:
       self.ignore_tags = set(self.json.get ('ignore_tags', []))
       self.ignore_remote_labels = set(self.json.get ('ignore_remote_labels', Remote.DEFAULT_IGNORE_LABELS))
       self.file_extension = self.json.get ('file_extension', '')
+      self.limit = self.json.get ('limit', None)
 
     def write (self):
       self.json = {}
@@ -116,6 +117,7 @@ class Local:
       self.json['ignore_remote_labels'] = list(self.ignore_remote_labels)
       self.json['remove_local_messages'] = self.remove_local_messages
       self.json['file_extension'] = self.file_extension
+      self.json['limit'] = self.limit
 
       if os.path.exists (self.config_f):
         shutil.copyfile (self.config_f, self.config_f + '.bak')
@@ -174,6 +176,13 @@ class Local:
       except OSError:
         print ("Failed creating test file with file extension: " + t + ", not set.")
         raise
+
+    def set_limit (self,l):
+        if l != 0:
+            self.limit = l
+        else:
+            self.limit = None
+        self.write()
 
 
   class State:
@@ -413,6 +422,7 @@ class Local:
             messages.append (m)
 
     return (messages, gids)
+
 
   def __filename_to_gid__ (self, fname):
     ext = ''
