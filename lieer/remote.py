@@ -192,6 +192,21 @@ class Remote:
         return int(msg['historyId'])
 
   @__require_auth__
+  def is_history_id_valid (self, historyId):
+    """
+    Check if the historyId is valid or too old.
+    """
+    try:
+      results = self.service.users().history().list(userId = self.account, startHistoryId = historyId).execute()
+      if 'historyId' in results:
+        return True
+      else:
+        raise Remote.GenericException("no historyId field returned")
+
+    except googleapiclient.errors.HttpError:
+      return False
+
+  @__require_auth__
   def get_history_since (self, start):
     """
     Get all changes since start historyId
@@ -722,7 +737,5 @@ class Remote:
     if threadId is not None:
       message['threadId'] = threadId
 
-    msg = self.service.users().messages().send(userId = self.account, body = message).execute()
-
-    return msg
+    return self.service.users().messages().send(userId = self.account, body = message).execute()
 

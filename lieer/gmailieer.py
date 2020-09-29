@@ -69,6 +69,9 @@ class Gmailieer:
     parser_pull.add_argument ('-f', '--force', action = 'store_true',
         default = False, help = 'Force a full synchronization to be performed')
 
+    parser_pull.add_argument ('-r', '--resume', action = 'store_true',
+        default = False, help = 'Resume previous incomplete synchronization if possible (this might cause local changes made in the interim to be ignored when pushing)')
+
     parser_pull.set_defaults (func = self.pull)
 
     # push
@@ -127,6 +130,9 @@ class Gmailieer:
 
     parser_sync.add_argument ('-f', '--force', action = 'store_true',
         default = False, help = 'Push even when there has been remote changes, and force a full remote-to-local synchronization')
+
+    parser_sync.add_argument ('-r', '--resume', action = 'store_true',
+        default = False, help = 'Resume previous incomplete synchronization if possible (this might cause local changes made in the interim to be ignored when pushing)')
 
     parser_sync.set_defaults (func = self.sync)
 
@@ -277,6 +283,7 @@ class Gmailieer:
     self.force            = args.force
     self.limit            = args.limit
     self.list_labels      = False
+    self.resume           = args.resume
 
     self.remote.get_labels ()
 
@@ -307,7 +314,6 @@ class Gmailieer:
 
       qry = "path:%s/** and lastmod:%d..%d" % (self.local.nm_relative, self.local.state.lastmod, rev)
 
-      # print ("collecting changes..: %s" % qry)
       query = notmuch.Query (db, qry)
       total = query.count_messages () # probably destructive here as well
       query = notmuch.Query (db, qry)
@@ -387,6 +393,7 @@ class Gmailieer:
       self.list_labels      = args.list_labels
       self.force            = args.force
       self.limit            = args.limit
+      self.resume           = args.resume
 
       self.remote.get_labels () # to make sure label map is initialized
 
@@ -580,74 +587,125 @@ class Gmailieer:
   def full_pull (self):
     total = 1
 
-    self.bar_create (leave = True, total = total, desc = 'fetching messages')
+    self.bar_create(leave = True, total = total, desc = 'fetching messages')
 
     # NOTE:
     # this list might grow gigantic for large quantities of e-mail, not really sure
     # about how much memory this will take. this is just a list of some
     # simple metadata like message ids.
     message_gids = []
-    last_id      = self.remote.get_current_history_id (self.local.state.last_historyId)
+    last_id      = self.remote.get_current_history_id(self.local.state.last_historyId)
 
-    for mset in self.remote.all_messages ():
+    resume_file = os.path.join(self.local.wd, ".resume-pull.gmailieer.json")
+
+    if not self.resume:
+      if os.path.exists(resume_file):
+        self.vprint("pull: previous pull can be resumed using --resume")
+
+      # continue filling up or create new resume-file
+      previous = self.load_resume(resume_file, last_id)
+
+    elif self.resume and not os.path.exists(resume_file):
+      self.vprint("pull: no previous resume file exists, continuing with full pull")
+      previous = self.load_resume(resume_file, last_id)
+
+    else:
+      self.vprint("pull: attempting to resume previous pull..")
+      assert self.resume
+      previous = self.load_resume(resume_file, last_id)
+
+      # check if lastid is still valid
+      if not self.remote.is_history_id_valid(previous.lastId):
+        self.vprint("pull: resume file too old, starting from scratch.")
+
+        previous.delete()
+        previous = self.load_resume(resume_file, last_id)
+
+    for mset in self.remote.all_messages():
       (total, gids) = mset
 
       self.bar.total = total
-      self.bar_update (len(gids))
+      self.bar_update(len(gids))
 
       for m in gids:
-        message_gids.append (m['id'])
+        message_gids.append(m['id'])
 
       if self.limit is not None and len(message_gids) >= self.limit:
         break
 
-    self.bar_close ()
+    self.bar_close()
 
     if self.local.config.remove_local_messages:
       if self.limit and not self.dry_run:
         raise ValueError('--limit with "remove_local_messages" will cause lots of messages to be deleted')
 
       # removing files that have been deleted remotely
-      all_remote = set (message_gids)
-      all_local  = set (self.local.gids.keys ())
+      all_remote = set(message_gids)
+      all_local  = set(self.local.gids.keys())
       remove     = list(all_local - all_remote)
       self.bar_create (leave = True, total = len(remove), desc = 'removing deleted')
       with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
         for m in remove:
-          self.local.remove (m, db)
+          self.local.remove(m, db)
           self.bar_update (1)
 
-      self.bar_close ()
+      self.bar_close()
 
     if len(message_gids) > 0:
       # get content for new messages
-      updated = self.get_content (message_gids)
+      updated = self.get_content(message_gids)
 
       # get updated labels for the rest
       needs_update = list(set(message_gids) - set(updated))
-      self.get_meta (needs_update)
+
+      if self.resume:
+        self.vprint("pull: resume: skipping metadata for %d messages" % len(previous.meta_fetched))
+        needs_update = list(set(needs_update) - set(previous.meta_fetched))
+
+      self.get_meta(needs_update, previous, self.resume)
     else:
-      self.vprint ("pull: no messages.")
+      self.vprint("pull: no messages.")
 
     # set notmuch lastmod time, since we have now synced everything from remote
     # to local
-    with notmuch.Database () as db:
-      (rev, uuid) = db.get_revision ()
+    with notmuch.Database() as db:
+      (rev, uuid) = db.get_revision()
 
     if not self.dry_run:
-      self.local.state.set_lastmod (rev)
-      self.local.state.set_last_history_id (last_id)
+      self.local.state.set_lastmod(rev)
 
-    self.vprint ('current historyId: %d, current revision: %d' % (last_id, rev))
+      if self.resume:
+        self.local.state.set_last_history_id(previous.lastId)
+      else:
+        self.local.state.set_last_history_id(last_id)
 
-  def get_meta (self, msgids):
+    self.vprint('pull: complete, removing resume file')
+    previous.delete()
+
+    self.vprint('current historyId: %d, current revision: %d' % (last_id, rev))
+    if self.resume:
+      self.vprint("pull: resume: performing partial pull to complete")
+      self.partial_pull()
+
+      self.vprint("pull: note that local changes made in the interim might be ignored in the next push")
+
+  def get_meta (self, msgids, previous = None, resume = False):
     """
     Only gets the minimal message objects in order to check if labels are up-to-date.
+
+    `previous` and `resume` is passed by `full_pull` to track progress and resume previous metadata pull.
     """
 
     if len (msgids) > 0:
+      if resume:
+        total = len(msgids) + len(previous.meta_fetched)
+      else:
+        total = len(msgids)
 
-      self.bar_create (leave = True, total = len(msgids), desc = 'receiving metadata')
+      self.bar_create (leave = True, total = total, desc = 'receiving metadata')
+
+      if resume and previous is not None:
+        self.bar_update(len(previous.meta_fetched))
 
       # opening db for whole metadata sync
       def _got_msgs (ms):
@@ -656,13 +714,16 @@ class Gmailieer:
             self.bar_update (1)
             self.local.update_tags (m, None, db)
 
+          if previous is not None:
+            gids = [m['id'] for m in ms]
+            previous.update(gids)
+
       self.remote.get_messages (msgids, _got_msgs, 'minimal')
 
       self.bar_close ()
 
     else:
       self.vprint ("receiving metadata: everything up-to-date.")
-
 
   def get_content (self, msgids):
     """
@@ -695,6 +756,20 @@ class Gmailieer:
       self.vprint ("receiving content: everything up-to-date.")
 
     return need_content
+
+  def load_resume(self, f, lastid):
+    """
+    Load a previous incomplete pull from resume file or create new resume file.
+    """
+    from .resume import ResumePull
+    if os.path.exists(f):
+      try:
+        return ResumePull.load(f)
+      except ex:
+        self.vprint("failed to load resume file, creating new: %s" % ex)
+        return ResumePull.new(f, lastid)
+    else:
+      return ResumePull.new(f, lastid)
 
   def send (self, args):
     self.setup (args, args.dry_run, True, True)

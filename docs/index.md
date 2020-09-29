@@ -75,7 +75,7 @@ changes of the affected messages.
 $ gmi pull
 ```
 
-the first time you do this, or if a full synchronization is needed it will take longer.
+the first time you do this, or if a full synchronization is needed it will take longer. You can try to use the `--resume` option if you get stuck on getting the metadata and have to abort (this will cause local changes made in the interim to be ignored in the next push).
 
 ## Push
 
