@@ -23,7 +23,7 @@ import  argparse
 from    oauth2client import tools
 import  googleapiclient
 import  googleapiclient.errors
-import  notmuch
+import  notmuch2
 
 from .remote import *
 from .local  import *
@@ -312,8 +312,8 @@ class Gmailieer:
       self.remote.get_labels ()
 
     # loading local changes
-    with notmuch.Database () as db:
-      (rev, _) = db.get_revision ()
+    with notmuch2.Database() as db:
+      (rev, _) = db.revision ()
 
       if rev == self.local.state.lastmod:
         self.vprint ("push: everything is up-to-date.")
@@ -321,9 +321,8 @@ class Gmailieer:
 
       qry = "path:%s/** and lastmod:%d..%d" % (self.local.nm_relative, self.local.state.lastmod, rev)
 
-      query = notmuch.Query (db, qry)
+      messages = list(db.messages(qry))
 
-      messages = list(query.search_messages ())
       if self.limit is not None and len(messages) > self.limit:
         messages = messages[:self.limit]
 
@@ -557,7 +556,7 @@ class Gmailieer:
       changed = True
 
     if self.local.config.remove_local_messages and len(deleted_messages) > 0:
-      with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
+      with notmuch2.Database(mode = notmuch2.Database.MODE.READ_WRITE) as db:
         for m in tqdm (deleted_messages, leave = True, desc = 'removing messages'):
           self.local.remove (m['id'], db)
 
@@ -565,7 +564,7 @@ class Gmailieer:
 
     if len (labels_changed) > 0:
       lchanged = 0
-      with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
+      with notmuch2.Database(mode = notmuch2.Database.MODE.READ_WRITE) as db:
         self.bar_create (total = len(labels_changed), leave = True, desc = 'updating tags (0)')
         for m in labels_changed:
           r = self.local.update_tags (m, None, db)
@@ -649,7 +648,7 @@ class Gmailieer:
       all_local  = set(self.local.gids.keys())
       remove     = list(all_local - all_remote)
       self.bar_create (leave = True, total = len(remove), desc = 'removing deleted')
-      with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
+      with notmuch.Database (mode = notmuch2.Database.MODE.READ_WRITE) as db:
         for m in remove:
           self.local.remove(m, db)
           self.bar_update (1)
@@ -673,8 +672,8 @@ class Gmailieer:
 
     # set notmuch lastmod time, since we have now synced everything from remote
     # to local
-    with notmuch.Database() as db:
-      (rev, uuid) = db.get_revision()
+    with notmuch2.Database() as db:
+      (rev, uuid) = db.revision()
 
     if not self.dry_run:
       self.local.state.set_lastmod(rev)
@@ -714,7 +713,7 @@ class Gmailieer:
 
       # opening db for whole metadata sync
       def _got_msgs (ms):
-        with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
+        with notmuch2.Database(mode = notmuch2.Database.MODE.READ_WRITE) as db:
           for m in ms:
             self.bar_update (1)
             self.local.update_tags (m, None, db)
@@ -748,7 +747,7 @@ class Gmailieer:
 
       def _got_msgs (ms):
         # opening db per message batch since it takes some time to download each one
-        with notmuch.Database (mode = notmuch.Database.MODE.READ_WRITE) as db:
+        with notmuch2.Database(mode = notmuch2.Database.MODE.READ_WRITE) as db:
           for m in ms:
             self.bar_update (1)
             self.local.store (m, db)
@@ -817,7 +816,7 @@ class Gmailieer:
     if 'In-Reply-To' in eml:
       repl = eml['In-Reply-To'].strip().strip('<>')
       self.vprint("looking for original message: %s" % repl)
-      with notmuch.Database (mode = notmuch.Database.MODE.READ_ONLY) as db:
+      with notmuch2.Database(mode = notmuch2.Database.MODE.READ_ONLY) as db:
         nmsg = db.find_message(repl)
         if nmsg is not None:
           (_, gids) = self.local.messages_to_gids([nmsg])

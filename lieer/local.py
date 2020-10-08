@@ -22,7 +22,7 @@ import configparser
 from pathlib import Path
 import tempfile
 
-import notmuch
+import notmuch2
 from .remote import Remote
 
 class Local:
@@ -333,9 +333,9 @@ class Local:
     self.update_translation_list_with_overlay(self.config.translation_list_overlay)
 
     ## Check if we are in the notmuch db
-    with notmuch.Database () as db:
+    with notmuch2.Database() as db:
       try:
-        self.nm_dir  = db.get_directory (os.path.abspath(self.md))
+        self.nm_dir  = db.get_directory(os.path.abspath(self.md))
         if self.nm_dir is not None:
           self.nm_dir = self.nm_dir.path
         else:
@@ -344,7 +344,7 @@ class Local:
 
         self.nm_relative = self.nm_dir[len(db.get_path ())+1:]
 
-      except notmuch.errors.FileError:
+      except notmuch2.errors.FileError:
         raise Local.RepositoryException ("local mail repository not in notmuch db")
 
     ## Lock repository
@@ -632,18 +632,15 @@ class Local:
       else:
         print ("(dry-run) tried to update tags on non-existant file: %s" % fname)
 
-    nmsg  = db.find_message_by_filename (fname)
+    nmsg = db.get(fname)
 
     if nmsg is None:
       if self.dry_run:
         print ("(dry-run) adding message: %s: %s, with tags: %s" % (gid, fname, str(labels)))
       else:
         try:
-          if hasattr (notmuch.Database, 'index_file'):
-            (nmsg, _) = db.index_file (fname, True)
-          else:
-            (nmsg, _) = db.add_message (fname, True)
-        except notmuch.errors.FileNotEmailError:
+          (nmsg, _) = db.add_message (fname, sync_flags = True)
+        except notmuch2.errors.FileNotEmailError:
           print('%s is not an email' % fname)
           return True
         nmsg.freeze ()
