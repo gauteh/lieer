@@ -27,8 +27,7 @@ While Lieer has been used to successfully synchronize millions of messages and t
 
 ## Installation
 
-After cloning this repository, symlink `gmi` to somewhere on your path, or use `python setup.py`.
-Lieer can also be installed through pip by using the command ```pip install lieer```
+Lieer can be installed through pip by using the command ```pip install lieer```
 # Usage
 
 This assumes your root mail folder is in `~/.mail` and that this folder is _already_ set up with notmuch.
