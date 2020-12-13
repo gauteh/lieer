@@ -507,7 +507,7 @@ class Local:
       raise Local.RepositoryException ("local file already exists: %s" % p)
 
     if os.path.exists (tmp_p):
-      raise Local.RepositoryException ("local file already exists: %s" % p)
+      raise Local.RepositoryException ("local temporary file already exists: %s" % tmp_p)
 
     if not self.dry_run:
       with open (tmp_p, 'wb') as fd:
