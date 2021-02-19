@@ -606,7 +606,7 @@ class Remote:
     Push label changes
     """
     max_req = self.BATCH_REQUEST_SIZE
-    N       = len (actions)
+    N       = len(actions)
     i       = 0
     j       = 0
 
@@ -615,19 +615,19 @@ class Remote:
     # How many requests with the current delay returned ok.
     user_rate_ok        = 0
 
-    def _cb (rid, resp, excep):
+    def _cb(rid, resp, excep):
       nonlocal j
       if excep is not None:
         if type(excep) is googleapiclient.errors.HttpError and excep.resp.status == 404:
           # message could not be found this is probably a deleted message, spam or draft
           # message since these are not included in the messages.get() query by default.
-          print ("remote: could not find remote message: %s!" % gids[j])
+          print ("remote: could not find remote message: %s!" % resp)
           j += 1
           return
 
         elif type(excep) is googleapiclient.errors.HttpError and excep.resp.status == 400:
           # message id invalid, probably caused by stray files in the mail repo
-          print ("remote: message id: %s is invalid! are there any non-lieer files created in the lieer repository?" % gids[j])
+          print ("remote: message id is invalid! are there any non-lieer files created in the lieer repository? %s" % resp)
           j += 1
           return
 
@@ -639,16 +639,16 @@ class Remote:
       else:
         j += 1
 
-      cb (resp)
+      cb(resp)
 
     while i < N:
       n = 0
       j = i
-      batch = self.service.new_batch_http_request  (callback = _cb)
+      batch = self.service.new_batch_http_request(callback = _cb)
 
       while n < max_req and i < N:
         a = actions[i]
-        batch.add (a)
+        batch.add(a)
         n += 1
         i += 1
 
@@ -666,14 +666,14 @@ class Remote:
           user_rate_delay = user_rate_delay // 2
           user_rate_ok    = 0
 
-      except Remote.UserRateException as ex:
+      except Remote.UserRateException:
         user_rate_delay = user_rate_delay * 2 + 1
         print ("remote: user rate error, increasing delay to %s" % user_rate_delay)
         user_rate_ok = 0
 
         i = j # reset
 
-      except Remote.BatchException as ex:
+      except Remote.BatchException:
         if max_req > self.MIN_BATCH_REQUEST_SIZE:
           max_req = max_req / 2
           i = j # reset
