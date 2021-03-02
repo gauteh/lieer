@@ -200,6 +200,9 @@ class Gmailieer:
     parser_set.add_argument ('--no-remove-local-messages', action = 'store_true', default = False,
         help = 'Do not remove messages that have been deleted on the remote')
 
+    parser_set.add_argument ('--local-trash-tag', type = str, default = None,
+        help = 'The local tag to use for the remote label TRASH.')
+
     parser_set.set_defaults (func = self.set)
 
 
@@ -875,6 +878,9 @@ class Gmailieer:
     if args.file_extension is not None:
       self.local.config.set_file_extension (args.file_extension)
 
+    if args.local_trash_tag is not None:
+      self.local.config.set_local_trash_tag (args.local_trash_tag)
+
     print ("Repository information and settings:")
     print ("Account ...........: %s" % self.local.config.account)
     print ("historyId .........: %d" % self.local.state.last_historyId)
@@ -887,6 +893,7 @@ class Gmailieer:
     print ("Replace . with / ..........:", self.local.config.replace_slash_with_dot)
     print ("Ignore tags (local) .......:", self.local.config.ignore_tags)
     print ("Ignore labels (remote) ....:", self.local.config.ignore_remote_labels)
+    print ("Trash tag (local) .........:", self.local.config.local_trash_tag)
 
   def vprint (self, *args, **kwargs):
     """

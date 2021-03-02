@@ -66,6 +66,17 @@ class Local:
                         'voicemail',
                         ])
 
+  @classmethod
+  def update_translation(cls, remote, local):
+    """
+    Convenience function to ensure both maps (remote -> local and local -> remote)
+    get updated when you update a translation.
+    """
+    # Did you reverse the parameters?
+    assert remote in cls.translate_labels
+    cls.translate_labels[remote] = local
+    cls.labels_translate = { v: k for k, v in cls.translate_labels.items () }
+
   class RepositoryException (Exception):
     pass
 
@@ -80,6 +91,7 @@ class Local:
     ignore_remote_labels = None
     remove_local_messages = True
     file_extension = None
+    local_trash_tag = 'trash'
 
     def __init__ (self, config_f):
       self.config_f = config_f
@@ -103,6 +115,7 @@ class Local:
       self.ignore_tags = set(self.json.get ('ignore_tags', []))
       self.ignore_remote_labels = set(self.json.get ('ignore_remote_labels', Remote.DEFAULT_IGNORE_LABELS))
       self.file_extension = self.json.get ('file_extension', '')
+      self.local_trash_tag = self.json.get ('local_trash_tag', 'trash')
 
     def write (self):
       self.json = {}
@@ -116,6 +129,7 @@ class Local:
       self.json['ignore_remote_labels'] = list(self.ignore_remote_labels)
       self.json['remove_local_messages'] = self.remove_local_messages
       self.json['file_extension'] = self.file_extension
+      self.json['local_trash_tag'] = self.local_trash_tag
 
       if os.path.exists (self.config_f):
         shutil.copyfile (self.config_f, self.config_f + '.bak')
@@ -174,6 +188,14 @@ class Local:
       except OSError:
         print ("Failed creating test file with file extension: " + t + ", not set.")
         raise
+
+    def set_local_trash_tag (self, t):
+      if ',' in t:
+        print('The local_trash_tag must be a single tag, not a list.  Commas are not allowed.')
+        raise ValueError()
+      self.local_trash_tag = t.strip() or 'trash'
+      Local.update_translation('TRASH', self.local_trash_tag)
+      self.write()
 
 
   class State:

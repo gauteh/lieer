@@ -176,6 +176,9 @@ Lieer can be configured using `gmi set`. Use without any options to get a list o
   
   *Important*: See note below on [changing this setting after initial sync](#changing-ignored-tags-and-translation-after-initial-sync).
 
+**`Local Trash Tag (local)`** can be used to set the local tag to which the remote GMail 'TRASH' label is translated.
+
+  *Important*: See note below on [changing this setting after initial sync](#changing-ignored-tags-and-translation-after-initial-sync).
 
 ## Changing ignored tags and translation after initial sync
 
@@ -187,11 +190,12 @@ Before changing either setting make sure you are fully synchronized. After chang
 
 When changing the opposite setting: `--ignore-tags-local`, do a full push (dry-run first): `gmi push -f --dry-run`.
 
-The same goes for the option `--replace-slash-with-dot`. I prefer to do `gmi pull -f --dry-run` after changing this option. This will overwrite the local tags with the remote labels.
+The same goes for the options `--replace-slash-with-dot` and `--local-trash-tag`. I prefer to do `gmi pull -f --dry-run` after changing this option. This will overwrite the local tags with the remote labels.
+
 
 # Translation between labels and tags
 
-We translate some of the GMail labels to other tags. The map of labels to tags are:
+We translate some of the GMail labels to other tags. The default map of labels to tags are:
 
 ```py
   'INBOX'     : 'inbox',
@@ -210,6 +214,8 @@ We translate some of the GMail labels to other tags. The map of labels to tags a
   'CATEGORY_UPDATES'      : 'updates',
   'CATEGORY_FORUMS'       : 'forums',
 ```
+
+The 'trash' local tag can be replaced using the `--local-trash-tag` option.
 
 # Using your own API key
 
