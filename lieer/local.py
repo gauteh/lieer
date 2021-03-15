@@ -77,6 +77,26 @@ class Local:
     cls.translate_labels[remote] = local
     cls.labels_translate = { v: k for k, v in cls.translate_labels.items () }
 
+  @classmethod
+  def update_translation_list_with_overlay(cls, translation_list_overlay):
+    """
+    Takes a list with an even number of items. The list is interpreted as a list of pairs
+    of (remote, local), where each member of each pair is a string. Each pair is added to the
+    translation, overwriting the translation if one already exists (in either direction). 
+    If either the remote or the local labels are non-unique, the later items in the list will
+    overwrite the earlier ones in the direction in which the source is non-unique (for example,
+    ["a", "1", "b", 2", "a", "3"] will yield {'a': 3, 'b': 2} in one direction and {1: 'a', 2: 'b', 3: 'a'}
+    in the other).
+    """
+
+    if len(translation_list_overlay) % 2 != 0:
+      raise Exception(f'Translation list overlay must have an even number of items: {translation_list_overlay}')
+      
+    for i in range(0,len(translation_list_overlay),2):
+      (remote, local) = translation_list_overlay[i], translation_list_overlay[i+1]
+      cls.translate_labels[remote] = local
+      cls.labels_translate[local] = remote
+
   class RepositoryException (Exception):
     pass
 
@@ -92,7 +112,8 @@ class Local:
     remove_local_messages = True
     file_extension = None
     local_trash_tag = 'trash'
-
+    translation_list_overlay = None
+    
     def __init__ (self, config_f):
       self.config_f = config_f
 
@@ -116,6 +137,7 @@ class Local:
       self.ignore_remote_labels = set(self.json.get ('ignore_remote_labels', Remote.DEFAULT_IGNORE_LABELS))
       self.file_extension = self.json.get ('file_extension', '')
       self.local_trash_tag = self.json.get ('local_trash_tag', 'trash')
+      self.translation_list_overlay = self.json.get ('translation_list_overlay', [])
 
     def write (self):
       self.json = {}
@@ -130,6 +152,7 @@ class Local:
       self.json['remove_local_messages'] = self.remove_local_messages
       self.json['file_extension'] = self.file_extension
       self.json['local_trash_tag'] = self.local_trash_tag
+      self.json['translation_list_overlay'] = self.translation_list_overlay
 
       if os.path.exists (self.config_f):
         shutil.copyfile (self.config_f, self.config_f + '.bak')
@@ -196,6 +219,17 @@ class Local:
       self.local_trash_tag = t.strip() or 'trash'
       Local.update_translation('TRASH', self.local_trash_tag)
       self.write()
+
+    def set_translation_list_overlay (self, t):
+      if len(t.strip ()) == 0:
+        self.translation_list_overlay = []
+      else:
+        self.translation_list_overlay = [ tt.strip () for tt in t.split(',') ]
+      if len(self.translation_list_overlay) % 2 != 0:
+        raise Exception(f'Translation list overlay must have an even number of items: {self.translation_list_overlay}')
+      Local.update_translation_list_with_overlay(self.translation_list_overlay)
+      self.write ()
+
 
 
   class State:
@@ -296,6 +330,7 @@ class Local:
 
     self.ignore_labels = self.ignore_labels | self.config.ignore_tags
     Local.update_translation('TRASH', self.config.local_trash_tag)
+    Local.update_translation_list_with_overlay(self.config.translation_list_overlay)
 
     ## Check if we are in the notmuch db
     with notmuch.Database () as db:

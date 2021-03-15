@@ -203,6 +203,9 @@ class Gmailieer:
     parser_set.add_argument ('--local-trash-tag', type = str, default = None,
         help = 'The local tag to use for the remote label TRASH.')
 
+    parser_set.add_argument ('--translation-list-overlay', type = str, default = None,
+        help = 'A list with an even number of items representing a list of pairs of (remote, local), where each pair is added to the tag translation.')
+    
     parser_set.set_defaults (func = self.set)
 
 
@@ -881,6 +884,9 @@ class Gmailieer:
     if args.local_trash_tag is not None:
       self.local.config.set_local_trash_tag (args.local_trash_tag)
 
+    if args.translation_list_overlay is not None:
+      self.local.config.set_translation_list_overlay (args.translation_list_overlay)
+      
     print ("Repository information and settings:")
     print ("Account ...........: %s" % self.local.config.account)
     print ("historyId .........: %d" % self.local.state.last_historyId)
@@ -894,6 +900,7 @@ class Gmailieer:
     print ("Ignore tags (local) .......:", self.local.config.ignore_tags)
     print ("Ignore labels (remote) ....:", self.local.config.ignore_remote_labels)
     print ("Trash tag (local) .........:", self.local.config.local_trash_tag)
+    print ("Translation list overlay ..:", self.local.config.translation_list_overlay)
 
   def vprint (self, *args, **kwargs):
     """

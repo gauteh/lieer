@@ -180,6 +180,11 @@ Lieer can be configured using `gmi set`. Use without any options to get a list o
 
   *Important*: See note below on [changing this setting after initial sync](#changing-ignored-tags-and-translation-after-initial-sync).
 
+**`Translation List Overlay`** can be used to add or change entries in the translation mapping between local and remote tags. Argument is a comment-separated list with an even number of items. This is interpreted as a list of pairs of (remote, local), where each pair is added to the tag translation overwriting any existing translation for that tag if any. For example,
+`--translation-list-overlay CATEGORY_FORUMS,my_forum_tag` will translate Google's CATEGORY_FORUMS tag to my_forum_tag.')
+
+  *Important*: See note below on [changing this setting after initial sync](#changing-ignored-tags-and-translation-after-initial-sync).
+
 ## Changing ignored tags and translation after initial sync
 
 If you change the [ignored tags](#settings) after the initial sync this will not update already synced messages. This means that if a change is made locally on an already synced message the previously ignored remote labels may be deleted. Conversely, if a change occurs remotely on a message which previously which has local tags that were ignored before, these ignored tags may be deleted.
