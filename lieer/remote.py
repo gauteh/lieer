@@ -333,16 +333,16 @@ class Remote:
       try:
         batch.execute (http = self.http)
 
-        # gradually reduce user delay if we had 10 ok batches
+        # gradually reduce user delay upon every ok batch
         user_rate_ok += 1
-        if user_rate_delay > 0 and user_rate_ok > 10:
+        if user_rate_delay > 0 and user_rate_ok > 0:
           user_rate_delay = user_rate_delay // 2
           print ("remote: decreasing delay to %s" % user_rate_delay)
           user_rate_ok    = 0
 
-        # gradually increase batch request size if we had 10 ok requests
+        # gradually increase batch request size upon every ok request
         req_ok += 1
-        if max_req < self.BATCH_REQUEST_SIZE and req_ok > 10:
+        if max_req < self.BATCH_REQUEST_SIZE and req_ok > 0:
           max_req = min (max_req * 2, self.BATCH_REQUEST_SIZE)
           print ("remote: increasing batch request size to: %d" % max_req)
           req_ok  = 0
