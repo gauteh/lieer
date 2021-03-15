@@ -295,6 +295,7 @@ class Local:
     self.state = Local.State (self.state_f, self.config)
 
     self.ignore_labels = self.ignore_labels | self.config.ignore_tags
+    Local.update_translation('TRASH', self.config.local_trash_tag)
 
     ## Check if we are in the notmuch db
     with notmuch.Database () as db:
