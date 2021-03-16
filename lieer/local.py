@@ -31,7 +31,7 @@ class Local:
 
 
   # NOTE: Update README when changing this map.
-  translate_labels = {
+  translate_labels_default = {
                       'INBOX'     : 'inbox',
                       'SPAM'      : 'spam',
                       'TRASH'     : 'trash',
@@ -49,7 +49,7 @@ class Local:
                       'CATEGORY_FORUMS'       : 'forums',
                       }
 
-  labels_translate = { v: k for k, v in translate_labels.items () }
+  labels_translate_default = { v: k for k, v in translate_labels_default.items () }
 
   ignore_labels = set ([
                         'archive',
@@ -66,19 +66,17 @@ class Local:
                         'voicemail',
                         ])
 
-  @classmethod
-  def update_translation(cls, remote, local):
+  def update_translation(self, remote, local):
     """
     Convenience function to ensure both maps (remote -> local and local -> remote)
     get updated when you update a translation.
     """
     # Did you reverse the parameters?
-    assert remote in cls.translate_labels
-    cls.translate_labels[remote] = local
-    cls.labels_translate = { v: k for k, v in cls.translate_labels.items () }
+    assert remote in self.translate_labels
+    self.translate_labels[remote] = local
+    self.labels_translate = { v: k for k, v in self.translate_labels.items () }
 
-  @classmethod
-  def update_translation_list_with_overlay(cls, translation_list_overlay):
+  def update_translation_list_with_overlay(self, translation_list_overlay):
     """
     Takes a list with an even number of items. The list is interpreted as a list of pairs
     of (remote, local), where each member of each pair is a string. Each pair is added to the
@@ -94,8 +92,8 @@ class Local:
       
     for i in range(0,len(translation_list_overlay),2):
       (remote, local) = translation_list_overlay[i], translation_list_overlay[i+1]
-      cls.translate_labels[remote] = local
-      cls.labels_translate[local] = remote
+      self.translate_labels[remote] = local
+      self.labels_translate[local] = remote
 
   class RepositoryException (Exception):
     pass
@@ -217,7 +215,6 @@ class Local:
         print('The local_trash_tag must be a single tag, not a list.  Commas are not allowed.')
         raise ValueError()
       self.local_trash_tag = t.strip() or 'trash'
-      Local.update_translation('TRASH', self.local_trash_tag)
       self.write()
 
     def set_translation_list_overlay (self, t):
@@ -227,7 +224,6 @@ class Local:
         self.translation_list_overlay = [ tt.strip () for tt in t.split(',') ]
       if len(self.translation_list_overlay) % 2 != 0:
         raise Exception(f'Translation list overlay must have an even number of items: {self.translation_list_overlay}')
-      Local.update_translation_list_with_overlay(self.translation_list_overlay)
       self.write ()
 
 
@@ -297,7 +293,7 @@ class Local:
       self.lastmod = m
       self.write ()
 
-
+  # we are in the class "Local"; this is the Local instance constructor
   def __init__ (self, g):
     self.gmailieer = g
     self.wd = os.getcwd ()
@@ -311,6 +307,10 @@ class Local:
     # mail store
     self.md = os.path.join (self.wd, 'mail')
 
+    # initialize label translation instance variables
+    self.translate_labels = Local.translate_labels_default.copy()
+    self.labels_translate = Local.labels_translate_default.copy()
+    
   def load_repository (self, block = False):
     """
     Loads the current local repository
@@ -329,8 +329,8 @@ class Local:
     self.state = Local.State (self.state_f, self.config)
 
     self.ignore_labels = self.ignore_labels | self.config.ignore_tags
-    Local.update_translation('TRASH', self.config.local_trash_tag)
-    Local.update_translation_list_with_overlay(self.config.translation_list_overlay)
+    self.update_translation('TRASH', self.config.local_trash_tag)
+    self.update_translation_list_with_overlay(self.config.translation_list_overlay)
 
     ## Check if we are in the notmuch db
     with notmuch.Database () as db:
