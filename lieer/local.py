@@ -80,7 +80,7 @@ class Local:
     """
     Takes a list with an even number of items. The list is interpreted as a list of pairs
     of (remote, local), where each member of each pair is a string. Each pair is added to the
-    translation, overwriting the translation if one already exists (in either direction). 
+    translation, overwriting the translation if one already exists (in either direction).
     If either the remote or the local labels are non-unique, the later items in the list will
     overwrite the earlier ones in the direction in which the source is non-unique (for example,
     ["a", "1", "b", 2", "a", "3"] will yield {'a': 3, 'b': 2} in one direction and {1: 'a', 2: 'b', 3: 'a'}
@@ -89,7 +89,7 @@ class Local:
 
     if len(translation_list_overlay) % 2 != 0:
       raise Exception(f'Translation list overlay must have an even number of items: {translation_list_overlay}')
-      
+
     for i in range(0,len(translation_list_overlay),2):
       (remote, local) = translation_list_overlay[i], translation_list_overlay[i+1]
       self.translate_labels[remote] = local
@@ -111,7 +111,7 @@ class Local:
     file_extension = None
     local_trash_tag = 'trash'
     translation_list_overlay = None
-    
+
     def __init__ (self, config_f):
       self.config_f = config_f
 
@@ -201,7 +201,7 @@ class Local:
 
     def set_file_extension (self, t):
       try:
-        with tempfile.NamedTemporaryFile (dir = os.path.dirname (self.state_f), suffix = t) as fd:
+        with tempfile.NamedTemporaryFile (dir = os.path.dirname (self.config_f), suffix = t) as _:
           pass
 
         self.file_extension = t.strip ()
@@ -310,7 +310,7 @@ class Local:
     # initialize label translation instance variables
     self.translate_labels = Local.translate_labels_default.copy()
     self.labels_translate = Local.labels_translate_default.copy()
-    
+
   def load_repository (self, block = False):
     """
     Loads the current local repository
@@ -377,12 +377,12 @@ class Local:
     ## this cache is used to know which messages we have a physical copy of.
     ## hopefully this won't grow too gigantic with lots of messages.
     self.files = []
-    for (dp, dirnames, fnames) in os.walk (os.path.join (self.md, 'cur')):
+    for (_, _, fnames) in os.walk (os.path.join (self.md, 'cur')):
       _fnames = ( 'cur/' + f for f in fnames )
       self.files.extend (_fnames)
       break
 
-    for (dp, dirnames, fnames) in os.walk (os.path.join (self.md, 'new')):
+    for (_, _, fnames) in os.walk (os.path.join (self.md, 'new')):
       _fnames = ( 'new/' + f for f in fnames )
       self.files.extend (_fnames)
       break
@@ -640,9 +640,9 @@ class Local:
       else:
         try:
           if hasattr (notmuch.Database, 'index_file'):
-            (nmsg, stat) = db.index_file (fname, True)
+            (nmsg, _) = db.index_file (fname, True)
           else:
-            (nmsg, stat) = db.add_message (fname, True)
+            (nmsg, _) = db.add_message (fname, True)
         except notmuch.errors.FileNotEmailError:
           print('%s is not an email' % fname)
           return True
