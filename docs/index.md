@@ -231,7 +231,11 @@ You can get an [api key](https://console.developers.google.com/flows/enableapi?a
 
 # Privacy policy
 
-  Lieer downloads e-mail and labels to your local computer. No data is sent elsewhere.
+Lieer downloads e-mail and labels to your local computer. No data is sent elsewhere.
+
+Lieers use and transfer to any other app of information received from Google
+APIs will adhere to [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy#additional_requirements_for_specific_api_scopes),
+including the Limited Use requirements
 
 # Caveats
 
