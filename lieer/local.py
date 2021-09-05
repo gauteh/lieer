@@ -325,13 +325,6 @@ class Local:
              for mail_dir in ('cur', 'new', 'tmp')]):
       raise Local.RepositoryException ('local repository not initialized: could not find mail dir structure')
 
-    self.config = Local.Config (self.config_f)
-    self.state = Local.State (self.state_f, self.config)
-
-    self.ignore_labels = self.ignore_labels | self.config.ignore_tags
-    self.update_translation('TRASH', self.config.local_trash_tag)
-    self.update_translation_list_with_overlay(self.config.translation_list_overlay)
-
     ## Check if we are in the notmuch db
     with notmuch.Database () as db:
       try:
@@ -356,6 +349,13 @@ class Local:
         fcntl.lockf (self.lckf, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
       raise Local.RepositoryException ("failed to lock repository (probably in use by another gmi instance)")
+
+    self.config = Local.Config (self.config_f)
+    self.state = Local.State (self.state_f, self.config)
+
+    self.ignore_labels = self.ignore_labels | self.config.ignore_tags
+    self.update_translation('TRASH', self.config.local_trash_tag)
+    self.update_translation_list_with_overlay(self.config.translation_list_overlay)
 
     self.__load_cache__ ()
 
