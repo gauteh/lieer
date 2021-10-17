@@ -226,7 +226,7 @@ The 'trash' local tag can be replaced using the `--local-trash-tag` option.
 
 Lieer ships with an API key that is shared openly, this key shares API quota, but [cannot be used to access data](https://github.com/gauteh/lieer/pull/9) unless access is gained to your private `access_token` or `refresh_token`.
 
-You can get an [api key](https://console.developers.google.com/flows/enableapi?apiid=gmail) for a CLI application to use for yourself. Store the `client_secret.json` file somewhere safe and specify it to `gmi auth -c`. You can do this on a repository that is already initialized.
+You can get an [api key](https://console.developers.google.com/flows/enableapi?apiid=gmail) for a CLI application to use for yourself. Store the `client_secret.json` file somewhere safe and specify it to `gmi auth -c`. You can do this on a repository that is already initialized, possibly using `-f` to force reauthorizing with the new client secrets.
 
 
 # Privacy policy
