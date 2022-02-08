@@ -476,7 +476,7 @@ class Local:
     ext = ''
     if self.config.file_extension:
         ext = '.' + self.config.file_extension
-    ext += ':2,'
+    ext += '_2,'
 
     f = fname.rfind (ext)
     if f > 5:
@@ -491,7 +491,7 @@ class Local:
     if self.config.file_extension:
         ext = '.' + self.config.file_extension
 
-    p = m + ext + ':'
+    p = m + ext + '_'
     info = '2,'
 
     # must be ascii sorted
@@ -686,6 +686,3 @@ class Local:
         return True
       else:
         return False
-
-
-
