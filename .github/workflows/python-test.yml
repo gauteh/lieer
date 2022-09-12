@@ -23,6 +23,7 @@ jobs:
     - name: Install notmuch
       run: |
         sudo apt-get install notmuch
+        sudo apt-get install libnotmuch-dev
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip

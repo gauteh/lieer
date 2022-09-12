@@ -488,8 +488,8 @@ class Remote:
     gid    = gmsg['id']
 
     found = False
-    for f in nmsg.get_filenames ():
-      if gid in f:
+    for f in nmsg.filenames():
+      if gid in str(f):
         found = True
 
     # this can happen if a draft is edited remotely and is synced before it is sent. we'll
@@ -528,7 +528,7 @@ class Remote:
     labels = set(labels)
 
     # current tags
-    tags = set(nmsg.get_tags ())
+    tags = nmsg.tags
 
     # remove special notmuch tags
     tags = tags - self.gmailieer.local.ignore_labels
