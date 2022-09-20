@@ -635,7 +635,7 @@ class Local:
       else:
         try:
           (nmsg, _) = db.add (fname, sync_flags = True)
-        except notmuch2.errors.FileNotEmailError:
+        except notmuch2.FileNotEmailError:
           print('%s is not an email' % fname)
           return True
 
