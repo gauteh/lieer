@@ -354,7 +354,7 @@ class Local:
 
     # load notmuch config
     with notmuch2.Database() as db:
-      self.new_tags = db.config["new.tags"].split(';')
+      self.new_tags = db.config.get("new.tags", "").split(';')
     self.new_tags = [t.strip() for t in self.new_tags if len(t.strip()) > 0]
 
     self.loaded = True
