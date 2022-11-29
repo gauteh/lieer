@@ -9,13 +9,17 @@ on:
   pull_request:
     branches: [ master ]
 
+permissions: {}
+
 jobs:
   build:
 
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
+      with:
+        persist-credentials: false
     - name: Set up Python 3.9
       uses: actions/setup-python@v2
       with:
