@@ -475,7 +475,7 @@ class Local:
       return None
 
   def __make_maildir_name__ (self, m, labels):
-    # http://cr.yp.to/proto/maildir.html
+    # https://cr.yp.to/proto/maildir.html
     ext = ''
     if self.config.file_extension:
         ext = '.' + self.config.file_extension
