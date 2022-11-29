@@ -140,7 +140,7 @@ the `Subject:` header must also match, but this does not seem to be necessary
 > your account, it seems like GMail resets the from to your account _address_
 > only.
 
-Note that the following flags are ignored for `sendmail` compatability:
+Note that the following flags are ignored for `sendmail` compatibility:
 
   - `-f` (ignored, set envelope `From:` yourself)
   - `-o` (ignored)
@@ -162,7 +162,7 @@ Lieer can be configured using `gmi set`. Use without any options to get a list o
 
 **`File extension`** is an optional argument to include the specified extension in local file names (e.g., `mbox`) which can be useful for indexing them with third-party programs.  
 
-*Important:* If you change this setting after synchronizing, the best case scenario is that all files will apear to not have being pulled down and will be re-downloaded (and duplicated with a different extension in the maildir). There might also be changes to tags. You should in theory be able to change it by renaming all files, but since this will update the lastmod you will get a check on all files.
+*Important:* If you change this setting after synchronizing, the best case scenario is that all files will appear to not have being pulled down and will be re-downloaded (and duplicated with a different extension in the maildir). There might also be changes to tags. You should in theory be able to change it by renaming all files, but since this will update the lastmod you will get a check on all files.
 
 **`Drop non existing labels`** can be used to silently ignore errors where GMail gives us a label identifier which is not associated with a label. See [Caveats](#caveats).
 
@@ -247,7 +247,7 @@ bug](https://issuetracker.google.com/issues/36759067) is fixed, the `mute` and `
 * The `draft` and `sent` labels are read only: They are synced from GMail to local notmuch tags, but not back (if you change them via notmuch).
 
 * [Only one of the tags](https://github.com/gauteh/lieer/issues/26) `inbox`, `spam`, and `trash` may be added to an email. For
-the time being, `trash` will be prefered over `spam`, and `spam` over `inbox`.
+the time being, `trash` will be preferred over `spam`, and `spam` over `inbox`.
 
 * `Trash` (capital `T`) is reserved and not allowed, use `trash` (lowercase, see above) to bin messages remotely.
 
