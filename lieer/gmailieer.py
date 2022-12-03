@@ -817,7 +817,10 @@ class Gmailieer:
       repl = eml['In-Reply-To'].strip().strip('<>')
       self.vprint("looking for original message: %s" % repl)
       with notmuch2.Database(mode = notmuch2.Database.MODE.READ_ONLY) as db:
-        nmsg = db.find(repl)
+        try:
+          nmsg = db.find(repl)
+        except LookupError:
+          nmsg = None
         if nmsg is not None:
           (_, gids) = self.local.messages_to_gids([nmsg])
           if nmsg.header('Subject') != eml['Subject']:
