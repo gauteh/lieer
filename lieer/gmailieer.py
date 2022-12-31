@@ -145,6 +145,17 @@ class Gmailieer:
     parser_auth.add_argument ('-f', '--force', action = 'store_true',
         default = False, help = 'Re-authorize')
 
+    # These are taken from oauth2lib/tools.py for compatibility with its
+    # run_flow() method used during oauth
+    parser_auth.add_argument('--auth-host-name', default='localhost',
+        help='Hostname when running a local web server')
+    parser_auth.add_argument('--auth-host-port', default=[8080, 8090], type=int,
+        nargs='*',
+        help='Port web server should listen on')
+    parser_auth.add_argument('--noauth_local_webserver', action='store_true',
+        default=False,
+        help='Do not run a local web server (no longer supported by Google)')
+
     parser_auth.set_defaults (func = self.authorize)
 
     # init
