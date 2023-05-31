@@ -67,6 +67,9 @@ class Gmailieer:
     parser_pull.add_argument ('-d', '--dry-run', action='store_true',
         default = False, help = 'do not make any changes')
 
+    parser_pull.add_argument ('-v', '--verbose', action='store_true',
+        default = False, help = 'print list of changes')
+
     parser_pull.add_argument ('-f', '--force', action = 'store_true',
         default = False, help = 'Force a full synchronization to be performed')
 
@@ -85,6 +88,9 @@ class Gmailieer:
 
     parser_push.add_argument ('-d', '--dry-run', action='store_true',
         default = False, help = 'do not make any changes')
+
+    parser_push.add_argument ('-v', '--verbose', action='store_true',
+        default = False, help = 'print list of changes')
 
     parser_push.add_argument ('-f', '--force', action = 'store_true',
         default = False, help = 'Push even when there has been remote changes (might overwrite remote tag-changes)')
@@ -272,6 +278,7 @@ class Gmailieer:
         raise NotADirectoryError("error: %s is not a valid path!" % args.path)
 
     self.dry_run          = dry_run
+    self.verbose          = args.verbose
     self.HAS_TQDM         = (not args.no_progress)
     self.credentials_file = args.credentials
 
