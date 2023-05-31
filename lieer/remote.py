@@ -123,6 +123,7 @@ class Remote:
     self.CLIENT_SECRET_FILE = g.credentials_file
     self.account = g.local.config.account
     self.dry_run = g.dry_run
+    self.verbose = g.verbose
 
     self.ignore_labels = self.gmailieer.local.config.ignore_remote_labels
 
@@ -565,8 +566,8 @@ class Remote:
           print ("update: %s: Trying to add both SPAM and INBOX, dropping INBOX (add: %s, rem: %s)" % (gid, add, rem))
           add.remove('INBOX')
 
+      self.print_changes ("gid: %s: add: %s, remove: %s" % (gid, str(add), str(rem)))
       if self.dry_run:
-        print ("(dry-run) gid: %s: add: %s, remove: %s" % (gid, str(add), str(rem)))
         return None
       else:
         return self.__push_tags__ (gid, add, rem)
@@ -738,4 +739,10 @@ class Remote:
       message['threadId'] = threadId
 
     return self.service.users().messages().send(userId = self.account, body = message).execute()
+
+  def print_changes (self, changes):
+    if self.dry_run:
+      print ("(dry-run) " + changes)
+    elif self.verbose:
+      print(changes)
 

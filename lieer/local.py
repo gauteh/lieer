@@ -298,6 +298,7 @@ class Local:
     self.gmailieer = g
     self.wd = os.getcwd ()
     self.dry_run = g.dry_run
+    self.verbose = g.verbose
 
     # config and state files for local repository
     self.config_f = os.path.join (self.wd, '.gmailieer.json')
@@ -520,9 +521,9 @@ class Local:
     except LookupError:
         nmsg = None
 
-    if self.dry_run:
-      print ("(dry-run) deleting %s: %s." % (gid, fname))
-    else:
+    self.print_changes ("deleting %s: %s." % (gid, fname))
+    
+    if not self.dry_run:
       if nmsg is not None:
         db.remove(fname)
       os.unlink (fname)
@@ -621,8 +622,7 @@ class Local:
         if not os.path.exists (fname):
           raise Local.RepositoryException ("tried to update tags on non-existent file: %s" % fname)
 
-      else:
-        print ("(dry-run) tried to update tags on non-existent file: %s" % fname)
+      self.print_changes ("tried to update tags on non-existent file: %s" % fname)
 
     try:
       nmsg = db.get(fname)
@@ -630,9 +630,8 @@ class Local:
       nmsg = None
 
     if nmsg is None:
-      if self.dry_run:
-        print ("(dry-run) adding message: %s: %s, with tags: %s" % (gid, fname, str(labels)))
-      else:
+      self.print_changes ("adding message: %s: %s, with tags: %s" % (gid, fname, str(labels)))
+      if not self.dry_run:
         try:
           (nmsg, _) = db.add (fname, sync_flags = True)
         except notmuch2.FileNotEmailError:
@@ -667,12 +666,17 @@ class Local:
           nmsg.tags.to_maildir_flags()
           self.__update_cache__ (nmsg, (gid, fname))
 
-        else:
-          print ("(dry-run) changing tags on message: %s from: %s to: %s" % (gid, str(otags), str(labels)))
+        self.print_changes ("changing tags on message: %s from: %s to: %s" % (gid, str(otags), str(labels)))
 
         return True
       else:
         return False
+
+  def print_changes (self, changes):
+    if self.dry_run:
+      print ("(dry-run) " + changes)
+    elif self.verbose:
+      print(changes)
 
 
 
