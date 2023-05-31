@@ -20,12 +20,12 @@ import time
 import httplib2
 import googleapiclient
 from apiclient import discovery
-from oauth2client import client
-from oauth2client import tools
-from oauth2client.file import Storage
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
 
 class Remote:
-  SCOPES = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/gmail.modify'
+  SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.labels', 'https://www.googleapis.com/auth/gmail.modify']
   APPLICATION_NAME   = 'Lieer'
   CLIENT_SECRET_FILE = None
   authorized         = False
@@ -331,7 +331,7 @@ class Remote:
         time.sleep (user_rate_delay)
 
       try:
-        batch.execute (http = self.http)
+        batch.execute ()
 
         # gradually reduce user delay upon every ok batch
         user_rate_ok += 1
@@ -418,9 +418,15 @@ class Remote:
     if timeout == 0:
       timeout = None
 
-    self.http = self.credentials.authorize (httplib2.Http(timeout = timeout))
-    self.service = discovery.build ('gmail', 'v1', http = self.http)
+    self.service = discovery.build('gmail', 'v1', credentials=self.credentials)
     self.authorized = True
+
+  def __store_credentials__ (self, path, credentials):
+    """
+    Store valid credentials in json format
+    """
+    with open(path, 'w') as storage:
+        storage.write(credentials.to_json())
 
   def __get_credentials__ (self):
     """
@@ -432,39 +438,40 @@ class Remote:
     Returns:
         Credentials, the obtained credential.
     """
+    credentials = None
     credential_path = self.gmailieer.local.credentials_f
 
+    if os.path.exists(credential_path):
+        credentials = Credentials.from_authorized_user_file(credential_path, self.SCOPES)
 
-    store = Storage(credential_path)
-    credentials = store.get()
-    if not credentials or credentials.invalid:
-      if self.CLIENT_SECRET_FILE is not None:
+    if not credentials or not credentials.valid:
+      if credentials and credentials.expired and credentials.refresh_token:
+          credentials.refresh(Request())
+
+      elif self.CLIENT_SECRET_FILE is not None:
         # use user-provided client_secret
         print ("auth: using user-provided api id and secret")
         if not os.path.exists (self.CLIENT_SECRET_FILE):
           raise Remote.GenericException ("error: no secret client API key file found for authentication at: %s" % self.CLIENT_SECRET_FILE)
 
-        flow = client.flow_from_clientsecrets(self.CLIENT_SECRET_FILE, self.SCOPES)
-        flow.user_agent = self.APPLICATION_NAME
-        credentials = tools.run_flow(flow, store, flags = self.gmailieer.args)
+        flow = InstalledAppFlow.from_client_secrets_file(self.CLIENT_SECRET_FILE, self.SCOPES)
+        credentials = flow.run_local_server()
+        self.__store_credentials__(credential_path, credentials)
 
       else:
         # use default id and secret
-        client_id     = self.OAUTH2_CLIENT_SECRET['client_id']
-        client_secret = self.OAUTH2_CLIENT_SECRET['client_secret']
-        redirect_uri  = self.OAUTH2_CLIENT_SECRET['redirect_uris']
-        user_agent    = self.APPLICATION_NAME
-        auth_uri      = self.OAUTH2_CLIENT_SECRET['auth_uri']
-        token_uri     = self.OAUTH2_CLIENT_SECRET['token_uri']
+        client_config = {
+            "installed": {
+                "auth_uri": self.OAUTH2_CLIENT_SECRET['auth_uri'],
+                "token_uri": self.OAUTH2_CLIENT_SECRET['token_uri'],
+                "client_id": self.OAUTH2_CLIENT_SECRET['client_id'],
+                "client_secret": self.OAUTH2_CLIENT_SECRET['client_secret']
+            }
+        }
+        flow = InstalledAppFlow.from_client_config(client_config, self.SCOPES)
+        credentials = flow.run_local_server()
+        self.__store_credentials__(credential_path, credentials)
 
-        flow = client.OAuth2WebServerFlow(client_id, client_secret, self.SCOPES,
-                                       redirect_uri=redirect_uri,
-                                       user_agent=user_agent,
-                                       auth_uri=auth_uri,
-                                       token_uri=token_uri)
-        credentials = tools.run_flow(flow, store, flags = self.gmailieer.args)
-
-      print('credentials stored in ' + credential_path)
     return credentials
 
   @__require_auth__
@@ -659,7 +666,7 @@ class Remote:
         time.sleep (user_rate_delay)
 
       try:
-        batch.execute (http = self.http)
+        batch.execute ()
 
         # gradually reduce if we had 10 ok batches
         user_rate_ok += 1

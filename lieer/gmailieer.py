@@ -21,7 +21,6 @@
 import  os
 import  sys
 import  argparse
-from    oauth2client import tools
 import  googleapiclient
 import  googleapiclient.errors
 import  notmuch2
@@ -33,7 +32,7 @@ class Gmailieer:
   cwd = None
 
   def main (self):
-    parser = argparse.ArgumentParser ('gmi', parents = [tools.argparser])
+    parser = argparse.ArgumentParser ('gmi')
     self.parser = parser
 
     common = argparse.ArgumentParser (add_help = False)
