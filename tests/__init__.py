@@ -3,6 +3,7 @@ import tempfile
 
 class MockGmi:
     dry_run = False
+    verbose = False
 
     def __init__(self):
         pass
