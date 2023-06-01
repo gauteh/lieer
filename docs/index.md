@@ -266,3 +266,7 @@ the time being, `trash` will be preferred over `spam`, and `spam` over `inbox`.
 
 * Make sure that you use the same domain for you GMail account as you initially created your account with: usually `@gmail.com`, but sometimes `@googlemail.com`. Otherwise you might get a [`Delegation denied` error](https://github.com/gauteh/lieer/issues/88).
 
+
+# Development
+
+Github actions are configured to check for python code formatted by [black](https://black.readthedocs.io/en/stable/integrations/github_actions.html).
