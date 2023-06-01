@@ -1,0 +1,13 @@
+# This is the official black github action per https://black.readthedocs.io/en/stable/integrations/github_actions.html
+# The workflow will fail if `black --check --diff` finds files that need to be formatted
+
+name: Lint
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: psf/black@stable
