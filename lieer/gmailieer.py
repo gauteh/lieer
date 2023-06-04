@@ -135,6 +135,9 @@ class Gmailieer:
     parser_sync.add_argument ('-d', '--dry-run', action='store_true',
         default = False, help = 'do not make any changes')
 
+    parser_sync.add_argument ('-v', '--verbose', action='store_true',
+        default = False, help = 'print list of changes')
+
     parser_sync.add_argument ('-f', '--force', action = 'store_true',
         default = False, help = 'Push even when there has been remote changes, and force a full remote-to-local synchronization')
 
