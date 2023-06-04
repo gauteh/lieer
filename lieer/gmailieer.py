@@ -281,9 +281,13 @@ class Gmailieer:
         raise NotADirectoryError("error: %s is not a valid path!" % args.path)
 
     self.dry_run          = dry_run
-    self.verbose          = args.verbose
     self.HAS_TQDM         = (not args.no_progress)
     self.credentials_file = args.credentials
+
+    try:
+      self.verbose        = args.verbose
+    except AttributeError:
+      self.verbose        = False
 
     if self.HAS_TQDM:
       if not (sys.stderr.isatty() and sys.stdout.isatty()):
