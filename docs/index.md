@@ -130,6 +130,11 @@ following combinations are OK:
 This avoids silently not sending mail to some recipients (pretending we did),
 or sending mail to recipients we didn't want to send to again.
 
+One of the implication of `-t` is you have to keep `Bcc:` header in your
+message when passing it to `sendmail`. It is not enough to just put the
+additional recipient on the command line. For `mutt`, this means setting
+`write_bcc` option.
+
 Lieer will try to associate the sent message with the existing thread if it has
 an `In-Reply-To` header. According to the [Gmail
 API](https://developers.google.com/gmail/api/v1/reference/users/messages/send#request-body)
