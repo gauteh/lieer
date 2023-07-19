@@ -47,6 +47,10 @@ class Gmailieer:
     common.add_argument ('-q', '--quiet', action = 'store_true',
         default = False, help = 'Produce less output (implies -s)')
 
+    common.add_argument ('-v', '--verbose', action='store_true',
+        default = False, help = 'print list of changes')
+
+
     subparsers = parser.add_subparsers (help = 'actions', dest = 'action')
     subparsers.required = True
 
@@ -67,9 +71,6 @@ class Gmailieer:
     parser_pull.add_argument ('-d', '--dry-run', action='store_true',
         default = False, help = 'do not make any changes')
 
-    parser_pull.add_argument ('-v', '--verbose', action='store_true',
-        default = False, help = 'print list of changes')
-
     parser_pull.add_argument ('-f', '--force', action = 'store_true',
         default = False, help = 'Force a full synchronization to be performed')
 
@@ -89,9 +90,6 @@ class Gmailieer:
     parser_push.add_argument ('-d', '--dry-run', action='store_true',
         default = False, help = 'do not make any changes')
 
-    parser_push.add_argument ('-v', '--verbose', action='store_true',
-        default = False, help = 'print list of changes')
-
     parser_push.add_argument ('-f', '--force', action = 'store_true',
         default = False, help = 'Push even when there has been remote changes (might overwrite remote tag-changes)')
 
@@ -104,9 +102,6 @@ class Gmailieer:
 
     parser_send.add_argument ('-d', '--dry-run', action='store_true',
         default = False, help = 'do not actually send message')
-
-    parser_send.add_argument ('-v', '--verbose', action='store_true',
-        default = False, help = 'print list of changes')
 
     # Ignored arguments for sendmail compatibility
     if '-oi' in sys.argv:
@@ -138,9 +133,6 @@ class Gmailieer:
     parser_sync.add_argument ('-d', '--dry-run', action='store_true',
         default = False, help = 'do not make any changes')
 
-    parser_sync.add_argument ('-v', '--verbose', action='store_true',
-        default = False, help = 'print list of changes')
-
     parser_sync.add_argument ('-f', '--force', action = 'store_true',
         default = False, help = 'Push even when there has been remote changes, and force a full remote-to-local synchronization')
 
@@ -156,9 +148,6 @@ class Gmailieer:
 
     parser_auth.add_argument ('-f', '--force', action = 'store_true',
         default = False, help = 'Re-authorize')
-
-    parser_auth.add_argument ('-v', '--verbose', action='store_true',
-        default = False, help = 'print list of changes')
 
     # These are taken from oauth2lib/tools.py for compatibility with its
     # run_flow() method used during oauth
@@ -232,9 +221,6 @@ class Gmailieer:
 
     parser_set.add_argument ('--translation-list-overlay', type = str, default = None,
         help = 'A list with an even number of items representing a list of pairs of (remote, local), where each pair is added to the tag translation.')
-
-    parser_set.add_argument ('-v', '--verbose', action='store_true',
-        default = False, help = 'print list of changes')
 
     parser_set.set_defaults (func = self.set)
 
