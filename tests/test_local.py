@@ -1,4 +1,4 @@
-from . import *
+import pytest
 import lieer
 
 

@@ -18,15 +18,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import  os, sys
+import  os
+import  sys
 import  argparse
 from    oauth2client import tools
 import  googleapiclient
 import  googleapiclient.errors
 import  notmuch2
 
-from .remote import *
-from .local  import *
+from .remote import Remote
+from .local  import Local
 
 class Gmailieer:
   cwd = None
@@ -460,12 +461,13 @@ class Gmailieer:
       else:
         raise
 
-    except Remote.NoHistoryException as excep:
+    except Remote.NoHistoryException:
       print ("pull: failed, re-try in a bit.")
       raise
 
     finally:
-      if bar is not None: self.bar_close ()
+      if bar is not None:
+        self.bar_close()
 
     # figure out which changes need to be applied
     added_messages   = [] # added messages, if they are later deleted they will be
@@ -556,7 +558,8 @@ class Gmailieer:
 
       self.bar_update (1)
 
-    if bar: self.bar_close ()
+    if bar:
+      self.bar_close ()
 
     changed = False
     # fetching new messages
@@ -785,7 +788,7 @@ class Gmailieer:
     if os.path.exists(f):
       try:
         return ResumePull.load(f)
-      except ex:
+      except Exception as ex:
         self.vprint("failed to load resume file, creating new: %s" % ex)
         return ResumePull.new(f, lastid)
     else:
