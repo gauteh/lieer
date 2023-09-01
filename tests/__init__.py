@@ -1,5 +1,4 @@
 import pytest
-import tempfile
 
 class MockGmi:
     dry_run = False

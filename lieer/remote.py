@@ -23,7 +23,6 @@ from apiclient import discovery
 from oauth2client import client
 from oauth2client import tools
 from oauth2client.file import Storage
-from pathlib import Path
 
 class Remote:
   SCOPES = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/gmail.modify'
@@ -350,14 +349,14 @@ class Remote:
 
         conn_errors = 0
 
-      except Remote.UserRateException as ex:
+      except Remote.UserRateException:
         user_rate_delay = user_rate_delay * 2 + 1
         print ("remote: user rate error, increasing delay to %s" % user_rate_delay)
         user_rate_ok = 0
 
         i = j # reset
 
-      except Remote.BatchException as ex:
+      except Remote.BatchException:
         max_req = max_req // 2
         req_ok  = 0
 
@@ -416,7 +415,8 @@ class Remote:
     self.credentials = self.__get_credentials__ ()
 
     timeout = self.gmailieer.local.config.timeout
-    if timeout == 0: timeout = None
+    if timeout == 0:
+      timeout = None
 
     self.http = self.credentials.authorize (httplib2.Http(timeout = timeout))
     self.service = discovery.build ('gmail', 'v1', http = self.http)

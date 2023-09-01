@@ -15,10 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import os, shutil, fcntl
+import os
+import shutil
+import fcntl
 import json
 import base64
-import configparser
 from pathlib import Path
 import tempfile
 
@@ -497,7 +498,7 @@ class Local:
     # if 'TRASH' in labels:
     #   info += 'T'
 
-    if not 'UNREAD' in labels:
+    if 'UNREAD' not in labels:
       info += 'S'
 
     return p + info
