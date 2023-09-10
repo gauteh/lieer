@@ -19,70 +19,75 @@ import os
 import json
 import tempfile
 
+
 class ResumePull:
-  lastId = None
-  version = None
-  VERSION = 1
+    lastId = None
+    version = None
+    VERSION = 1
 
-  meta_fetched = None
+    meta_fetched = None
 
-  @staticmethod
-  def load(resume_file):
-    """
-    Construct from existing resume
-    """
-    with open(resume_file) as fd:
-      j = json.load(fd)
+    @staticmethod
+    def load(resume_file):
+        """
+        Construct from existing resume
+        """
+        with open(resume_file) as fd:
+            j = json.load(fd)
 
-      version = j['version']
-      if version != ResumePull.VERSION:
-        print("error: mismatching version in resume file: %d != %d" % (version, ResumePull.VERSION))
-        raise ValueError()
+            version = j["version"]
+            if version != ResumePull.VERSION:
+                print(
+                    "error: mismatching version in resume file: %d != %d"
+                    % (version, ResumePull.VERSION)
+                )
+                raise ValueError()
 
-      lastId = j['lastId']
-      meta_fetched = j['meta_fetched']
+            lastId = j["lastId"]
+            meta_fetched = j["meta_fetched"]
 
-    r = ResumePull(resume_file, lastId)
-    r.meta_fetched = meta_fetched
+        r = ResumePull(resume_file, lastId)
+        r.meta_fetched = meta_fetched
 
-    return r
+        return r
 
-  @staticmethod
-  def new(resume_file, lastId):
-    r = ResumePull(resume_file, lastId)
-    r.meta_fetched = []
-    r.save()
+    @staticmethod
+    def new(resume_file, lastId):
+        r = ResumePull(resume_file, lastId)
+        r.meta_fetched = []
+        r.save()
 
-    return r
+        return r
 
-  def __init__(self, resume_file, lastId):
-    self.resume_file = resume_file
-    self.lastId = lastId
-    self.meta_fetched = []
+    def __init__(self, resume_file, lastId):
+        self.resume_file = resume_file
+        self.lastId = lastId
+        self.meta_fetched = []
 
-  def update(self, fetched):
-    """
-    fetched: new messages with metadata fetched
-    """
-    self.meta_fetched.extend(fetched)
-    self.meta_fetched = list(set(self.meta_fetched))
-    self.save()
+    def update(self, fetched):
+        """
+        fetched: new messages with metadata fetched
+        """
+        self.meta_fetched.extend(fetched)
+        self.meta_fetched = list(set(self.meta_fetched))
+        self.save()
 
-  def save(self):
-    j = {
-        'version': self.VERSION,
-        'lastId': self.lastId,
-        'meta_fetched': self.meta_fetched
+    def save(self):
+        j = {
+            "version": self.VERSION,
+            "lastId": self.lastId,
+            "meta_fetched": self.meta_fetched,
         }
 
-    with tempfile.NamedTemporaryFile (mode = 'w+', dir = os.path.dirname(self.resume_file), delete = False) as fd:
-      json.dump(j, fd)
+        with tempfile.NamedTemporaryFile(
+            mode="w+", dir=os.path.dirname(self.resume_file), delete=False
+        ) as fd:
+            json.dump(j, fd)
 
-      if os.path.exists(self.resume_file):
-        os.rename(self.resume_file, self.resume_file + '.bak')
+            if os.path.exists(self.resume_file):
+                os.rename(self.resume_file, self.resume_file + ".bak")
 
-      os.rename(fd.name, self.resume_file)
+            os.rename(fd.name, self.resume_file)
 
-  def delete(self):
-    os.unlink(self.resume_file)
-
+    def delete(self):
+        os.unlink(self.resume_file)

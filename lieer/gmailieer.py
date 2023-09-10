@@ -18,933 +18,1177 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import  os
-import  sys
-import  argparse
-import  googleapiclient
-import  googleapiclient.errors
-import  notmuch2
+import os
+import sys
+import argparse
+import googleapiclient
+import googleapiclient.errors
+import notmuch2
 
 from .remote import Remote
-from .local  import Local
+from .local import Local
+
 
 class Gmailieer:
-  cwd = None
+    cwd = None
 
-  def main (self):
-    parser = argparse.ArgumentParser ('gmi')
-    self.parser = parser
+    def main(self):
+        parser = argparse.ArgumentParser("gmi")
+        self.parser = parser
 
-    common = argparse.ArgumentParser (add_help = False)
-    common.add_argument ('-C', '--path', type = str, default = None, help = 'path')
+        common = argparse.ArgumentParser(add_help=False)
+        common.add_argument("-C", "--path", type=str, default=None, help="path")
 
-    common.add_argument ('-c', '--credentials', type = str, default = None,
-        help = 'optional credentials file for google api')
-
-    common.add_argument ('-s', '--no-progress', action = 'store_true',
-        default = False, help = 'Disable progressbar (always off when output is not TTY)')
-
-    common.add_argument ('-q', '--quiet', action = 'store_true',
-        default = False, help = 'Produce less output (implies -s)')
-
-    common.add_argument ('-v', '--verbose', action='store_true',
-        default = False, help = 'print list of changes')
-
-
-    subparsers = parser.add_subparsers (help = 'actions', dest = 'action')
-    subparsers.required = True
-
-    # pull
-    parser_pull = subparsers.add_parser ('pull',
-        help = 'pull new e-mail and remote tag-changes',
-        description = 'pull',
-        parents = [common]
+        common.add_argument(
+            "-c",
+            "--credentials",
+            type=str,
+            default=None,
+            help="optional credentials file for google api",
         )
 
-    parser_pull.add_argument ('-t', '--list-labels', action='store_true', default = False,
-        help = 'list all remote labels (pull)')
+        common.add_argument(
+            "-s",
+            "--no-progress",
+            action="store_true",
+            default=False,
+            help="Disable progressbar (always off when output is not TTY)",
+        )
 
-    parser_pull.add_argument ('--limit', type = int, default = None,
-        help = 'Maximum number of messages to pull (soft limit, GMail may return more), note that this may upset the tally of synchronized messages.')
+        common.add_argument(
+            "-q",
+            "--quiet",
+            action="store_true",
+            default=False,
+            help="Produce less output (implies -s)",
+        )
 
+        common.add_argument(
+            "-v",
+            "--verbose",
+            action="store_true",
+            default=False,
+            help="print list of changes",
+        )
 
-    parser_pull.add_argument ('-d', '--dry-run', action='store_true',
-        default = False, help = 'do not make any changes')
+        subparsers = parser.add_subparsers(help="actions", dest="action")
+        subparsers.required = True
 
-    parser_pull.add_argument ('-f', '--force', action = 'store_true',
-        default = False, help = 'Force a full synchronization to be performed')
+        # pull
+        parser_pull = subparsers.add_parser(
+            "pull",
+            help="pull new e-mail and remote tag-changes",
+            description="pull",
+            parents=[common],
+        )
 
-    parser_pull.add_argument ('-r', '--resume', action = 'store_true',
-        default = False, help = 'Resume previous incomplete synchronization if possible (this might cause local changes made in the interim to be ignored when pushing)')
+        parser_pull.add_argument(
+            "-t",
+            "--list-labels",
+            action="store_true",
+            default=False,
+            help="list all remote labels (pull)",
+        )
 
-    parser_pull.set_defaults (func = self.pull)
+        parser_pull.add_argument(
+            "--limit",
+            type=int,
+            default=None,
+            help="Maximum number of messages to pull (soft limit, GMail may return more), note that this may upset the tally of synchronized messages.",
+        )
 
-    # push
-    parser_push = subparsers.add_parser ('push', parents = [common],
-        description = 'push',
-        help = 'push local tag-changes')
+        parser_pull.add_argument(
+            "-d",
+            "--dry-run",
+            action="store_true",
+            default=False,
+            help="do not make any changes",
+        )
 
-    parser_push.add_argument ('--limit', type = int, default = None,
-        help = 'Maximum number of messages to push, note that this may upset the tally of synchronized messages.')
+        parser_pull.add_argument(
+            "-f",
+            "--force",
+            action="store_true",
+            default=False,
+            help="Force a full synchronization to be performed",
+        )
 
-    parser_push.add_argument ('-d', '--dry-run', action='store_true',
-        default = False, help = 'do not make any changes')
+        parser_pull.add_argument(
+            "-r",
+            "--resume",
+            action="store_true",
+            default=False,
+            help="Resume previous incomplete synchronization if possible (this might cause local changes made in the interim to be ignored when pushing)",
+        )
 
-    parser_push.add_argument ('-f', '--force', action = 'store_true',
-        default = False, help = 'Push even when there has been remote changes (might overwrite remote tag-changes)')
+        parser_pull.set_defaults(func=self.pull)
 
-    parser_push.set_defaults (func = self.push)
+        # push
+        parser_push = subparsers.add_parser(
+            "push", parents=[common], description="push", help="push local tag-changes"
+        )
 
-    # send
-    parser_send = subparsers.add_parser ('send', parents = [common],
-        description = 'Read a MIME message from STDIN and send.',
-        help = 'send a MIME message read from STDIN.')
+        parser_push.add_argument(
+            "--limit",
+            type=int,
+            default=None,
+            help="Maximum number of messages to push, note that this may upset the tally of synchronized messages.",
+        )
 
-    parser_send.add_argument ('-d', '--dry-run', action='store_true',
-        default = False, help = 'do not actually send message')
+        parser_push.add_argument(
+            "-d",
+            "--dry-run",
+            action="store_true",
+            default=False,
+            help="do not make any changes",
+        )
 
-    # Ignored arguments for sendmail compatibility
-    if '-oi' in sys.argv:
-      sys.argv.remove('-oi')
+        parser_push.add_argument(
+            "-f",
+            "--force",
+            action="store_true",
+            default=False,
+            help="Push even when there has been remote changes (might overwrite remote tag-changes)",
+        )
 
-    if '-i' in sys.argv:
-      sys.argv.remove('-i')
+        parser_push.set_defaults(func=self.push)
 
-    parser_send.add_argument('-i', action='store_true', default = None, help = 'Ignored: always implied, allowed for sendmail compatibility.', dest = 'i3')
-    parser_send.add_argument('-t', '--read-recipients', action='store_true',
-                             default = False, dest = 'read_recipients',
-                             help = 'Read recipients from message headers. This is always done by GMail. If this option is not specified, the same addresses (as those in the headers) must be specified as additional arguments.')
+        # send
+        parser_send = subparsers.add_parser(
+            "send",
+            parents=[common],
+            description="Read a MIME message from STDIN and send.",
+            help="send a MIME message read from STDIN.",
+        )
 
-    parser_send.add_argument('-f', type = str, help = 'Ignored: has no effect, allowed for sendmail compatibility.', dest = 'i1')
+        parser_send.add_argument(
+            "-d",
+            "--dry-run",
+            action="store_true",
+            default=False,
+            help="do not actually send message",
+        )
 
-    parser_send.add_argument('recipients', nargs = '*', default = [],
-        help = 'Recipients to send this message to (these are essentially ignored, but they are validated against the header fields.)')
+        # Ignored arguments for sendmail compatibility
+        if "-oi" in sys.argv:
+            sys.argv.remove("-oi")
 
-    parser_send.set_defaults (func = self.send)
+        if "-i" in sys.argv:
+            sys.argv.remove("-i")
 
-    # sync
-    parser_sync = subparsers.add_parser ('sync', parents = [common],
-        description = 'sync',
-        help = 'sync changes (flags have same meaning as for push and pull)')
+        parser_send.add_argument(
+            "-i",
+            action="store_true",
+            default=None,
+            help="Ignored: always implied, allowed for sendmail compatibility.",
+            dest="i3",
+        )
+        parser_send.add_argument(
+            "-t",
+            "--read-recipients",
+            action="store_true",
+            default=False,
+            dest="read_recipients",
+            help="Read recipients from message headers. This is always done by GMail. If this option is not specified, the same addresses (as those in the headers) must be specified as additional arguments.",
+        )
 
-    parser_sync.add_argument ('--limit', type = int, default = None,
-        help = 'Maximum number of messages to sync, note that this may upset the tally of synchronized messages.')
+        parser_send.add_argument(
+            "-f",
+            type=str,
+            help="Ignored: has no effect, allowed for sendmail compatibility.",
+            dest="i1",
+        )
 
-    parser_sync.add_argument ('-d', '--dry-run', action='store_true',
-        default = False, help = 'do not make any changes')
+        parser_send.add_argument(
+            "recipients",
+            nargs="*",
+            default=[],
+            help="Recipients to send this message to (these are essentially ignored, but they are validated against the header fields.)",
+        )
 
-    parser_sync.add_argument ('-f', '--force', action = 'store_true',
-        default = False, help = 'Push even when there has been remote changes, and force a full remote-to-local synchronization')
+        parser_send.set_defaults(func=self.send)
 
-    parser_sync.add_argument ('-r', '--resume', action = 'store_true',
-        default = False, help = 'Resume previous incomplete synchronization if possible (this might cause local changes made in the interim to be ignored when pushing)')
+        # sync
+        parser_sync = subparsers.add_parser(
+            "sync",
+            parents=[common],
+            description="sync",
+            help="sync changes (flags have same meaning as for push and pull)",
+        )
 
-    parser_sync.set_defaults (func = self.sync)
+        parser_sync.add_argument(
+            "--limit",
+            type=int,
+            default=None,
+            help="Maximum number of messages to sync, note that this may upset the tally of synchronized messages.",
+        )
 
-    # auth
-    parser_auth = subparsers.add_parser ('auth', parents = [common],
-        description = 'authorize',
-        help = 'authorize lieer with your GMail account')
+        parser_sync.add_argument(
+            "-d",
+            "--dry-run",
+            action="store_true",
+            default=False,
+            help="do not make any changes",
+        )
 
-    parser_auth.add_argument ('-f', '--force', action = 'store_true',
-        default = False, help = 'Re-authorize')
+        parser_sync.add_argument(
+            "-f",
+            "--force",
+            action="store_true",
+            default=False,
+            help="Push even when there has been remote changes, and force a full remote-to-local synchronization",
+        )
 
-    # These are taken from oauth2lib/tools.py for compatibility with its
-    # run_flow() method used during oauth
-    parser_auth.add_argument('--auth-host-name', default='localhost',
-        help='Hostname when running a local web server')
-    parser_auth.add_argument('--auth-host-port', default=[8080, 8090], type=int,
-        nargs='*',
-        help='Port web server should listen on')
-    parser_auth.add_argument('--noauth_local_webserver', action='store_true',
-        default=False,
-        help='Do not run a local web server (no longer supported by Google)')
+        parser_sync.add_argument(
+            "-r",
+            "--resume",
+            action="store_true",
+            default=False,
+            help="Resume previous incomplete synchronization if possible (this might cause local changes made in the interim to be ignored when pushing)",
+        )
 
-    parser_auth.set_defaults (func = self.authorize)
+        parser_sync.set_defaults(func=self.sync)
 
-    # init
-    parser_init = subparsers.add_parser ('init', parents = [common],
-        description = 'initialize',
-        help = 'initialize local e-mail repository and authorize')
+        # auth
+        parser_auth = subparsers.add_parser(
+            "auth",
+            parents=[common],
+            description="authorize",
+            help="authorize lieer with your GMail account",
+        )
 
-    parser_init.add_argument ('--replace-slash-with-dot', action = 'store_true', default = False,
-        help = 'This will replace \'/\' with \'.\' in gmail labels (make sure you realize the implications)')
+        parser_auth.add_argument(
+            "-f", "--force", action="store_true", default=False, help="Re-authorize"
+        )
 
-    parser_init.add_argument ('--no-auth', action = 'store_true', default = False,
-        help = 'Do not immediately authorize as well (you will need to run \'auth\' afterwards)')
+        # These are taken from oauth2lib/tools.py for compatibility with its
+        # run_flow() method used during oauth
+        parser_auth.add_argument(
+            "--auth-host-name",
+            default="localhost",
+            help="Hostname when running a local web server",
+        )
+        parser_auth.add_argument(
+            "--auth-host-port",
+            default=[8080, 8090],
+            type=int,
+            nargs="*",
+            help="Port web server should listen on",
+        )
+        parser_auth.add_argument(
+            "--noauth_local_webserver",
+            action="store_true",
+            default=False,
+            help="Do not run a local web server (no longer supported by Google)",
+        )
 
-    parser_init.add_argument ('account', type = str, help = 'GMail account to use')
+        parser_auth.set_defaults(func=self.authorize)
 
-    parser_init.set_defaults (func = self.initialize)
+        # init
+        parser_init = subparsers.add_parser(
+            "init",
+            parents=[common],
+            description="initialize",
+            help="initialize local e-mail repository and authorize",
+        )
 
+        parser_init.add_argument(
+            "--replace-slash-with-dot",
+            action="store_true",
+            default=False,
+            help="This will replace '/' with '.' in gmail labels (make sure you realize the implications)",
+        )
 
-    # set option
-    parser_set = subparsers.add_parser ('set',
-        description = 'set option',
-        parents = [common],
-        help = 'set options for repository')
+        parser_init.add_argument(
+            "--no-auth",
+            action="store_true",
+            default=False,
+            help="Do not immediately authorize as well (you will need to run 'auth' afterwards)",
+        )
 
-    parser_set.add_argument ('-t', '--timeout', type = float,
-        default = None, help = 'Set HTTP timeout in seconds (0 means forever or system timeout)')
+        parser_init.add_argument("account", type=str, help="GMail account to use")
 
-    parser_set.add_argument ('--replace-slash-with-dot', action = 'store_true', default = False,
-        help = 'This will replace \'/\' with \'.\' in gmail labels (Important: see the manual and make sure you realize the implications)')
+        parser_init.set_defaults(func=self.initialize)
 
-    parser_set.add_argument ('--no-replace-slash-with-dot', action = 'store_true', default = False)
+        # set option
+        parser_set = subparsers.add_parser(
+            "set",
+            description="set option",
+            parents=[common],
+            help="set options for repository",
+        )
 
-    parser_set.add_argument ('--drop-non-existing-labels', action = 'store_true', default = False,
-        help = 'Allow missing labels on the GMail side to be dropped (see https://github.com/gauteh/lieer/issues/48)')
+        parser_set.add_argument(
+            "-t",
+            "--timeout",
+            type=float,
+            default=None,
+            help="Set HTTP timeout in seconds (0 means forever or system timeout)",
+        )
 
-    parser_set.add_argument ('--no-drop-non-existing-labels', action = 'store_true', default = False)
+        parser_set.add_argument(
+            "--replace-slash-with-dot",
+            action="store_true",
+            default=False,
+            help="This will replace '/' with '.' in gmail labels (Important: see the manual and make sure you realize the implications)",
+        )
 
-    parser_set.add_argument ('--ignore-empty-history', action = 'store_true', default = False,
-        help = 'Sometimes GMail indicates more changes, but an empty set is returned (see https://github.com/gauteh/lieer/issues/120)')
+        parser_set.add_argument(
+            "--no-replace-slash-with-dot", action="store_true", default=False
+        )
 
-    parser_set.add_argument ('--no-ignore-empty-history', action = 'store_true', default = False)
+        parser_set.add_argument(
+            "--drop-non-existing-labels",
+            action="store_true",
+            default=False,
+            help="Allow missing labels on the GMail side to be dropped (see https://github.com/gauteh/lieer/issues/48)",
+        )
 
-    parser_set.add_argument ('--ignore-tags-local', type = str,
-        default = None, help = 'Set custom tags to ignore when syncing from local to remote (comma-separated, after translations). Important: see the manual.')
+        parser_set.add_argument(
+            "--no-drop-non-existing-labels", action="store_true", default=False
+        )
 
-    parser_set.add_argument ('--ignore-tags-remote', type = str,
-        default = None, help = 'Set custom tags to ignore when syncing from remote to local (comma-separated, before translations). Important: see the manual.')
+        parser_set.add_argument(
+            "--ignore-empty-history",
+            action="store_true",
+            default=False,
+            help="Sometimes GMail indicates more changes, but an empty set is returned (see https://github.com/gauteh/lieer/issues/120)",
+        )
 
-    parser_set.add_argument ('--file-extension', type = str, default = None,
-        help = 'Add a file extension before the maildir status flags (e.g.: "mbox"). Important: see the manual about changing this setting after initial sync.')
+        parser_set.add_argument(
+            "--no-ignore-empty-history", action="store_true", default=False
+        )
 
-    parser_set.add_argument ('--remove-local-messages', action = 'store_true', default = False,
-        help = 'Remove messages that have been deleted on the remote (default is on)')
-    parser_set.add_argument ('--no-remove-local-messages', action = 'store_true', default = False,
-        help = 'Do not remove messages that have been deleted on the remote')
+        parser_set.add_argument(
+            "--ignore-tags-local",
+            type=str,
+            default=None,
+            help="Set custom tags to ignore when syncing from local to remote (comma-separated, after translations). Important: see the manual.",
+        )
 
-    parser_set.add_argument ('--local-trash-tag', type = str, default = None,
-        help = 'The local tag to use for the remote label TRASH.')
+        parser_set.add_argument(
+            "--ignore-tags-remote",
+            type=str,
+            default=None,
+            help="Set custom tags to ignore when syncing from remote to local (comma-separated, before translations). Important: see the manual.",
+        )
 
-    parser_set.add_argument ('--translation-list-overlay', type = str, default = None,
-        help = 'A list with an even number of items representing a list of pairs of (remote, local), where each pair is added to the tag translation.')
+        parser_set.add_argument(
+            "--file-extension",
+            type=str,
+            default=None,
+            help='Add a file extension before the maildir status flags (e.g.: "mbox"). Important: see the manual about changing this setting after initial sync.',
+        )
 
-    parser_set.set_defaults (func = self.set)
+        parser_set.add_argument(
+            "--remove-local-messages",
+            action="store_true",
+            default=False,
+            help="Remove messages that have been deleted on the remote (default is on)",
+        )
+        parser_set.add_argument(
+            "--no-remove-local-messages",
+            action="store_true",
+            default=False,
+            help="Do not remove messages that have been deleted on the remote",
+        )
 
+        parser_set.add_argument(
+            "--local-trash-tag",
+            type=str,
+            default=None,
+            help="The local tag to use for the remote label TRASH.",
+        )
 
-    args        = parser.parse_args (sys.argv[1:])
-    self.args   = args
+        parser_set.add_argument(
+            "--translation-list-overlay",
+            type=str,
+            default=None,
+            help="A list with an even number of items representing a list of pairs of (remote, local), where each pair is added to the tag translation.",
+        )
 
-    if args.quiet:
-      args.no_progress = True
+        parser_set.set_defaults(func=self.set)
 
-    args.func (args)
+        args = parser.parse_args(sys.argv[1:])
+        self.args = args
 
-  def initialize (self, args):
-    self.setup (args, False)
-    self.local.initialize_repository (args.replace_slash_with_dot, args.account)
+        if args.quiet:
+            args.no_progress = True
 
-    if not args.no_auth:
-      self.local.load_repository ()
-      self.remote = Remote (self)
+        args.func(args)
 
-      try:
-        self.remote.authorize ()
-      except:
-        print ("")
-        print ("")
-        print ("init: repository is set up, but authorization failed. re-run 'gmi auth' with proper parameters to complete authorization")
-        print ("")
-        print ("")
-        print ("")
-        print ("")
-        raise
+    def initialize(self, args):
+        self.setup(args, False)
+        self.local.initialize_repository(args.replace_slash_with_dot, args.account)
 
-  def authorize (self, args):
-    print ("authorizing..")
-    self.setup (args, False, True)
-    self.remote.authorize (args.force)
+        if not args.no_auth:
+            self.local.load_repository()
+            self.remote = Remote(self)
 
-  def setup (self, args, dry_run = False, load = False, block = False):
-    global tqdm
+            try:
+                self.remote.authorize()
+            except:
+                print("")
+                print("")
+                print(
+                    "init: repository is set up, but authorization failed. re-run 'gmi auth' with proper parameters to complete authorization"
+                )
+                print("")
+                print("")
+                print("")
+                print("")
+                raise
 
-    # common options
-    if args.path is not None:
-      self.vprint ("path: %s" % args.path)
-      if args.action == "init" and not os.path.exists(args.path):
-        os.makedirs(args.path)
+    def authorize(self, args):
+        print("authorizing..")
+        self.setup(args, False, True)
+        self.remote.authorize(args.force)
 
-      args.path = os.path.expanduser(args.path)
-      if os.path.isdir(args.path):
-        self.cwd = os.getcwd()
-        os.chdir(args.path)
-      else:
-        print("error: %s is not a valid path!" % args.path)
-        raise NotADirectoryError("error: %s is not a valid path!" % args.path)
+    def setup(self, args, dry_run=False, load=False, block=False):
+        global tqdm
 
-    self.dry_run          = dry_run
-    self.verbose          = args.verbose
-    self.HAS_TQDM         = (not args.no_progress)
-    self.credentials_file = args.credentials
+        # common options
+        if args.path is not None:
+            self.vprint("path: %s" % args.path)
+            if args.action == "init" and not os.path.exists(args.path):
+                os.makedirs(args.path)
 
-    if self.HAS_TQDM:
-      if not (sys.stderr.isatty() and sys.stdout.isatty()):
-        self.HAS_TQDM = False
-      else:
+            args.path = os.path.expanduser(args.path)
+            if os.path.isdir(args.path):
+                self.cwd = os.getcwd()
+                os.chdir(args.path)
+            else:
+                print("error: %s is not a valid path!" % args.path)
+                raise NotADirectoryError("error: %s is not a valid path!" % args.path)
+
+        self.dry_run = dry_run
+        self.verbose = args.verbose
+        self.HAS_TQDM = not args.no_progress
+        self.credentials_file = args.credentials
+
+        if self.HAS_TQDM:
+            if not (sys.stderr.isatty() and sys.stdout.isatty()):
+                self.HAS_TQDM = False
+            else:
+                try:
+                    from tqdm import tqdm
+
+                    self.HAS_TQDM = True
+                except ImportError:
+                    self.HAS_TQDM = False
+
+        if not self.HAS_TQDM:
+            from .nobar import tqdm
+
+        if self.dry_run:
+            print("dry-run: ", self.dry_run)
+
+        self.local = Local(self)
+        if load:
+            self.local.load_repository(block)
+            self.remote = Remote(self)
+
+    def sync(self, args):
+        self.setup(args, args.dry_run, True)
+        self.force = args.force
+        self.limit = args.limit
+        self.list_labels = False
+        self.resume = args.resume
+
+        self.remote.get_labels()
+
+        # will try to push local changes, this operation should not make
+        # any changes to the local store or any of the file names.
+        self.push(args, True)
+
+        # will pull in remote changes, overwriting local changes and effectively
+        # resolving any conflicts.
+        self.pull(args, True)
+
+    def push(self, args, setup=False):
+        if not setup:
+            self.setup(args, args.dry_run, True)
+
+            self.force = args.force
+            self.limit = args.limit
+
+            self.remote.get_labels()
+
+        # loading local changes
+
+        with notmuch2.Database() as db:
+            rev = db.revision().rev
+            if rev == self.local.state.lastmod:
+                self.vprint("push: everything is up-to-date.")
+                return
+
+            qry = "path:%s/** and lastmod:%d..%d" % (
+                self.local.nm_relative,
+                self.local.state.lastmod,
+                rev,
+            )
+
+            messages = [db.get(m.path) for m in db.messages(qry)]
+
+            if self.limit is not None and len(messages) > self.limit:
+                messages = messages[: self.limit]
+
+            # get gids and filter out messages outside this repository
+            messages, gids = self.local.messages_to_gids(messages)
+
+            # get meta-data on changed messages from remote
+            remote_messages = []
+            self.bar_create(leave=True, total=len(gids), desc="receiving metadata")
+
+            def _got_msgs(ms):
+                for m in ms:
+                    self.bar_update(1)
+                    remote_messages.append(m)
+
+            self.remote.get_messages(gids, _got_msgs, "minimal")
+            self.bar_close()
+
+            # resolve changes
+            self.bar_create(leave=True, total=len(gids), desc="resolving changes")
+            actions = []
+            for rm, nm in zip(remote_messages, messages):
+                actions.append(
+                    self.remote.update(
+                        rm, nm, self.local.state.last_historyId, self.force
+                    )
+                )
+                self.bar_update(1)
+
+            self.bar_close()
+
+            # remove no-ops
+            actions = [a for a in actions if a]
+
+            # limit
+            if self.limit is not None and len(actions) >= self.limit:
+                actions = actions[: self.limit]
+
+            # push changes
+            if len(actions) > 0:
+                self.bar_create(
+                    leave=True, total=len(actions), desc="pushing, 0 changed"
+                )
+                changed = 0
+
+                def cb(_):
+                    nonlocal changed
+                    self.bar_update(1)
+                    changed += 1
+                    if not self.args.quiet and self.bar:
+                        self.bar.set_description("pushing, %d changed" % changed)
+
+                self.remote.push_changes(actions, cb)
+
+                self.bar_close()
+            else:
+                self.vprint("push: nothing to push")
+
+        if not self.remote.all_updated:
+            # will not set last_mod, this forces messages to be pushed again at next push
+            print("push: not all changes could be pushed, will re-try at next push.")
+        else:
+            # TODO: Once we get more confident we might set the last history Id here to
+            # avoid pulling back in the changes we just pushed. Currently there's a race
+            # if something is modified remotely (new email, changed tags), so this might
+            # not really be possible.
+            pass
+
+        if not self.dry_run and self.remote.all_updated:
+            self.local.state.set_lastmod(rev)
+
+        self.vprint(
+            "remote historyId: %d"
+            % self.remote.get_current_history_id(self.local.state.last_historyId)
+        )
+
+    def pull(self, args, setup=False):
+        if not setup:
+            self.setup(args, args.dry_run, True)
+
+            self.list_labels = args.list_labels
+            self.force = args.force
+            self.limit = args.limit
+            self.resume = args.resume
+
+            self.remote.get_labels()  # to make sure label map is initialized
+
+        if self.list_labels:
+            for k, l in self.remote.labels.items():
+                print("{0: <30} {1}".format(l, k))
+            return
+
+        if self.force:
+            self.vprint("pull: full synchronization (forced)")
+            self.full_pull()
+
+        elif self.local.state.last_historyId == 0:
+            self.vprint(
+                "pull: full synchronization (no previous synchronization state)"
+            )
+            self.full_pull()
+
+        else:
+            self.vprint(
+                "pull: partial synchronization.. (hid: %d)"
+                % self.local.state.last_historyId
+            )
+            self.partial_pull()
+
+    def partial_pull(self):
+        # get history
+        bar = None
+        history = []
+        last_id = self.remote.get_current_history_id(self.local.state.last_historyId)
+
         try:
-          from tqdm import tqdm
-          self.HAS_TQDM = True
-        except ImportError:
-          self.HAS_TQDM = False
+            for hist in self.remote.get_history_since(self.local.state.last_historyId):
+                history.extend(hist)
 
-    if not self.HAS_TQDM:
-      from .nobar import tqdm
+                if bar is None:
+                    self.bar_create(leave=True, desc="fetching changes")
 
-    if self.dry_run:
-      print ("dry-run: ", self.dry_run)
+                self.bar_update(len(hist))
 
-    self.local  = Local (self)
-    if load:
-      self.local.load_repository (block)
-      self.remote = Remote (self)
+                if self.limit is not None and len(history) >= self.limit:
+                    break
 
-  def sync (self, args):
-    self.setup (args, args.dry_run, True)
-    self.force            = args.force
-    self.limit            = args.limit
-    self.list_labels      = False
-    self.resume           = args.resume
+        except googleapiclient.errors.HttpError as excep:
+            if excep.resp.status == 404:
+                print("pull: historyId is too old, full sync required.")
+                self.full_pull()
+                return
+            else:
+                raise
 
-    self.remote.get_labels ()
+        except Remote.NoHistoryException:
+            print("pull: failed, re-try in a bit.")
+            raise
 
-    # will try to push local changes, this operation should not make
-    # any changes to the local store or any of the file names.
-    self.push (args, True)
+        finally:
+            if bar is not None:
+                self.bar_close()
 
-    # will pull in remote changes, overwriting local changes and effectively
-    # resolving any conflicts.
-    self.pull (args, True)
+        # figure out which changes need to be applied
+        added_messages = []  # added messages, if they are later deleted they will be
+        # removed from this list
 
-  def push (self, args, setup = False):
-    if not setup:
-      self.setup (args, args.dry_run, True)
+        deleted_messages = []  # deleted messages, if they are later added they will be
+        # removed from this list
 
-      self.force            = args.force
-      self.limit            = args.limit
+        labels_changed = []  # list of messages which have had their label changed
+        # the entry will be the last and most recent one in case
+        # of multiple changes. if the message is either deleted
+        # or added after the label change it will be removed from
+        # this list.
 
-      self.remote.get_labels ()
+        def remove_from_all(m):
+            nonlocal added_messages, deleted_messages, labels_changed
+            remove_from_list(deleted_messages, m)
+            remove_from_list(labels_changed, m)
+            remove_from_list(added_messages, m)
 
-    # loading local changes
+        def remove_from_list(lst, m):
+            e = next((e for e in lst if e["id"] == m["id"]), None)
+            if e is not None:
+                lst.remove(e)
+                return True
+            return False
 
-    with notmuch2.Database() as db:
-      rev = db.revision().rev
-      if rev == self.local.state.lastmod:
-        self.vprint ("push: everything is up-to-date.")
-        return
+        if len(history) > 0:
+            self.bar_create(total=len(history), leave=True, desc="resolving changes")
+        else:
+            bar = None
 
-      qry = "path:%s/** and lastmod:%d..%d" % (self.local.nm_relative, self.local.state.lastmod, rev)
+        for h in history:
+            if "messagesAdded" in h:
+                for m in h["messagesAdded"]:
+                    mm = m["message"]
+                    if not (set(mm.get("labelIds", [])) & self.remote.not_sync):
+                        remove_from_all(mm)
+                        added_messages.append(mm)
 
-      messages = [db.get(m.path) for m in db.messages(qry)]
+            if "messagesDeleted" in h:
+                for m in h["messagesDeleted"]:
+                    mm = m["message"]
+                    # might silently fail to delete this
+                    remove_from_all(mm)
+                    if self.local.has(mm["id"]):
+                        deleted_messages.append(mm)
 
-      if self.limit is not None and len(messages) > self.limit:
-        messages = messages[:self.limit]
+            # messages that are subsequently deleted by a later action will be removed
+            # from either labels_changed or added_messages.
+            if "labelsAdded" in h:
+                for m in h["labelsAdded"]:
+                    mm = m["message"]
+                    if not (set(mm.get("labelIds", [])) & self.remote.not_sync):
+                        new = remove_from_list(
+                            added_messages, mm
+                        ) or not self.local.has(mm["id"])
+                        remove_from_list(labels_changed, mm)
+                        if new:
+                            added_messages.append(mm)  # needs to fetched
+                        else:
+                            labels_changed.append(mm)
+                    else:
+                        # in case a not_sync tag has been added to a scheduled message
+                        remove_from_list(added_messages, mm)
+                        remove_from_list(labels_changed, mm)
 
-      # get gids and filter out messages outside this repository
-      messages, gids = self.local.messages_to_gids (messages)
+                        if self.local.has(mm["id"]):
+                            remove_from_list(deleted_messages, mm)
+                            deleted_messages.append(mm)
 
-      # get meta-data on changed messages from remote
-      remote_messages = []
-      self.bar_create (leave = True, total = len(gids), desc = 'receiving metadata')
+            if "labelsRemoved" in h:
+                for m in h["labelsRemoved"]:
+                    mm = m["message"]
+                    if not (set(mm.get("labelIds", [])) & self.remote.not_sync):
+                        new = remove_from_list(
+                            added_messages, mm
+                        ) or not self.local.has(mm["id"])
+                        remove_from_list(labels_changed, mm)
+                        if new:
+                            added_messages.append(mm)  # needs to fetched
+                        else:
+                            labels_changed.append(mm)
+                    else:
+                        # in case a not_sync tag has been added
+                        remove_from_list(added_messages, mm)
+                        remove_from_list(labels_changed, mm)
 
-      def _got_msgs (ms):
-        for m in ms:
-          self.bar_update (1)
-          remote_messages.append (m)
+                        if self.local.has(mm["id"]):
+                            remove_from_list(deleted_messages, mm)
+                            deleted_messages.append(mm)
 
-      self.remote.get_messages (gids, _got_msgs, 'minimal')
-      self.bar_close ()
+            self.bar_update(1)
 
-      # resolve changes
-      self.bar_create (leave = True, total = len(gids), desc = 'resolving changes')
-      actions = []
-      for rm, nm in zip(remote_messages, messages):
-        actions.append (self.remote.update (rm, nm, self.local.state.last_historyId, self.force))
-        self.bar_update (1)
+        if bar:
+            self.bar_close()
 
-      self.bar_close ()
+        changed = False
+        # fetching new messages
+        if len(added_messages) > 0:
+            message_gids = [m["id"] for m in added_messages]
+            updated = self.get_content(message_gids)
 
-      # remove no-ops
-      actions = [ a for a in actions if a ]
+            # updated labels for the messages that already existed
+            needs_update_gid = list(set(message_gids) - set(updated))
+            needs_update = [m for m in added_messages if m["id"] in needs_update_gid]
+            labels_changed.extend(needs_update)
 
-      # limit
-      if self.limit is not None and len(actions) >= self.limit:
-        actions = actions[:self.limit]
+            changed = True
 
-      # push changes
-      if len(actions) > 0:
-        self.bar_create (leave = True, total = len(actions), desc = 'pushing, 0 changed')
-        changed = 0
+        if self.local.config.remove_local_messages and len(deleted_messages) > 0:
+            with notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE) as db:
+                for m in tqdm(deleted_messages, leave=True, desc="removing messages"):
+                    self.local.remove(m["id"], db)
 
-        def cb (_):
-          nonlocal changed
-          self.bar_update (1)
-          changed += 1
-          if not self.args.quiet and self.bar:
-            self.bar.set_description ('pushing, %d changed' % changed)
+            changed = True
 
-        self.remote.push_changes (actions, cb)
+        if len(labels_changed) > 0:
+            lchanged = 0
+            with notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE) as db:
+                self.bar_create(
+                    total=len(labels_changed), leave=True, desc="updating tags (0)"
+                )
+                for m in labels_changed:
+                    r = self.local.update_tags(m, None, db)
+                    if r:
+                        lchanged += 1
+                        if not self.args.quiet and self.bar:
+                            self.bar.set_description("updating tags (%d)" % lchanged)
 
-        self.bar_close ()
-      else:
-        self.vprint ('push: nothing to push')
+                    self.bar_update(1)
+                self.bar_close()
 
-    if not self.remote.all_updated:
-      # will not set last_mod, this forces messages to be pushed again at next push
-      print ("push: not all changes could be pushed, will re-try at next push.")
-    else:
-      # TODO: Once we get more confident we might set the last history Id here to
-      # avoid pulling back in the changes we just pushed. Currently there's a race
-      # if something is modified remotely (new email, changed tags), so this might
-      # not really be possible.
-      pass
+            changed = True
 
-    if not self.dry_run and self.remote.all_updated:
-      self.local.state.set_lastmod (rev)
+        if not changed:
+            self.vprint("pull: everything is up-to-date.")
 
-    self.vprint ("remote historyId: %d" % self.remote.get_current_history_id (self.local.state.last_historyId))
+        if not self.dry_run:
+            self.local.state.set_last_history_id(last_id)
 
-  def pull (self, args, setup = False):
-    if not setup:
-      self.setup (args, args.dry_run, True)
+        if last_id > 0:
+            self.vprint("current historyId: %d" % last_id)
 
-      self.list_labels      = args.list_labels
-      self.force            = args.force
-      self.limit            = args.limit
-      self.resume           = args.resume
+    def full_pull(self):
+        total = 1
 
-      self.remote.get_labels () # to make sure label map is initialized
+        self.bar_create(leave=True, total=total, desc="fetching messages")
 
-    if self.list_labels:
-      for k,l in self.remote.labels.items ():
-        print ("{0: <30} {1}".format (l, k))
-      return
+        # NOTE:
+        # this list might grow gigantic for large quantities of e-mail, not really sure
+        # about how much memory this will take. this is just a list of some
+        # simple metadata like message ids.
+        message_gids = []
+        last_id = self.remote.get_current_history_id(self.local.state.last_historyId)
 
-    if self.force:
-      self.vprint ("pull: full synchronization (forced)")
-      self.full_pull ()
+        resume_file = os.path.join(self.local.wd, ".resume-pull.gmailieer.json")
 
-    elif self.local.state.last_historyId == 0:
-      self.vprint ("pull: full synchronization (no previous synchronization state)")
-      self.full_pull ()
+        if not self.resume:
+            if os.path.exists(resume_file):
+                self.vprint("pull: previous pull can be resumed using --resume")
 
-    else:
-      self.vprint ("pull: partial synchronization.. (hid: %d)" % self.local.state.last_historyId)
-      self.partial_pull ()
+            # continue filling up or create new resume-file
+            previous = self.load_resume(resume_file, last_id)
 
-  def partial_pull (self):
-    # get history
-    bar         = None
-    history     = []
-    last_id     = self.remote.get_current_history_id (self.local.state.last_historyId)
+        elif self.resume and not os.path.exists(resume_file):
+            self.vprint(
+                "pull: no previous resume file exists, continuing with full pull"
+            )
+            previous = self.load_resume(resume_file, last_id)
 
-    try:
-      for hist in self.remote.get_history_since (self.local.state.last_historyId):
-        history.extend (hist)
+        else:
+            self.vprint("pull: attempting to resume previous pull..")
+            assert self.resume
+            previous = self.load_resume(resume_file, last_id)
 
-        if bar is None:
-          self.bar_create (leave = True, desc = 'fetching changes')
+            # check if lastid is still valid
+            if not self.remote.is_history_id_valid(previous.lastId):
+                self.vprint("pull: resume file too old, starting from scratch.")
 
-        self.bar_update (len(hist))
+                previous.delete()
+                previous = self.load_resume(resume_file, last_id)
 
-        if self.limit is not None and len(history) >= self.limit:
-          break
+        for mset in self.remote.all_messages():
+            (total, gids) = mset
 
-    except googleapiclient.errors.HttpError as excep:
-      if excep.resp.status == 404:
-        print ("pull: historyId is too old, full sync required.")
-        self.full_pull ()
-        return
-      else:
-        raise
+            self.bar.total = total
+            self.bar_update(len(gids))
 
-    except Remote.NoHistoryException:
-      print ("pull: failed, re-try in a bit.")
-      raise
+            for m in gids:
+                message_gids.append(m["id"])
 
-    finally:
-      if bar is not None:
+            if self.limit is not None and len(message_gids) >= self.limit:
+                break
+
         self.bar_close()
 
-    # figure out which changes need to be applied
-    added_messages   = [] # added messages, if they are later deleted they will be
-                          # removed from this list
-
-    deleted_messages = [] # deleted messages, if they are later added they will be
-                          # removed from this list
-
-    labels_changed   = [] # list of messages which have had their label changed
-                          # the entry will be the last and most recent one in case
-                          # of multiple changes. if the message is either deleted
-                          # or added after the label change it will be removed from
-                          # this list.
-
-    def remove_from_all (m):
-      nonlocal added_messages, deleted_messages, labels_changed
-      remove_from_list (deleted_messages, m)
-      remove_from_list (labels_changed, m)
-      remove_from_list (added_messages, m)
-
-    def remove_from_list (lst, m):
-      e = next ((e for e in lst if e['id'] ==  m['id']), None)
-      if e is not None:
-        lst.remove (e)
-        return True
-      return False
-
-    if len(history) > 0:
-      self.bar_create (total = len(history), leave = True, desc = 'resolving changes')
-    else:
-      bar = None
-
-    for h in history:
-      if 'messagesAdded' in h:
-        for m in h['messagesAdded']:
-          mm = m['message']
-          if not (set(mm.get('labelIds', [])) & self.remote.not_sync):
-            remove_from_all (mm)
-            added_messages.append (mm)
-
-      if 'messagesDeleted' in h:
-        for m in h['messagesDeleted']:
-          mm = m['message']
-          # might silently fail to delete this
-          remove_from_all (mm)
-          if self.local.has (mm['id']):
-            deleted_messages.append (mm)
-
-      # messages that are subsequently deleted by a later action will be removed
-      # from either labels_changed or added_messages.
-      if 'labelsAdded' in h:
-        for m in h['labelsAdded']:
-          mm = m['message']
-          if not (set(mm.get('labelIds', [])) & self.remote.not_sync):
-            new = remove_from_list (added_messages, mm) or not self.local.has (mm['id'])
-            remove_from_list (labels_changed, mm)
-            if new:
-              added_messages.append (mm) # needs to fetched
-            else:
-              labels_changed.append (mm)
-          else:
-            # in case a not_sync tag has been added to a scheduled message
-            remove_from_list (added_messages, mm)
-            remove_from_list (labels_changed, mm)
-
-            if self.local.has (mm['id']):
-              remove_from_list (deleted_messages, mm)
-              deleted_messages.append (mm)
-
-      if 'labelsRemoved' in h:
-        for m in h['labelsRemoved']:
-          mm = m['message']
-          if not (set(mm.get('labelIds', [])) & self.remote.not_sync):
-            new = remove_from_list (added_messages, mm) or not self.local.has (mm['id'])
-            remove_from_list (labels_changed, mm)
-            if new:
-              added_messages.append (mm) # needs to fetched
-            else:
-              labels_changed.append (mm)
-          else:
-            # in case a not_sync tag has been added
-            remove_from_list (added_messages, mm)
-            remove_from_list (labels_changed, mm)
-
-            if self.local.has (mm['id']):
-              remove_from_list (deleted_messages, mm)
-              deleted_messages.append (mm)
-
-      self.bar_update (1)
-
-    if bar:
-      self.bar_close ()
-
-    changed = False
-    # fetching new messages
-    if len (added_messages) > 0:
-      message_gids = [m['id'] for m in added_messages]
-      updated     = self.get_content (message_gids)
-
-      # updated labels for the messages that already existed
-      needs_update_gid = list(set(message_gids) - set(updated))
-      needs_update = [m for m in added_messages if m['id'] in needs_update_gid]
-      labels_changed.extend (needs_update)
-
-      changed = True
-
-    if self.local.config.remove_local_messages and len(deleted_messages) > 0:
-      with notmuch2.Database(mode = notmuch2.Database.MODE.READ_WRITE) as db:
-        for m in tqdm (deleted_messages, leave = True, desc = 'removing messages'):
-          self.local.remove (m['id'], db)
-
-      changed = True
-
-    if len (labels_changed) > 0:
-      lchanged = 0
-      with notmuch2.Database(mode = notmuch2.Database.MODE.READ_WRITE) as db:
-        self.bar_create (total = len(labels_changed), leave = True, desc = 'updating tags (0)')
-        for m in labels_changed:
-          r = self.local.update_tags (m, None, db)
-          if r:
-            lchanged += 1
-            if not self.args.quiet and self.bar:
-              self.bar.set_description ('updating tags (%d)' % lchanged)
-
-          self.bar_update (1)
-        self.bar_close ()
-
-
-      changed = True
-
-    if not changed:
-      self.vprint ("pull: everything is up-to-date.")
-
-    if not self.dry_run:
-      self.local.state.set_last_history_id (last_id)
-
-    if (last_id > 0):
-      self.vprint ('current historyId: %d' % last_id)
-
-  def full_pull (self):
-    total = 1
-
-    self.bar_create(leave = True, total = total, desc = 'fetching messages')
-
-    # NOTE:
-    # this list might grow gigantic for large quantities of e-mail, not really sure
-    # about how much memory this will take. this is just a list of some
-    # simple metadata like message ids.
-    message_gids = []
-    last_id      = self.remote.get_current_history_id(self.local.state.last_historyId)
-
-    resume_file = os.path.join(self.local.wd, ".resume-pull.gmailieer.json")
-
-    if not self.resume:
-      if os.path.exists(resume_file):
-        self.vprint("pull: previous pull can be resumed using --resume")
-
-      # continue filling up or create new resume-file
-      previous = self.load_resume(resume_file, last_id)
-
-    elif self.resume and not os.path.exists(resume_file):
-      self.vprint("pull: no previous resume file exists, continuing with full pull")
-      previous = self.load_resume(resume_file, last_id)
-
-    else:
-      self.vprint("pull: attempting to resume previous pull..")
-      assert self.resume
-      previous = self.load_resume(resume_file, last_id)
-
-      # check if lastid is still valid
-      if not self.remote.is_history_id_valid(previous.lastId):
-        self.vprint("pull: resume file too old, starting from scratch.")
-
-        previous.delete()
-        previous = self.load_resume(resume_file, last_id)
-
-    for mset in self.remote.all_messages():
-      (total, gids) = mset
-
-      self.bar.total = total
-      self.bar_update(len(gids))
-
-      for m in gids:
-        message_gids.append(m['id'])
-
-      if self.limit is not None and len(message_gids) >= self.limit:
-        break
-
-    self.bar_close()
-
-    if self.local.config.remove_local_messages:
-      if self.limit and not self.dry_run:
-        raise ValueError('--limit with "remove_local_messages" will cause lots of messages to be deleted')
-
-      # removing files that have been deleted remotely
-      all_remote = set(message_gids)
-      all_local  = set(self.local.gids.keys())
-      remove     = list(all_local - all_remote)
-      self.bar_create (leave = True, total = len(remove), desc = 'removing deleted')
-      with notmuch2.Database (mode = notmuch2.Database.MODE.READ_WRITE) as db:
-        for m in remove:
-          self.local.remove(m, db)
-          self.bar_update (1)
-
-      self.bar_close()
-
-    if len(message_gids) > 0:
-      # get content for new messages
-      updated = self.get_content(message_gids)
-
-      # get updated labels for the rest
-      needs_update = list(set(message_gids) - set(updated))
-
-      if self.resume:
-        self.vprint("pull: resume: skipping metadata for %d messages" % len(previous.meta_fetched))
-        needs_update = list(set(needs_update) - set(previous.meta_fetched))
-
-      self.get_meta(needs_update, previous, self.resume)
-    else:
-      self.vprint("pull: no messages.")
-
-    # set notmuch lastmod time, since we have now synced everything from remote
-    # to local
-    with notmuch2.Database() as db:
-      rev = db.revision().rev
-
-    if not self.dry_run:
-      self.local.state.set_lastmod(rev)
-
-      if self.resume:
-        self.local.state.set_last_history_id(previous.lastId)
-      else:
-        self.local.state.set_last_history_id(last_id)
-
-    self.vprint('pull: complete, removing resume file')
-    previous.delete()
-
-    self.vprint('current historyId: %d, current revision: %d' % (last_id, rev))
-    if self.resume:
-      self.vprint("pull: resume: performing partial pull to complete")
-      self.partial_pull()
-
-      self.vprint("pull: note that local changes made in the interim might be ignored in the next push")
-
-  def get_meta (self, msgids, previous = None, resume = False):
-    """
-    Only gets the minimal message objects in order to check if labels are up-to-date.
-
-    `previous` and `resume` is passed by `full_pull` to track progress and resume previous metadata pull.
-    """
-
-    if len (msgids) > 0:
-      if resume:
-        total = len(msgids) + len(previous.meta_fetched)
-      else:
-        total = len(msgids)
-
-      self.bar_create (leave = True, total = total, desc = 'receiving metadata')
-
-      if resume and previous is not None:
-        self.bar_update(len(previous.meta_fetched))
-
-      # opening db for whole metadata sync
-      def _got_msgs (ms):
-        with notmuch2.Database(mode = notmuch2.Database.MODE.READ_WRITE) as db:
-          for m in ms:
-            self.bar_update (1)
-            self.local.update_tags (m, None, db)
-
-          if previous is not None:
-            gids = [m['id'] for m in ms]
-            previous.update(gids)
-
-      self.remote.get_messages (msgids, _got_msgs, 'minimal')
-
-      self.bar_close ()
-
-    else:
-      self.vprint ("receiving metadata: everything up-to-date.")
-
-  def get_content (self, msgids):
-    """
-    Get the full email source of the messages that we do not already have
-
-    Returns:
-      list of messages which were updated, these have also been updated in Notmuch and
-      does not need to be partially updated.
-
-    """
-
-    need_content = [ m for m in msgids if not self.local.has (m) ]
-
-    if len (need_content) > 0:
-
-      self.bar_create (leave = True, total = len(need_content), desc = 'receiving content')
-
-      def _got_msgs (ms):
-        # opening db per message batch since it takes some time to download each one
-        with notmuch2.Database(mode = notmuch2.Database.MODE.READ_WRITE) as db:
-          for m in ms:
-            self.bar_update (1)
-            self.local.store (m, db)
-
-      self.remote.get_messages (need_content, _got_msgs, 'raw')
-
-      self.bar_close ()
-
-    else:
-      self.vprint ("receiving content: everything up-to-date.")
-
-    return need_content
-
-  def load_resume(self, f, lastid):
-    """
-    Load a previous incomplete pull from resume file or create new resume file.
-    """
-    from .resume import ResumePull
-    if os.path.exists(f):
-      try:
-        return ResumePull.load(f)
-      except Exception as ex:
-        self.vprint("failed to load resume file, creating new: %s" % ex)
-        return ResumePull.new(f, lastid)
-    else:
-      return ResumePull.new(f, lastid)
-
-  def send (self, args):
-    self.setup (args, args.dry_run, True, True)
-    self.remote.get_labels ()
-
-    msg = sys.stdin.buffer.read()
-
-    # check if in-reply-to is set and find threadId
-    threadId = None
-
-    import email
-    eml = email.message_from_bytes(msg)
-
-    # If there are recipients passed on the CLI, we need to compare them with
-    # what's in the message headers, as they need to match the message body
-    # (we can't express other recipients via the GMail API)
-
-    cli_recipients = set(args.recipients)
-
-    # construct existing recipient address list from To, Cc, Bcc headers
-    header_recipients = set()
-    for field_name in ("To", "Cc", "Bcc"):
-      # get all field values for the given field
-      field_values = eml.get_all(field_name, [])
-
-      # parse these into a list of realnames and addresses
-      for (_, address) in email.utils.getaddresses(field_values):
-        header_recipients.add(address)
-
-    if args.read_recipients:
-      if not header_recipients.issuperset(cli_recipients):
-          raise ValueError (
-            "Recipients passed via sendmail(1) arguments, but not part of message headers: {}".format(", ".join(cli_recipients.difference(header_recipients))))
-    elif not header_recipients == cli_recipients:
-      raise ValueError (
-          "Recipients passed via sendmail(1) arguments ({}) differ from those in message headers ({}), perhaps you are missing the '-t' option?".format(", ".join(cli_recipients), ", ".join(header_recipients)))
-
-    self.vprint ("sending message, from: %s.." % (eml.get('From')))
-
-    if 'In-Reply-To' in eml:
-      repl = eml['In-Reply-To'].strip().strip('<>')
-      self.vprint("looking for original message: %s" % repl)
-      with notmuch2.Database(mode = notmuch2.Database.MODE.READ_ONLY) as db:
-        try:
-          nmsg = db.find(repl)
-        except LookupError:
-          nmsg = None
-        if nmsg is not None:
-          (_, gids) = self.local.messages_to_gids([nmsg])
-          if nmsg.header('Subject') != eml['Subject']:
-            self.vprint ("warning: subject does not match, might not be able to associate with existing thread.")
-
-          if len(gids) > 0:
-            gmsg = self.remote.get_message(gids[0])
-            threadId = gmsg['threadId']
-            self.vprint ("found existing thread for new message: %s" % threadId)
-          else:
-            self.vprint ("warning: could not find gid of parent message, sent message will not be associated in the same thread")
+        if self.local.config.remove_local_messages:
+            if self.limit and not self.dry_run:
+                raise ValueError(
+                    '--limit with "remove_local_messages" will cause lots of messages to be deleted'
+                )
+
+            # removing files that have been deleted remotely
+            all_remote = set(message_gids)
+            all_local = set(self.local.gids.keys())
+            remove = list(all_local - all_remote)
+            self.bar_create(leave=True, total=len(remove), desc="removing deleted")
+            with notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE) as db:
+                for m in remove:
+                    self.local.remove(m, db)
+                    self.bar_update(1)
+
+            self.bar_close()
+
+        if len(message_gids) > 0:
+            # get content for new messages
+            updated = self.get_content(message_gids)
+
+            # get updated labels for the rest
+            needs_update = list(set(message_gids) - set(updated))
+
+            if self.resume:
+                self.vprint(
+                    "pull: resume: skipping metadata for %d messages"
+                    % len(previous.meta_fetched)
+                )
+                needs_update = list(set(needs_update) - set(previous.meta_fetched))
+
+            self.get_meta(needs_update, previous, self.resume)
         else:
-          self.vprint ("warning: could not find parent message, sent message will not be associated in the same thread")
+            self.vprint("pull: no messages.")
 
-    if not args.dry_run:
-      msg = self.remote.send(msg, threadId)
-      self.get_content([msg['id']])
-      self.get_meta([msg['id']])
+        # set notmuch lastmod time, since we have now synced everything from remote
+        # to local
+        with notmuch2.Database() as db:
+            rev = db.revision().rev
 
-    self.vprint ("message sent successfully: %s" % msg['id'])
+        if not self.dry_run:
+            self.local.state.set_lastmod(rev)
 
-  def set (self, args):
-    args.credentials = '' # for setup()
-    self.setup (args, False, True)
+            if self.resume:
+                self.local.state.set_last_history_id(previous.lastId)
+            else:
+                self.local.state.set_last_history_id(last_id)
 
-    if args.timeout is not None:
-      self.local.config.set_timeout (args.timeout)
+        self.vprint("pull: complete, removing resume file")
+        previous.delete()
 
-    if args.replace_slash_with_dot:
-      self.local.config.set_replace_slash_with_dot (args.replace_slash_with_dot)
+        self.vprint("current historyId: %d, current revision: %d" % (last_id, rev))
+        if self.resume:
+            self.vprint("pull: resume: performing partial pull to complete")
+            self.partial_pull()
 
-    if args.no_replace_slash_with_dot:
-      self.local.config.set_replace_slash_with_dot (not args.no_replace_slash_with_dot)
+            self.vprint(
+                "pull: note that local changes made in the interim might be ignored in the next push"
+            )
 
-    if args.drop_non_existing_labels:
-      self.local.config.set_drop_non_existing_label (args.drop_non_existing_labels)
+    def get_meta(self, msgids, previous=None, resume=False):
+        """
+        Only gets the minimal message objects in order to check if labels are up-to-date.
 
-    if args.no_drop_non_existing_labels:
-      self.local.config.set_drop_non_existing_label (not args.no_drop_non_existing_labels)
+        `previous` and `resume` is passed by `full_pull` to track progress and resume previous metadata pull.
+        """
 
-    if args.ignore_empty_history:
-      self.local.config.set_ignore_empty_history (True)
+        if len(msgids) > 0:
+            if resume:
+                total = len(msgids) + len(previous.meta_fetched)
+            else:
+                total = len(msgids)
 
-    if args.no_ignore_empty_history:
-      self.local.config.set_ignore_empty_history (False)
+            self.bar_create(leave=True, total=total, desc="receiving metadata")
 
-    if args.remove_local_messages:
-      self.local.config.set_remove_local_messages (True)
+            if resume and previous is not None:
+                self.bar_update(len(previous.meta_fetched))
 
-    if args.no_remove_local_messages:
-      self.local.config.set_remove_local_messages (False)
+            # opening db for whole metadata sync
+            def _got_msgs(ms):
+                with notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE) as db:
+                    for m in ms:
+                        self.bar_update(1)
+                        self.local.update_tags(m, None, db)
 
-    if args.ignore_tags_local is not None:
-      self.local.config.set_ignore_tags (args.ignore_tags_local)
+                    if previous is not None:
+                        gids = [m["id"] for m in ms]
+                        previous.update(gids)
 
-    if args.ignore_tags_remote is not None:
-      self.local.config.set_ignore_remote_labels (args.ignore_tags_remote)
+            self.remote.get_messages(msgids, _got_msgs, "minimal")
 
-    if args.file_extension is not None:
-      self.local.config.set_file_extension (args.file_extension)
+            self.bar_close()
 
-    if args.local_trash_tag is not None:
-      self.local.config.set_local_trash_tag (args.local_trash_tag)
+        else:
+            self.vprint("receiving metadata: everything up-to-date.")
 
-    if args.translation_list_overlay is not None:
-      self.local.config.set_translation_list_overlay (args.translation_list_overlay)
+    def get_content(self, msgids):
+        """
+        Get the full email source of the messages that we do not already have
 
-    print ("Repository information and settings:")
-    print ("Account ...........: %s" % self.local.config.account)
-    print ("historyId .........: %d" % self.local.state.last_historyId)
-    print ("lastmod ...........: %d" % self.local.state.lastmod)
-    print ("Timeout ...........: %f" % self.local.config.timeout)
-    print ("File extension ....: %s" % self.local.config.file_extension)
-    print ("Remove local messages .....:", self.local.config.remove_local_messages)
-    print ("Drop non existing labels...:", self.local.config.drop_non_existing_label)
-    print ("Ignore empty history ......:", self.local.config.ignore_empty_history)
-    print ("Replace . with / ..........:", self.local.config.replace_slash_with_dot)
-    print ("Ignore tags (local) .......:", self.local.config.ignore_tags)
-    print ("Ignore labels (remote) ....:", self.local.config.ignore_remote_labels)
-    print ("Trash tag (local) .........:", self.local.config.local_trash_tag)
-    print ("Translation list overlay ..:", self.local.config.translation_list_overlay)
+        Returns:
+          list of messages which were updated, these have also been updated in Notmuch and
+          does not need to be partially updated.
 
-  def vprint (self, *args, **kwargs):
-    """
-    Print unless --quiet.
-    """
-    if not self.args.quiet:
-      print (*args, **kwargs)
+        """
 
-  def bar_create(self, leave = True, total = None, desc = ''):
-    """
-    Create progress bar.
-    """
-    if not self.args.quiet:
-      self.bar = tqdm (leave = True, total = total, desc = desc)
+        need_content = [m for m in msgids if not self.local.has(m)]
 
-  def bar_update(self, n):
-    """
-    Update progress bar.
-    """
-    if not self.args.quiet:
-      self.bar.update (n)
+        if len(need_content) > 0:
+            self.bar_create(
+                leave=True, total=len(need_content), desc="receiving content"
+            )
 
-  def bar_close(self):
-    """
-    Close progress bar.
-    """
-    if not self.args.quiet:
-      self.bar.close()
+            def _got_msgs(ms):
+                # opening db per message batch since it takes some time to download each one
+                with notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE) as db:
+                    for m in ms:
+                        self.bar_update(1)
+                        self.local.store(m, db)
+
+            self.remote.get_messages(need_content, _got_msgs, "raw")
+
+            self.bar_close()
+
+        else:
+            self.vprint("receiving content: everything up-to-date.")
+
+        return need_content
+
+    def load_resume(self, f, lastid):
+        """
+        Load a previous incomplete pull from resume file or create new resume file.
+        """
+        from .resume import ResumePull
+
+        if os.path.exists(f):
+            try:
+                return ResumePull.load(f)
+            except Exception as ex:
+                self.vprint("failed to load resume file, creating new: %s" % ex)
+                return ResumePull.new(f, lastid)
+        else:
+            return ResumePull.new(f, lastid)
+
+    def send(self, args):
+        self.setup(args, args.dry_run, True, True)
+        self.remote.get_labels()
+
+        msg = sys.stdin.buffer.read()
+
+        # check if in-reply-to is set and find threadId
+        threadId = None
+
+        import email
+
+        eml = email.message_from_bytes(msg)
+
+        # If there are recipients passed on the CLI, we need to compare them with
+        # what's in the message headers, as they need to match the message body
+        # (we can't express other recipients via the GMail API)
+
+        cli_recipients = set(args.recipients)
+
+        # construct existing recipient address list from To, Cc, Bcc headers
+        header_recipients = set()
+        for field_name in ("To", "Cc", "Bcc"):
+            # get all field values for the given field
+            field_values = eml.get_all(field_name, [])
+
+            # parse these into a list of realnames and addresses
+            for _, address in email.utils.getaddresses(field_values):
+                header_recipients.add(address)
+
+        if args.read_recipients:
+            if not header_recipients.issuperset(cli_recipients):
+                raise ValueError(
+                    "Recipients passed via sendmail(1) arguments, but not part of message headers: {}".format(
+                        ", ".join(cli_recipients.difference(header_recipients))
+                    )
+                )
+        elif not header_recipients == cli_recipients:
+            raise ValueError(
+                "Recipients passed via sendmail(1) arguments ({}) differ from those in message headers ({}), perhaps you are missing the '-t' option?".format(
+                    ", ".join(cli_recipients), ", ".join(header_recipients)
+                )
+            )
+
+        self.vprint("sending message, from: %s.." % (eml.get("From")))
+
+        if "In-Reply-To" in eml:
+            repl = eml["In-Reply-To"].strip().strip("<>")
+            self.vprint("looking for original message: %s" % repl)
+            with notmuch2.Database(mode=notmuch2.Database.MODE.READ_ONLY) as db:
+                try:
+                    nmsg = db.find(repl)
+                except LookupError:
+                    nmsg = None
+                if nmsg is not None:
+                    (_, gids) = self.local.messages_to_gids([nmsg])
+                    if nmsg.header("Subject") != eml["Subject"]:
+                        self.vprint(
+                            "warning: subject does not match, might not be able to associate with existing thread."
+                        )
+
+                    if len(gids) > 0:
+                        gmsg = self.remote.get_message(gids[0])
+                        threadId = gmsg["threadId"]
+                        self.vprint(
+                            "found existing thread for new message: %s" % threadId
+                        )
+                    else:
+                        self.vprint(
+                            "warning: could not find gid of parent message, sent message will not be associated in the same thread"
+                        )
+                else:
+                    self.vprint(
+                        "warning: could not find parent message, sent message will not be associated in the same thread"
+                    )
+
+        if not args.dry_run:
+            msg = self.remote.send(msg, threadId)
+            self.get_content([msg["id"]])
+            self.get_meta([msg["id"]])
+
+        self.vprint("message sent successfully: %s" % msg["id"])
+
+    def set(self, args):
+        args.credentials = ""  # for setup()
+        self.setup(args, False, True)
+
+        if args.timeout is not None:
+            self.local.config.set_timeout(args.timeout)
+
+        if args.replace_slash_with_dot:
+            self.local.config.set_replace_slash_with_dot(args.replace_slash_with_dot)
+
+        if args.no_replace_slash_with_dot:
+            self.local.config.set_replace_slash_with_dot(
+                not args.no_replace_slash_with_dot
+            )
+
+        if args.drop_non_existing_labels:
+            self.local.config.set_drop_non_existing_label(args.drop_non_existing_labels)
+
+        if args.no_drop_non_existing_labels:
+            self.local.config.set_drop_non_existing_label(
+                not args.no_drop_non_existing_labels
+            )
+
+        if args.ignore_empty_history:
+            self.local.config.set_ignore_empty_history(True)
+
+        if args.no_ignore_empty_history:
+            self.local.config.set_ignore_empty_history(False)
+
+        if args.remove_local_messages:
+            self.local.config.set_remove_local_messages(True)
+
+        if args.no_remove_local_messages:
+            self.local.config.set_remove_local_messages(False)
+
+        if args.ignore_tags_local is not None:
+            self.local.config.set_ignore_tags(args.ignore_tags_local)
+
+        if args.ignore_tags_remote is not None:
+            self.local.config.set_ignore_remote_labels(args.ignore_tags_remote)
+
+        if args.file_extension is not None:
+            self.local.config.set_file_extension(args.file_extension)
+
+        if args.local_trash_tag is not None:
+            self.local.config.set_local_trash_tag(args.local_trash_tag)
+
+        if args.translation_list_overlay is not None:
+            self.local.config.set_translation_list_overlay(
+                args.translation_list_overlay
+            )
+
+        print("Repository information and settings:")
+        print("Account ...........: %s" % self.local.config.account)
+        print("historyId .........: %d" % self.local.state.last_historyId)
+        print("lastmod ...........: %d" % self.local.state.lastmod)
+        print("Timeout ...........: %f" % self.local.config.timeout)
+        print("File extension ....: %s" % self.local.config.file_extension)
+        print("Remove local messages .....:", self.local.config.remove_local_messages)
+        print("Drop non existing labels...:", self.local.config.drop_non_existing_label)
+        print("Ignore empty history ......:", self.local.config.ignore_empty_history)
+        print("Replace . with / ..........:", self.local.config.replace_slash_with_dot)
+        print("Ignore tags (local) .......:", self.local.config.ignore_tags)
+        print("Ignore labels (remote) ....:", self.local.config.ignore_remote_labels)
+        print("Trash tag (local) .........:", self.local.config.local_trash_tag)
+        print(
+            "Translation list overlay ..:", self.local.config.translation_list_overlay
+        )
+
+    def vprint(self, *args, **kwargs):
+        """
+        Print unless --quiet.
+        """
+        if not self.args.quiet:
+            print(*args, **kwargs)
+
+    def bar_create(self, leave=True, total=None, desc=""):
+        """
+        Create progress bar.
+        """
+        if not self.args.quiet:
+            self.bar = tqdm(leave=True, total=total, desc=desc)
+
+    def bar_update(self, n):
+        """
+        Update progress bar.
+        """
+        if not self.args.quiet:
+            self.bar.update(n)
+
+    def bar_close(self):
+        """
+        Close progress bar.
+        """
+        if not self.args.quiet:
+            self.bar.close()
