@@ -17,7 +17,6 @@
 
 import os
 import time
-import httplib2
 import googleapiclient
 from apiclient import discovery
 from google_auth_oauthlib.flow import InstalledAppFlow
