@@ -1093,8 +1093,9 @@ class Gmailieer:
             msg = self.remote.send(msg, threadId)
             self.get_content([msg["id"]])
             self.get_meta([msg["id"]])
-
-        self.vprint("message sent successfully: %s" % msg["id"])
+            self.vprint("message sent successfully: %s" % msg["id"])
+        else:
+            self.vprint("message sent successfully: dry-run")
 
     def set(self, args):
         args.credentials = ""  # for setup()
