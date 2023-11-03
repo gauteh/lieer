@@ -14,7 +14,7 @@ on:
 permissions: {}
 
 jobs:
-  build:
+  tests:
 
     runs-on: ubuntu-latest
     strategy:
