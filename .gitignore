@@ -1,7 +1,11 @@
 *.pyc
 client_secret.json
+.venv
 .gmailieer.json
 mail
 build
 dist
 *.egg-info
+
+# Emacs
+.dir-locals.el
