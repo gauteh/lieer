@@ -52,22 +52,20 @@ class Local:
 
     labels_translate_default = {v: k for k, v in translate_labels_default.items()}
 
-    ignore_labels = set(
-        [
-            "archive",
-            "arxiv",
-            "attachment",
-            "encrypted",
-            "signed",
-            "passed",
-            "replied",
-            "muted",
-            "mute",
-            "todo",
-            "Trash",
-            "voicemail",
-        ]
-    )
+    ignore_labels = {
+        "archive",
+        "arxiv",
+        "attachment",
+        "encrypted",
+        "signed",
+        "passed",
+        "replied",
+        "muted",
+        "mute",
+        "todo",
+        "Trash",
+        "voicemail",
+    }
 
     def update_translation(self, remote, local):
         """
@@ -202,7 +200,7 @@ class Local:
             if len(t.strip()) == 0:
                 self.ignore_tags = set()
             else:
-                self.ignore_tags = set([tt.strip() for tt in t.split(",")])
+                self.ignore_tags = {tt.strip() for tt in t.split(",")}
 
             self.write()
 
@@ -210,7 +208,7 @@ class Local:
             if len(t.strip()) == 0:
                 self.ignore_remote_labels = set()
             else:
-                self.ignore_remote_labels = set([tt.strip() for tt in t.split(",")])
+                self.ignore_remote_labels = {tt.strip() for tt in t.split(",")}
 
             self.write()
 
@@ -348,10 +346,8 @@ class Local:
             )
 
         if any(
-            [
-                not os.path.exists(os.path.join(self.md, mail_dir))
-                for mail_dir in ("cur", "new", "tmp")
-            ]
+            not os.path.exists(os.path.join(self.md, mail_dir))
+            for mail_dir in ("cur", "new", "tmp")
         ):
             raise Local.RepositoryException(
                 "local repository not initialized: could not find mail dir structure"
