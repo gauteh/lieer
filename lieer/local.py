@@ -123,10 +123,10 @@ class Local:
 
             if os.path.exists(self.config_f):
                 try:
-                    with open(self.config_f, "r") as fd:
+                    with open(self.config_f) as fd:
                         self.json = json.load(fd)
                 except json.decoder.JSONDecodeError:
-                    print("Failed to decode config file `{}`.".format(self.config_f))
+                    print(f"Failed to decode config file `{self.config_f}`.")
                     raise
             else:
                 self.json = {}
@@ -267,18 +267,18 @@ class Local:
 
             if os.path.exists(self.state_f):
                 try:
-                    with open(self.state_f, "r") as fd:
+                    with open(self.state_f) as fd:
                         self.json = json.load(fd)
                 except json.decoder.JSONDecodeError:
-                    print("Failed to decode state file `{}`.".format(self.state_f))
+                    print(f"Failed to decode state file `{self.state_f}`.")
                     raise
 
             elif os.path.exists(config.config_f):
                 try:
-                    with open(config.config_f, "r") as fd:
+                    with open(config.config_f) as fd:
                         self.json = json.load(fd)
                 except json.decoder.JSONDecodeError:
-                    print("Failed to decode config file `{}`.".format(config.config_f))
+                    print(f"Failed to decode config file `{config.config_f}`.")
                     raise
                 if any(k in self.json.keys() for k in ["last_historyId", "lastmod"]):
                     migrate_from_config = True
@@ -564,7 +564,7 @@ class Local:
         except LookupError:
             nmsg = None
 
-        self.print_changes("deleting %s: %s." % (gid, fname))
+        self.print_changes(f"deleting {gid}: {fname}.")
 
         if not self.dry_run:
             if nmsg is not None:
@@ -681,9 +681,7 @@ class Local:
             nmsg = None
 
         if nmsg is None:
-            self.print_changes(
-                "adding message: %s: %s, with tags: %s" % (gid, fname, str(labels))
-            )
+            self.print_changes(f"adding message: {gid}: {fname}, with tags: {labels}")
             if not self.dry_run:
                 try:
                     (nmsg, _) = db.add(fname, sync_flags=True)
@@ -720,8 +718,7 @@ class Local:
                     self.__update_cache__(nmsg, (gid, fname))
 
                 self.print_changes(
-                    "changing tags on message: %s from: %s to: %s"
-                    % (gid, str(otags), str(labels))
+                    f"changing tags on message: {gid} from: {str(otags)} to: {str(labels)}"
                 )
 
                 return True
