@@ -18,15 +18,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import argparse
 import os
 import sys
-import argparse
+
 import googleapiclient
 import googleapiclient.errors
 import notmuch2
 
-from .remote import Remote
 from .local import Local
+from .remote import Remote
 
 
 class Gmailieer:
