@@ -645,14 +645,13 @@ class Remote:
         if len(add) > 0 or len(rem) > 0:
             # check if this message has been changed remotely since last pull
             hist_id = int(gmsg["historyId"])
-            if hist_id > last_hist:
-                if not force:
-                    print(
-                        "update: remote has changed, will not update: %s (add: %s, rem: %s) (%d > %d)"
-                        % (gid, add, rem, hist_id, last_hist)
-                    )
-                    self.all_updated = False
-                    return None
+            if hist_id > last_hist and not force:
+                print(
+                    "update: remote has changed, will not update: %s (add: %s, rem: %s) (%d > %d)"
+                    % (gid, add, rem, hist_id, last_hist)
+                )
+                self.all_updated = False
+                return None
 
             if "TRASH" in add:
                 if "SPAM" in add:
