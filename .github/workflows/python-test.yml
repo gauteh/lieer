@@ -40,11 +40,7 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Lint with ruff
       run: |
-        # default set of ruff rules with GitHub Annotations
-        # E501 Line too long
-        # E741 Ambiguous variable name: `l`
-        # F403 `from .gmailieer import *` used; unable to detect undefined names
-        ruff --ignore=E501,E741,F403 --output-format=github --target-version=py39 .
+        ruff --output-format=github .
     - name: Test with pytest
       run: |
         pytest -v tests
