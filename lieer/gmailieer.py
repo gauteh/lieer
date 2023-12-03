@@ -619,7 +619,7 @@ class Gmailieer:
 
         if self.list_labels:
             for k, l in self.remote.labels.items():
-                print("{0: <30} {1}".format(l, k))
+                print(f"{l: <30} {k}")
             return
 
         if self.force:

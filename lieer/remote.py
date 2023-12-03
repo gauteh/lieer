@@ -657,27 +657,22 @@ class Remote:
             if "TRASH" in add:
                 if "SPAM" in add:
                     print(
-                        "update: %s: Trying to add both TRASH and SPAM, dropping SPAM (add: %s, rem: %s)"
-                        % (gid, add, rem)
+                        f"update: {gid}: Trying to add both TRASH and SPAM, dropping SPAM (add: {add}, rem: {rem})"
                     )
                     add.remove("SPAM")
                 if "INBOX" in add:
                     print(
-                        "update: %s: Trying to add both TRASH and INBOX, dropping INBOX (add: %s, rem: %s)"
-                        % (gid, add, rem)
+                        f"update: {gid}: Trying to add both TRASH and INBOX, dropping INBOX (add: {add}, rem: {rem})"
                     )
                     add.remove("INBOX")
             elif "SPAM" in add:
                 if "INBOX" in add:
                     print(
-                        "update: %s: Trying to add both SPAM and INBOX, dropping INBOX (add: %s, rem: %s)"
-                        % (gid, add, rem)
+                        "update: {gid}: Trying to add both SPAM and INBOX, dropping INBOX (add: {add}, rem: {rem})"
                     )
                     add.remove("INBOX")
 
-            self.print_changes(
-                "gid: %s: add: %s, remove: %s" % (gid, str(add), str(rem))
-            )
+            self.print_changes(f"gid: {gid}: add: {str(add)}, remove: {str(rem)}")
             if self.dry_run:
                 return None
             else:
