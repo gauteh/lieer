@@ -280,7 +280,7 @@ class Local:
                 except json.decoder.JSONDecodeError:
                     print(f"Failed to decode config file `{config.config_f}`.")
                     raise
-                if any(k in self.json.keys() for k in ["last_historyId", "lastmod"]):
+                if any(k in self.json for k in ["last_historyId", "lastmod"]):
                     migrate_from_config = True
             else:
                 self.json = {}
@@ -368,7 +368,7 @@ class Local:
 
         ## Lock repository
         try:
-            self.lckf = open(".lock", "w")
+            self.lckf = open(".lock", "w")  # noqa: SIM115
             if block:
                 fcntl.lockf(self.lckf, fcntl.LOCK_EX)
             else:

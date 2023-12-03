@@ -938,10 +938,7 @@ class Gmailieer:
         """
 
         if len(msgids) > 0:
-            if resume:
-                total = len(msgids) + len(previous.meta_fetched)
-            else:
-                total = len(msgids)
+            total = len(msgids) + len(previous.meta_fetched) if resume else len(msgids)
 
             self.bar_create(leave=True, total=total, desc="receiving metadata")
 
@@ -1050,7 +1047,7 @@ class Gmailieer:
                         ", ".join(cli_recipients.difference(header_recipients))
                     )
                 )
-        elif not header_recipients == cli_recipients:
+        elif header_recipients != cli_recipients:
             raise ValueError(
                 "Recipients passed via sendmail(1) arguments ({}) differ from those in message headers ({}), perhaps you are missing the '-t' option?".format(
                     ", ".join(cli_recipients), ", ".join(header_recipients)
