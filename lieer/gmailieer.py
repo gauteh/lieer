@@ -862,8 +862,7 @@ class Gmailieer:
             self.bar.total = total
             self.bar_update(len(gids))
 
-            for m in gids:
-                message_gids.append(m["id"])
+            message_gids = [m["id"] for m in gids]
 
             if self.limit is not None and len(message_gids) >= self.limit:
                 break
