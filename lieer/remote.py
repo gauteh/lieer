@@ -74,8 +74,8 @@ class Remote:
     ]
 
     # these cannot be changed manually
-    read_only_labels = set(["SENT", "DRAFT"])
-    read_only_tags = set(["sent", "draft"])
+    read_only_labels = {"SENT", "DRAFT"}
+    read_only_tags = {"sent", "draft"}
 
     DEFAULT_IGNORE_LABELS = [
         "CATEGORY_PERSONAL",
@@ -90,7 +90,7 @@ class Remote:
     # query to use
     query = "-in:chats"
 
-    not_sync = set(["CHAT"])
+    not_sync = {"CHAT"}
 
     # used to indicate whether all messages that should be updated where updated
     all_updated = True
