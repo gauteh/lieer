@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-#
 # Regular non-TTY drop-in replacement for tqdm
 #
 # Copyright © 2020  Gaute Hope <eg@gaute.vetsj.com>
