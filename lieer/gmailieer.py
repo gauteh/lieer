@@ -856,13 +856,11 @@ class Gmailieer:
                 previous.delete()
                 previous = self.load_resume(resume_file, last_id)
 
-        for mset in self.remote.all_messages():
-            (total, gids) = mset
-
+        for total, gids in self.remote.all_messages():
             self.bar.total = total
             self.bar_update(len(gids))
 
-            message_gids = [m["id"] for m in gids]
+            message_gids.extend(m["id"] for m in gids)
 
             if self.limit is not None and len(message_gids) >= self.limit:
                 break
