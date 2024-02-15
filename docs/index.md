@@ -20,7 +20,7 @@ While Lieer has been used to successfully synchronize millions of messages and t
 ## Requirements
 
 * Python 3
-* `notmuch >= 0.25` python bindings
+* Notmuch 0.30+ for `notmuch2` Python bindings
 * `google_api_python_client` (sometimes `google-api-python-client`)
 * `google_auth_oauthlib`
 * `tqdm` (optional - for progress bar)
