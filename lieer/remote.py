@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import json
 import os
 import time
 
@@ -506,8 +507,23 @@ class Remote:
         """
         Store valid credentials in json format
         """
-        with open(path, "w") as storage:
-            storage.write(credentials.to_json())
+        with open(path + ".new", "w") as storage:
+            try:
+                storage.write(credentials.to_json())
+            except AttributeError:
+                storage.write(
+                    json.dumps(
+                        {
+                            "token": credentials.token,
+                            "refresh_token": credentials.refresh_token,
+                            "token_uri": credentials.token_uri,
+                            "client_id": credentials.client_id,
+                            "client_secret": credentials.client_secret,
+                            "scopes": credentials.scopes,
+                        }
+                    )
+                )
+        os.rename(path + ".new", path)
 
     def __get_credentials__(self):
         """
@@ -528,7 +544,11 @@ class Remote:
             )
 
         if not credentials or not credentials.valid:
-            if credentials and credentials.expired and credentials.refresh_token:
+            if (
+                credentials
+                and (credentials.expired or not credentials.token)
+                and credentials.refresh_token
+            ):
                 credentials.refresh(Request())
 
             elif self.CLIENT_SECRET_FILE is not None:
