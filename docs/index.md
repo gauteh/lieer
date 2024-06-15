@@ -111,6 +111,9 @@ Lieer may be used as a simple stand-in for the `sendmail` MTA. A typical configu
 gmi send -t -C ~/.mail/account.gmail
 ```
 
+For example, you can enable git send-email with `git config sendemail.sendmailcmd "gmi send -t -C
+$HOME/.mail/account.gmail"`.
+
 Like the real sendmail program, the raw message is read from `stdin`.
 
 Most sendmail implementations allow passing additional recipients in additional
