@@ -857,7 +857,8 @@ class Gmailieer:
                 previous = self.load_resume(resume_file, last_id)
 
         for total, gids in self.remote.all_messages():
-            self.bar.total = total
+            if not self.args.quiet and self.bar:
+                self.bar.total = total
             self.bar_update(len(gids))
 
             message_gids.extend(m["id"] for m in gids)
