@@ -229,12 +229,31 @@ We translate some of the GMail labels to other tags. The default map of labels t
 
 The 'trash' local tag can be replaced using the `--local-trash-tag` option.
 
-# Using your own API key
+# Using your own OAuth 2 Client
 
-Lieer ships with an API key that is shared openly, this key shares API quota, but [cannot be used to access data](https://github.com/gauteh/lieer/pull/9) unless access is gained to your private `access_token` or `refresh_token`.
+Lieer ships with a set of OAuth 2 credentials that is shared openly, this shares API quota, but [cannot be used to access data](https://github.com/gauteh/lieer/pull/9) unless access is gained to your private `access_token` or `refresh_token`.
 
-You can get an [api key](https://console.developers.google.com/flows/enableapi?apiid=gmail) for a CLI application to use for yourself. Store the `client_secret.json` file somewhere safe and specify it to `gmi auth -c`. You can do this on a repository that is already initialized, possibly using `-f` to force reauthorizing with the new client secrets.
+The minor risk of using these public OAuth 2 credentials is that a malicious application running on your computer could pretend to be the lieer application, and gain access to your Gmail account. Since that already involves a malicious application running on your computer, it could likely just read the existing `.credentials.gmailieer.json` file directly, making this attack not particularly interesting.
 
+In any case, you can generate your own OAuth 2 credentials instead. This requires you have a Google account and access to Google Cloud Platform.
+
+1. [Create a project on GCP](https://cloud.google.com/resource-manager/docs/creating-managing-projects), or go to an existing one.
+2. [Enable access to the Gmail API](https://console.developers.google.com/flows/enableapi?apiid=gmail) for that GCP project
+3. [Configure the OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent), which involves naming your application (e.g. "Lieer Gmail Access") and setting other app-related metadata, most of which will be shown when you visit the OAuth 2 consent screen to give Lieer access to your Gmail account.
+    - The important piece is to make sure to configure the `https://mail.google.com/` scope for your application, otherwise Lieer won't be able to access the Gmail API on your behalf.
+    - You **don't** need to verify your application, you'll just get a scary warning about unverified applications when you go through the OAuth 2 flow, which you can safely ignore.
+4. [Create the OAuth 2 credentials](https://console.cloud.google.com/apis/credentials) by selecting 'Create Credentials' > 'OAuth client ID'.
+    - For `Application type`, select `Desktop app`
+    - For `Name`, name it `Lieer` or `gmi client` or something you'll recognize
+
+![A screenshot of the GCP OAuth 2 credential creation dialog](create-credentials.png)
+
+5. [Download the credentials](https://console.cloud.google.com/auth/clients) by clicking the little download icon next to your newly created OAuth 2 client ID
+    - This will download the `client_secret.json` file you need for Lieer.
+
+![A screenshot of a mouse hovering over the "Download JSON" icon](download-json.png)
+
+Store the `client_secret.json` file somewhere safe and specify it to `gmi auth -c`. You can do this on a repository that is already initialized, possibly using `-f` to force reauthorizing with the new client secrets.
 
 # Privacy policy
 
