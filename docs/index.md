@@ -246,12 +246,12 @@ In any case, you can generate your own OAuth 2 credentials instead. This require
     - For `Application type`, select `Desktop app`
     - For `Name`, name it `Lieer` or `gmi client` or something you'll recognize
 
-![A screenshot of the GCP OAuth 2 credential creation dialog](create-credentials.png)
+![A screenshot of the GCP OAuth 2 credential creation dialog](/docs/create-credentials.png)
 
 5. [Download the credentials](https://console.cloud.google.com/auth/clients) by clicking the little download icon next to your newly created OAuth 2 client ID
     - This will download the `client_secret.json` file you need for Lieer.
 
-![A screenshot of a mouse hovering over the "Download JSON" icon](download-json.png)
+![A screenshot of a mouse hovering over the "Download JSON" icon](/docs/download-json.png)
 
 Store the `client_secret.json` file somewhere safe and specify it to `gmi auth -c`. You can do this on a repository that is already initialized, possibly using `-f` to force reauthorizing with the new client secrets.
 
