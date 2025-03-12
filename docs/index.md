@@ -42,7 +42,7 @@ This assumes your root mail folder is in `~/.mail` and that this folder is _alre
 
    All commands should be run from the local mail repository unless otherwise specified.
 
-2. Ignore the `.json` files in notmuch. Any tags listed in `new.tags` will be added to newly pulled messages. Process tags on new messages directly after running gmi, or run `notmuch new` to trigger the `post-new` hook for [initial tagging](https://notmuchmail.org/initial_tagging/). The `new.tags` are not ignored by default if you do not remove them, but you can prevent custom tags from being pushed to the remote by using e.g. `gmi set --ignore-tags-local new`. In your notmuch config file (usually `~/.notmuch-config`):
+2. Ignore the `.json` files in notmuch. Any tags listed in `new.tags` will be added to newly pulled messages (but see [Caveats](#caveats)). Process tags on new messages directly after running gmi, or run `notmuch new` to trigger the `post-new` hook for [initial tagging](https://notmuchmail.org/initial_tagging/). The `new.tags` are not ignored by default if you do not remove them, but you can prevent custom tags from being pushed to the remote by using e.g. `gmi set --ignore-tags-local new`. In your notmuch config file (usually `~/.notmuch-config`):
 
    ```
    [new]
@@ -264,6 +264,8 @@ APIs will adhere to [Google API Services User Data Policy](https://developers.go
 including the Limited Use requirements
 
 # Caveats
+
+* By default, notmuch adds the tags `inbox` and `unread` to all newly imported message. While setting `new.tags` in the notmuch config should change the initial tagging of messages, it seems as though `new.tags` can also be set in the notmuch database and this overrides the config file during Lieer pulls. To ensure `new.tags` are applied correctly, set them directly in the notmuch database using `notmuch config set --database new.tags <tags>` in addition to your local config file.
 
 * The GMail API does not let you sync `muted` messages. Until [this Google
 bug](https://issuetracker.google.com/issues/36759067) is fixed, the `mute` and `muted` tags are not synchronized with the remote.
