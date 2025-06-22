@@ -48,6 +48,18 @@ class Local:
         "CATEGORY_PROMOTIONS": "promotions",
         "CATEGORY_UPDATES": "updates",
         "CATEGORY_FORUMS": "forums",
+        "BLUE_STAR": "blue_star",
+        "GREEN_STAR": "green_star",
+        "ORANGE_STAR": "orange_star",
+        "PURPLE_STAR": "purple_star",
+        "RED_STAR": "red_star",
+        "YELLOW_STAR": "yellow_star",
+        "BLUE_CIRCLE": "blue_circle",
+        "GREEN_CIRCLE": "green_circle",
+        "ORANGE_CIRCLE": "orange_circle",
+        "PURPLE_CIRCLE": "purple_circle",
+        "RED_CIRCLE": "red_circle",
+        "YELLOW_CIRCLE": "yellow_circle",
     }
 
     labels_translate_default = {v: k for k, v in translate_labels_default.items()}
