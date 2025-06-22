@@ -220,11 +220,25 @@ We translate some of the GMail labels to other tags. The default map of labels t
   'DRAFT'     : 'draft',
   'CHAT'      : 'chat',
 
-  'CATEGORY_PERSONAL'     : 'personal',
-  'CATEGORY_SOCIAL'       : 'social',
-  'CATEGORY_PROMOTIONS'   : 'promotions',
-  'CATEGORY_UPDATES'      : 'updates',
-  'CATEGORY_FORUMS'       : 'forums',
+  'CATEGORY_PERSONAL'   : 'personal',
+  'CATEGORY_SOCIAL'     : 'social',
+  'CATEGORY_PROMOTIONS' : 'promotions',
+  'CATEGORY_UPDATES'    : 'updates',
+  'CATEGORY_FORUMS'     : 'forums',
+
+  'BLUE_STAR'   : 'blue_star',
+  'GREEN_STAR'  : 'green_star',
+  'ORANGE_STAR' : 'orange_star',
+  'PURPLE_STAR' : 'purple_star',
+  'RED_STAR'    : 'red_star',
+  'YELLOW_STAR' : 'yellow_star',
+
+  'BLUE_CIRCLE'   : 'blue_circle',
+  'GREEN_CIRCLE'  : 'green_circle',
+  'ORANGE_CIRCLE' : 'orange_circle',
+  'PURPLE_CIRCLE' : 'purple_circle',
+  'RED_CIRCLE'    : 'red_circle',
+  'YELLOW_CIRCLE' : 'yellow_circle',
 ```
 
 The 'trash' local tag can be replaced using the `--local-trash-tag` option.
