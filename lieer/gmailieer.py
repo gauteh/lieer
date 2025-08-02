@@ -1065,10 +1065,13 @@ class Gmailieer:
                     nmsg = None
                 if nmsg is not None:
                     (_, gids) = self.local.messages_to_gids([nmsg])
-                    if nmsg.header("Subject") != eml["Subject"]:
-                        self.vprint(
-                            "warning: subject does not match, might not be able to associate with existing thread."
-                        )
+                    try:
+                        if nmsg.header("Subject") != eml["Subject"]:
+                            self.vprint(
+                                "warning: subject does not match, might not be able to associate with existing thread."
+                            )
+                    except LookupError:
+                        pass
 
                     if len(gids) > 0:
                         gmsg = self.remote.get_message(gids[0])
