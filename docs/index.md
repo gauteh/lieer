@@ -269,6 +269,10 @@ In any case, you can generate your own OAuth 2 credentials instead. This require
 
 Store the `client_secret.json` file somewhere safe and specify it to `gmi auth -c`. You can do this on a repository that is already initialized, possibly using `-f` to force reauthorizing with the new client secrets.
 
+## Debugging
+
+- ["Something went wrong"](https://github.com/gauteh/lieer/issues/306)): Ensure you're logging in with username and password rather than selecting an already logged-in account. Ensure your logged out (or, use a private/incognito window) then open the auth url from `gmi auth ...` and log in with username and password.
+
 # Privacy policy
 
 Lieer downloads e-mail and labels to your local computer. No data is sent elsewhere.
