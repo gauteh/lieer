@@ -19,7 +19,9 @@ import base64
 import fcntl
 import json
 import os
+import re
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 
@@ -113,6 +115,27 @@ class Local:
             self.translate_labels[remote] = local
             self.labels_translate[local] = remote
 
+    def matches_ignore_regex(self, tag):
+        """
+        Check if a tag matches any of the ignore regex patterns.
+
+        Args:
+            tag: Tag string to check
+
+        Returns:
+            bool: True if tag matches any regex pattern
+        """
+        for regex in self.config._compiled_ignore_regex:
+            try:
+                if regex.search(tag):
+                    return True
+            except Exception as e:
+                print(
+                    f"Warning: Error matching regex pattern {regex.pattern}: {e}",
+                    file=sys.stderr,
+                )
+        return False
+
     class RepositoryException(Exception):
         pass
 
@@ -123,11 +146,40 @@ class Local:
         drop_non_existing_label = False
         ignore_empty_history = False
         ignore_tags = None
+        ignore_tags_regex = None
         ignore_remote_labels = None
         remove_local_messages = True
         file_extension = None
         local_trash_tag = "trash"
         translation_list_overlay = None
+        _compiled_ignore_regex = None
+
+        def _compile_regex_patterns(self, patterns):
+            """
+            Compile regex patterns and return valid patterns and compiled objects.
+            Invalid patterns generate warnings but are skipped.
+
+            Args:
+                patterns: Iterable of regex pattern strings
+
+            Returns:
+                Tuple of (valid_patterns, compiled_patterns)
+                - valid_patterns: List of valid pattern strings
+                - compiled_patterns: Tuple of compiled regex objects
+            """
+            valid_patterns = []
+            compiled_patterns = []
+            for pattern in patterns:
+                try:
+                    compiled = re.compile(pattern)
+                    valid_patterns.append(pattern)
+                    compiled_patterns.append(compiled)
+                except re.error as e:
+                    print(
+                        f"Warning: Invalid regex pattern '{pattern}': {e}",
+                        file=sys.stderr,
+                    )
+            return valid_patterns, tuple(compiled_patterns)
 
         def __init__(self, config_f):
             self.config_f = config_f
@@ -151,6 +203,15 @@ class Local:
             self.ignore_empty_history = self.json.get("ignore_empty_history", False)
             self.remove_local_messages = self.json.get("remove_local_messages", True)
             self.ignore_tags = set(self.json.get("ignore_tags", []))
+
+            # Load regex patterns from config and compile them
+            regex_patterns = self.json.get("ignore_tags_regex", [])
+            valid_patterns, compiled_patterns = self._compile_regex_patterns(
+                regex_patterns
+            )
+            self.ignore_tags_regex = set(valid_patterns)
+            self._compiled_ignore_regex = compiled_patterns
+
             self.ignore_remote_labels = set(
                 self.json.get("ignore_remote_labels", Remote.DEFAULT_IGNORE_LABELS)
             )
@@ -169,6 +230,7 @@ class Local:
             self.json["drop_non_existing_label"] = self.drop_non_existing_label
             self.json["ignore_empty_history"] = self.ignore_empty_history
             self.json["ignore_tags"] = list(self.ignore_tags)
+            self.json["ignore_tags_regex"] = list(self.ignore_tags_regex)
             self.json["ignore_remote_labels"] = list(self.ignore_remote_labels)
             self.json["remove_local_messages"] = self.remove_local_messages
             self.json["file_extension"] = self.file_extension
@@ -213,6 +275,27 @@ class Local:
                 self.ignore_tags = set()
             else:
                 self.ignore_tags = {tt.strip() for tt in t.split(",")}
+
+            self.write()
+
+        def set_ignore_tags_regex(self, t):
+            """
+            Set regex patterns for ignoring local tags.
+
+            Args:
+                t: Comma-separated string of regex patterns
+            """
+            if len(t.strip()) == 0:
+                self.ignore_tags_regex = set()
+                self._compiled_ignore_regex = ()
+            else:
+                patterns = [p.strip() for p in t.split(",")]
+                # Compile patterns and collect only the valid ones
+                valid_patterns, compiled_patterns = self._compile_regex_patterns(
+                    patterns
+                )
+                self.ignore_tags_regex = set(valid_patterns)
+                self._compiled_ignore_regex = compiled_patterns
 
             self.write()
 
@@ -714,8 +797,12 @@ class Local:
         else:
             # message is already in db, set local tags to match remote tags
             otags = nmsg.tags
+            # Collect all ignored tags (exact match + regex match)
             igntags = otags & self.ignore_labels
-            otags = otags - self.ignore_labels  # remove ignored tags while checking
+            regex_ignored = {tag for tag in otags if self.matches_ignore_regex(tag)}
+            igntags = igntags | regex_ignored
+            # Remove all ignored tags for comparison
+            otags = otags - igntags
             if otags != set(labels):
                 labels.extend(igntags)  # add back local ignored tags before adding
                 if not self.dry_run:
