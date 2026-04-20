@@ -416,7 +416,11 @@ class Gmailieer:
         if args.quiet:
             args.no_progress = True
 
-        args.func(args)
+        try:
+            args.func(args)
+        except Local.LockingException as e:
+            print(e, file=sys.stderr)
+            sys.exit(7)
 
     def initialize(self, args):
         self.setup(args, False)
