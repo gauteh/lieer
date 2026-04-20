@@ -194,6 +194,13 @@ class Gmailieer:
         )
 
         parser_send.add_argument(
+            "--blocking",
+            action=argparse.BooleanOptionalAction,
+            default=True,
+            help="Whether the call should block on other operations on the local repository, or error out. Defaults to blocking.",
+        )
+
+        parser_send.add_argument(
             "-f",
             type=str,
             help="Ignored: has no effect, allowed for sendmail compatibility.",
@@ -1015,7 +1022,7 @@ class Gmailieer:
             return ResumePull.new(f, lastid)
 
     def send(self, args):
-        self.setup(args, args.dry_run, True, True)
+        self.setup(args, args.dry_run, True, args.blocking)
         self.remote.get_labels()
 
         msg = sys.stdin.buffer.read()
