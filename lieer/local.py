@@ -16,6 +16,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import base64
+import errno
 import fcntl
 import json
 import os
@@ -114,6 +115,9 @@ class Local:
             self.labels_translate[local] = remote
 
     class RepositoryException(Exception):
+        pass
+
+    class LockingException(RepositoryException):
         pass
 
     class Config:
@@ -382,10 +386,14 @@ class Local:
                 fcntl.lockf(self.lckf, fcntl.LOCK_EX)
             else:
                 fcntl.lockf(self.lckf, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except OSError:
-            raise Local.RepositoryException(
-                "failed to lock repository (probably in use by another gmi instance)"
-            )
+        except OSError as e:
+            if e.errno in (errno.EACCES, errno.EAGAIN):
+                # Lock already taken, works as intended
+                raise Local.LockingException(
+                    "failed to lock repository (probably in use by another gmi instance)"
+                ) from None
+            # otherwise probably irrecoverable, keep the raw exception to help debugging
+            raise
 
         self.config = Local.Config(self.config_f)
         self.state = Local.State(self.state_f, self.config)
