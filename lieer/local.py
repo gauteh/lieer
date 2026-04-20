@@ -371,8 +371,9 @@ class Local:
 
         ## Check if we are in the notmuch db
         with notmuch2.Database() as db:
+            mail_root = db.config.get("database.mail_root", db.path)
             try:
-                self.nm_relative = str(Path(self.md).relative_to(db.path))
+                self.nm_relative = str(Path(self.md).relative_to(mail_root))
             except ValueError:
                 raise Local.RepositoryException(
                     "local mail repository not in notmuch db"
