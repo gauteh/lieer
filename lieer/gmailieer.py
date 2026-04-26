@@ -375,6 +375,13 @@ class Gmailieer:
         )
 
         parser_set.add_argument(
+            "--ignore-tags-regex-local",
+            type=str,
+            default=None,
+            help="Set regex patterns for tags to ignore when syncing from local to remote (comma-separated, case-sensitive, uses Python regex with search matching). A tag is ignored if it matches ANY pattern. Important: see the manual.",
+        )
+
+        parser_set.add_argument(
             "--ignore-tags-remote",
             type=str,
             default=None,
@@ -1145,6 +1152,9 @@ class Gmailieer:
         if args.ignore_tags_local is not None:
             self.local.config.set_ignore_tags(args.ignore_tags_local)
 
+        if args.ignore_tags_regex_local is not None:
+            self.local.config.set_ignore_tags_regex(args.ignore_tags_regex_local)
+
         if args.ignore_tags_remote is not None:
             self.local.config.set_ignore_remote_labels(args.ignore_tags_remote)
 
@@ -1170,6 +1180,7 @@ class Gmailieer:
         print("Ignore empty history ......:", self.local.config.ignore_empty_history)
         print("Replace . with / ..........:", self.local.config.replace_slash_with_dot)
         print("Ignore tags (local) .......:", self.local.config.ignore_tags)
+        print("Ignore tags regex (local) .:", self.local.config.ignore_tags_regex)
         print("Ignore labels (remote) ....:", self.local.config.ignore_remote_labels)
         print("Trash tag (local) .........:", self.local.config.local_trash_tag)
         print(

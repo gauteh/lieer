@@ -651,6 +651,10 @@ class Remote:
 
         # remove special notmuch tags
         tags = tags - self.gmailieer.local.ignore_labels
+        # remove tags matching regex patterns
+        tags = {
+            tag for tag in tags if not self.gmailieer.local.matches_ignore_regex(tag)
+        }
 
         add = list((tags - labels) - self.read_only_tags)
         rem = list((labels - tags) - self.read_only_tags)
