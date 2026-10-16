@@ -375,7 +375,7 @@ class Remote:
 
                 elif (
                     type(excep) is googleapiclient.errors.HttpError
-                    and excep.resp.status == 403
+                    and excep.resp.status in (403, 429)
                 ):
                     raise Remote.UserRateException(excep)
 
@@ -432,6 +432,11 @@ class Remote:
                 )
                 user_rate_ok = 0
 
+                # Reduce batch size to decrease concurrency
+                max_req = max(max_req // 2, self.MIN_BATCH_REQUEST_SIZE)
+                print("remote: reducing batch request size to: %d" % max_req)
+                req_ok = 0
+
                 i = j  # reset
 
             except Remote.BatchException:
@@ -477,7 +482,7 @@ class Remote:
             )
 
         except googleapiclient.errors.HttpError as excep:
-            if excep.resp.status == 403 or excep.resp.status == 500:
+            if excep.resp.status in (403, 429, 500):
                 self.__request_done__(False)
                 return self.get_message(gid, format)
             else:
@@ -771,7 +776,7 @@ class Remote:
 
                 elif (
                     type(excep) is googleapiclient.errors.HttpError
-                    and excep.resp.status == 403
+                    and excep.resp.status in (403, 429)
                 ):
                     raise Remote.UserRateException(excep)
 
@@ -813,6 +818,10 @@ class Remote:
                     "remote: user rate error, increasing delay to %s" % user_rate_delay
                 )
                 user_rate_ok = 0
+
+                # Reduce batch size to decrease concurrency
+                max_req = max(max_req // 2, self.MIN_BATCH_REQUEST_SIZE)
+                print("remote: reducing batch request size to: %d" % max_req)
 
                 i = j  # reset
 
@@ -856,7 +865,7 @@ class Remote:
                 return (lr["id"], l)
 
             except googleapiclient.errors.HttpError as excep:
-                if excep.resp.status == 403 or excep.resp.status == 500:
+                if excep.resp.status in (403, 429, 500):
                     self.__request_done__(False)
                     return self.__create_label__(l)
                 else:
