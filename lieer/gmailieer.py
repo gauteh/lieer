@@ -563,12 +563,18 @@ class Gmailieer:
             # resolve changes
             self.bar_create(leave=True, total=len(gids), desc="resolving changes")
             actions = []
-            for rm, nm in zip(remote_messages, messages):
-                actions.append(
-                    self.remote.update(
-                        rm, nm, self.local.state.last_historyId, self.force
+            # Map remote messages by ID so missing entries (e.g. 404s) do not shift
+            # the alignment between local and remote messages in the push batch.
+            rm_by_id = {rm["id"]: rm for rm in remote_messages if rm and "id" in rm}
+            for gid, nm in zip(gids, messages):
+                rm = rm_by_id.get(gid)
+                # Skip messages that no longer exist remotely; remaining pairs still match
+                if rm is not None:
+                    actions.append(
+                        self.remote.update(
+                            rm, nm, self.local.state.last_historyId, self.force
+                        )
                     )
-                )
                 self.bar_update(1)
 
             self.bar_close()
