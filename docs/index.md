@@ -176,8 +176,34 @@ Lieer can be configured using `gmi set`. Use without any options to get a list o
 **`Replace slash with dot`** is used to replace the sub-label separator (`/`) with a dot (`.`). I think this is easier to work with. *Important*: See note below on [changing this setting after initial sync](#changing-ignored-tags-and-translation-after-initial-sync).
 
 **`Ignore tags (local)`** can be used to specify a list of tags which should not be synced from local to remote (e.g. [`new`](#usage)). In addition to the user-configured tags these tags are ignored: `'attachment', 'encrypted', 'signed', 'passed', 'replied', 'muted', 'mute', 'todo', 'Trash', 'voicemail'`. Some are special tags in notmuch and some are unsupported by GMail. See [Caveats](#caveats) below for more explanations. *Note:* This setting expects [_translated_ tags](#translation-between-labels-and-tags).
-  
+
   *Important*: See note below on [changing this setting after initial sync](#changing-ignored-tags-and-translation-after-initial-sync).
+
+**`Ignore tags regex (local)`** can be used to specify a list of regex patterns for tags which should not be synced from local to remote. This works in addition to the exact-match `Ignore tags (local)` setting. A tag is ignored if it matches ANY pattern (union/OR logic).
+
+Patterns use Python regex syntax with search matching (pattern can match anywhere in the tag). Patterns are case-sensitive.
+
+Example patterns:
+- `^draft-.*` - Ignores tags starting with "draft-" (e.g., `draft-v1`, `draft-reply`)
+- `.*-temp$` - Ignores tags ending with "-temp" (e.g., `work-temp`, `file-temp`)
+- `work/.*` - Ignores tags containing "work/" (e.g., `work/project`, `work/email`)
+- `^(temp|draft|wip)-` - Ignores tags starting with "temp-", "draft-", or "wip-"
+
+*Note:* This setting expects [_translated_ tags](#translation-between-labels-and-tags), same as `Ignore tags (local)`.
+
+*Important*: See note below on [changing this setting after initial sync](#changing-ignored-tags-and-translation-after-initial-sync). Invalid regex patterns will generate warnings but won't prevent the tool from running.
+
+Usage:
+```bash
+# Set regex patterns (comma-separated)
+gmi set --ignore-tags-regex-local "^draft-.*,^temp-.*,work/.*"
+
+# Clear regex patterns
+gmi set --ignore-tags-regex-local ""
+
+# View current settings
+gmi set
+```
 
 **`Ignore tags (remote)`** can be used to specify a list of tags (labels) which should not be synced from remote (GMail) to local. By default the [`CATEGORY_*` type](https://developers.google.com/gmail/api/guides/labels) labels which are mapped to the Personal/Promotions/etc tabs in the GMail interface are ignored. You can specify that no label should ignored by doing: `gmi set --ignore-tags-remote ""`. *Note:* This setting expects [_*un*translated_ tags](#translation-between-labels-and-tags).
   
@@ -202,7 +228,7 @@ Before changing either setting make sure you are fully synchronized. After chang
 
 When changing the opposite setting: `--ignore-tags-local`, do a full push (dry-run first): `gmi push -f --dry-run`.
 
-The same goes for the options `--replace-slash-with-dot` and `--local-trash-tag`. I prefer to do `gmi pull -f --dry-run` after changing this option. This will overwrite the local tags with the remote labels.
+The same goes for the options `--ignore-tags-regex-local`, `--replace-slash-with-dot` and `--local-trash-tag`. I prefer to do `gmi pull -f --dry-run` after changing this option. This will overwrite the local tags with the remote labels.
 
 
 # Translation between labels and tags
