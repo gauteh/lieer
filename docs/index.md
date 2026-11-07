@@ -27,7 +27,10 @@ While Lieer has been used to successfully synchronize millions of messages and t
 
 ## Installation
 
-After cloning the repository Lieer can be installed through pip by using the command ```pip install .```
+After cloning the repository, install Lieer and its dependencies with [uv](https://docs.astral.sh/uv/) by running `uv sync` in the repository root.
+This creates a virtual environment in `.venv`;
+run Lieer with `uv run gmi` or activate the environment (`source .venv/bin/activate`) to use `gmi` directly.
+
 # Usage
 
 This assumes your root mail folder is in `~/.mail` and that this folder is _already_ set up with notmuch.

@@ -1,0 +1,37 @@
+[project]
+name = "lieer"
+version = "1.6"
+description = "Fast fetch and two-way tag synchronization between notmuch and GMail"
+readme = "README.md"
+authors = [{ name = "Gaute Hope", email = "eg@gaute.vetsj.com" }]
+license = "GPL-3.0-or-later"
+license-files = ["COPYING.GPL-3.0*", "LICENSE.md"]
+keywords = ["gmail", "notmuch", "synchronization", "tags"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+]
+requires-python = ">=3.9,<4"
+dependencies = [
+    "google_auth_oauthlib",
+    "google-api-python-client",
+    "tqdm",
+    "notmuch2",
+]
+
+[project.urls]
+Homepage = "https://github.com/gauteh/lieer"
+
+[project.scripts]
+gmi = "lieer:main"
+
+[dependency-groups]
+dev = ["pytest", "ruff"]
+
+[build-system]
+requires = ["uv_build>=0.13.5,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+# Flat layout: the `lieer` package lives at the repository root.
+module-root = ""
