@@ -313,4 +313,4 @@ the time being, `trash` will be preferred over `spam`, and `spam` over `inbox`.
 
 # Development
 
-Github actions are configured to check for python code formatted by [black](https://black.readthedocs.io/en/stable/integrations/github_actions.html).
+Github actions are configured to check for python code formatted by [ruff](https://docs.astral.sh/ruff/).
