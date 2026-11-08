@@ -160,17 +160,14 @@ class Remote:
             self._delay_ok = 0
             if self._delay <= self.MAX_DELAY:
                 print(
-                    "remote: request failed, increasing delay between requests to: %d s"
-                    % self._delay
+                    f"remote: request failed, increasing delay between requests to: {self._delay} s"
                 )
             else:
                 print(
-                    "remote: increased delay to more than maximum of %d s."
-                    % self.MAX_DELAY
+                    f"remote: increased delay to more than maximum of {self.MAX_DELAY} s."
                 )
                 raise Remote.GenericException(
-                    "cannot increase delay more to more than maximum %d s"
-                    % self.MAX_DELAY
+                    f"cannot increase delay more to more than maximum {self.MAX_DELAY} s"
                 )
 
     @__require_auth__
@@ -419,21 +416,19 @@ class Remote:
                 req_ok += 1
                 if max_req < self.BATCH_REQUEST_SIZE and req_ok > 0:
                     max_req = min(max_req * 2, self.BATCH_REQUEST_SIZE)
-                    print("remote: increasing batch request size to: %d" % max_req)
+                    print(f"remote: increasing batch request size to: {max_req}")
                     req_ok = 0
 
                 conn_errors = 0
 
             except Remote.UserRateException:
                 user_rate_delay = user_rate_delay * 2 + 1
-                print(
-                    f"remote: user rate error, increasing delay to {user_rate_delay}"
-                )
+                print(f"remote: user rate error, increasing delay to {user_rate_delay}")
                 user_rate_ok = 0
 
                 # Reduce batch size to decrease concurrency
                 max_req = max(max_req // 2, self.MIN_BATCH_REQUEST_SIZE)
-                print("remote: reducing batch request size to: %d" % max_req)
+                print(f"remote: reducing batch request size to: {max_req}")
                 req_ok = 0
 
                 i = j  # reset
@@ -444,7 +439,7 @@ class Remote:
 
                 if max_req >= self.MIN_BATCH_REQUEST_SIZE:
                     i = j  # reset
-                    print("remote: reducing batch request size to: %d" % max_req)
+                    print(f"remote: reducing batch request size to: {max_req}")
                 else:
                     max_req = self.MIN_BATCH_REQUEST_SIZE
                     raise Remote.BatchException("cannot reduce request any further")
@@ -670,8 +665,7 @@ class Remote:
             hist_id = int(gmsg["historyId"])
             if hist_id > last_hist and not force:
                 print(
-                    "update: remote has changed, will not update: %s (add: %s, rem: %s) (%d > %d)"
-                    % (gid, add, rem, hist_id, last_hist)
+                    f"update: remote has changed, will not update: {gid} (add: {add}, rem: {rem}) ({hist_id} > {last_hist})"
                 )
                 self.all_updated = False
                 return None
@@ -687,12 +681,11 @@ class Remote:
                         f"update: {gid}: Trying to add both TRASH and INBOX, dropping INBOX (add: {add}, rem: {rem})"
                     )
                     add.remove("INBOX")
-            elif "SPAM" in add:
-                if "INBOX" in add:
-                    print(
-                        "update: {gid}: Trying to add both SPAM and INBOX, dropping INBOX (add: {add}, rem: {rem})"
-                    )
-                    add.remove("INBOX")
+            elif "SPAM" in add and "INBOX" in add:
+                print(
+                    "update: {gid}: Trying to add both SPAM and INBOX, dropping INBOX (add: {add}, rem: {rem})"
+                )
+                add.remove("INBOX")
 
             self.print_changes(f"gid: {gid}: add: {str(add)}, remove: {str(rem)}")
             if self.dry_run:
@@ -812,14 +805,12 @@ class Remote:
 
             except Remote.UserRateException:
                 user_rate_delay = user_rate_delay * 2 + 1
-                print(
-                    f"remote: user rate error, increasing delay to {user_rate_delay}"
-                )
+                print(f"remote: user rate error, increasing delay to {user_rate_delay}")
                 user_rate_ok = 0
 
                 # Reduce batch size to decrease concurrency
                 max_req = max(max_req // 2, self.MIN_BATCH_REQUEST_SIZE)
-                print("remote: reducing batch request size to: %d" % max_req)
+                print(f"remote: reducing batch request size to: {max_req}")
 
                 i = j  # reset
 
@@ -827,7 +818,7 @@ class Remote:
                 if max_req > self.MIN_BATCH_REQUEST_SIZE:
                     max_req = max_req / 2
                     i = j  # reset
-                    print("reducing batch request size to: %d" % max_req)
+                    print(f"reducing batch request size to: {int(max_req)}")
                 else:
                     raise Remote.BatchException("cannot reduce request any further")
 

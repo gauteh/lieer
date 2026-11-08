@@ -534,11 +534,7 @@ class Gmailieer:
                 self.vprint("push: everything is up-to-date.")
                 return
 
-            qry = "path:%s/** and lastmod:%d..%d" % (
-                self.local.nm_relative,
-                self.local.state.lastmod,
-                rev,
-            )
+            qry = f"path:{self.local.nm_relative}/** and lastmod:{self.local.state.lastmod}..{rev}"
 
             messages = [db.get(m.path) for m in db.messages(qry)]
 
@@ -598,7 +594,7 @@ class Gmailieer:
                     self.bar_update(1)
                     changed += 1
                     if not self.args.quiet and self.bar:
-                        self.bar.set_description("pushing, %d changed" % changed)
+                        self.bar.set_description(f"pushing, {changed} changed")
 
                 self.remote.push_changes(actions, cb)
 
@@ -620,8 +616,7 @@ class Gmailieer:
             self.local.state.set_lastmod(rev)
 
         self.vprint(
-            "remote historyId: %d"
-            % self.remote.get_current_history_id(self.local.state.last_historyId)
+            f"remote historyId: {self.remote.get_current_history_id(self.local.state.last_historyId)}"
         )
 
     def pull(self, args, setup=False):
@@ -652,8 +647,7 @@ class Gmailieer:
 
         else:
             self.vprint(
-                "pull: partial synchronization.. (hid: %d)"
-                % self.local.state.last_historyId
+                f"pull: partial synchronization.. (hid: {self.local.state.last_historyId})"
             )
             self.partial_pull()
 
@@ -818,7 +812,7 @@ class Gmailieer:
                     if r:
                         lchanged += 1
                         if not self.args.quiet and self.bar:
-                            self.bar.set_description("updating tags (%d)" % lchanged)
+                            self.bar.set_description(f"updating tags ({lchanged})")
 
                     self.bar_update(1)
                 self.bar_close()
@@ -832,7 +826,7 @@ class Gmailieer:
             self.local.state.set_last_history_id(last_id)
 
         if last_id > 0:
-            self.vprint("current historyId: %d" % last_id)
+            self.vprint(f"current historyId: {last_id}")
 
     def full_pull(self):
         total = 1
@@ -912,8 +906,7 @@ class Gmailieer:
 
             if self.resume:
                 self.vprint(
-                    "pull: resume: skipping metadata for %d messages"
-                    % len(previous.meta_fetched)
+                    f"pull: resume: skipping metadata for {len(previous.meta_fetched)} messages"
                 )
                 needs_update = list(set(needs_update) - set(previous.meta_fetched))
 
@@ -937,7 +930,7 @@ class Gmailieer:
         self.vprint("pull: complete, removing resume file")
         previous.delete()
 
-        self.vprint("current historyId: %d, current revision: %d" % (last_id, rev))
+        self.vprint(f"current historyId: {last_id}, current revision: {rev}")
         if self.resume:
             self.vprint("pull: resume: performing partial pull to complete")
             self.partial_pull()
@@ -1167,8 +1160,8 @@ class Gmailieer:
 
         print("Repository information and settings:")
         print(f"Account ...........: {self.local.config.account}")
-        print("historyId .........: %d" % self.local.state.last_historyId)
-        print("lastmod ...........: %d" % self.local.state.lastmod)
+        print(f"historyId .........: {self.local.state.last_historyId}")
+        print(f"lastmod ...........: {self.local.state.lastmod}")
         print(f"Timeout ...........: {self.local.config.timeout:f}")
         print(f"File extension ....: {self.local.config.file_extension}")
         print("Remove local messages .....:", self.local.config.remove_local_messages)
