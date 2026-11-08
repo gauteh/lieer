@@ -94,6 +94,6 @@ class tqdm:
             o = o + "%02dm:" % m
             above = True
 
-        o = o + "%06.3fs" % s
+        o = o + f"{s:06.3f}s"
 
         return o

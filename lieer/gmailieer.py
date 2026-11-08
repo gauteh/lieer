@@ -461,7 +461,7 @@ class Gmailieer:
 
         # common options
         if args.path is not None:
-            self.vprint("path: %s" % args.path)
+            self.vprint(f"path: {args.path}")
             if args.action == "init" and not os.path.exists(args.path):
                 os.makedirs(args.path)
 
@@ -470,8 +470,8 @@ class Gmailieer:
                 self.cwd = os.getcwd()
                 os.chdir(args.path)
             else:
-                print("error: %s is not a valid path!" % args.path)
-                raise NotADirectoryError("error: %s is not a valid path!" % args.path)
+                print(f"error: {args.path} is not a valid path!")
+                raise NotADirectoryError(f"error: {args.path} is not a valid path!")
 
         self.dry_run = dry_run
         self.verbose = args.verbose
@@ -1022,7 +1022,7 @@ class Gmailieer:
             try:
                 return ResumePull.load(f)
             except Exception as ex:
-                self.vprint("failed to load resume file, creating new: %s" % ex)
+                self.vprint(f"failed to load resume file, creating new: {ex}")
                 return ResumePull.new(f, lastid)
         else:
             return ResumePull.new(f, lastid)
@@ -1070,11 +1070,11 @@ class Gmailieer:
                 )
             )
 
-        self.vprint("sending message, from: %s.." % (eml.get("From")))
+        self.vprint("sending message, from: {}..".format(eml.get("From")))
 
         if "In-Reply-To" in eml:
             repl = eml["In-Reply-To"].strip().strip("<>")
-            self.vprint("looking for original message: %s" % repl)
+            self.vprint(f"looking for original message: {repl}")
             with notmuch2.Database(mode=notmuch2.Database.MODE.READ_ONLY) as db:
                 try:
                     nmsg = db.find(repl)
@@ -1094,7 +1094,7 @@ class Gmailieer:
                         gmsg = self.remote.get_message(gids[0])
                         threadId = gmsg["threadId"]
                         self.vprint(
-                            "found existing thread for new message: %s" % threadId
+                            f"found existing thread for new message: {threadId}"
                         )
                     else:
                         self.vprint(
@@ -1109,7 +1109,7 @@ class Gmailieer:
             msg = self.remote.send(msg, threadId)
             self.get_content([msg["id"]])
             self.get_meta([msg["id"]])
-            self.vprint("message sent successfully: %s" % msg["id"])
+            self.vprint("message sent successfully: {}".format(msg["id"]))
         else:
             self.vprint("message sent successfully: dry-run")
 
@@ -1166,11 +1166,11 @@ class Gmailieer:
             )
 
         print("Repository information and settings:")
-        print("Account ...........: %s" % self.local.config.account)
+        print(f"Account ...........: {self.local.config.account}")
         print("historyId .........: %d" % self.local.state.last_historyId)
         print("lastmod ...........: %d" % self.local.state.lastmod)
-        print("Timeout ...........: %f" % self.local.config.timeout)
-        print("File extension ....: %s" % self.local.config.file_extension)
+        print(f"Timeout ...........: {self.local.config.timeout:f}")
+        print(f"File extension ....: {self.local.config.file_extension}")
         print("Remove local messages .....:", self.local.config.remove_local_messages)
         print("Drop non existing labels...:", self.local.config.drop_non_existing_label)
         print("Ignore empty history ......:", self.local.config.ignore_empty_history)
