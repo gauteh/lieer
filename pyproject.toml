@@ -23,7 +23,7 @@ dependencies = [
 Homepage = "https://github.com/gauteh/lieer"
 
 [project.scripts]
-gmi = "lieer:main"
+gmi = "lieer.__main__:main"
 
 [dependency-groups]
 dev = ["pytest", "ruff"]
