@@ -683,7 +683,7 @@ class Remote:
                     add.remove("INBOX")
             elif "SPAM" in add and "INBOX" in add:
                 print(
-                    "update: {gid}: Trying to add both SPAM and INBOX, dropping INBOX (add: {add}, rem: {rem})"
+                    f"update: {gid}: Trying to add both SPAM and INBOX, dropping INBOX (add: {add}, rem: {rem})"
                 )
                 add.remove("INBOX")
 
