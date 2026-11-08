@@ -816,9 +816,9 @@ class Remote:
 
             except Remote.BatchException:
                 if max_req > self.MIN_BATCH_REQUEST_SIZE:
-                    max_req = max_req / 2
+                    max_req = max_req // 2
                     i = j  # reset
-                    print(f"reducing batch request size to: {int(max_req)}")
+                    print(f"reducing batch request size to: {max_req}")
                 else:
                     raise Remote.BatchException("cannot reduce request any further")
 
