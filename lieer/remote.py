@@ -52,7 +52,7 @@ class Remote:
         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
         "token_uri": "https://accounts.google.com/o/oauth2/token",
         "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        "client_secret": "8oudEG0Tvb7YI2V0ykp2Pzz9",
+        "client_secret": "8oudEG0Tvb7YI2V0ykp2Pzz9",  # pragma: allowlist secret
         "redirect_uris": ["urn:ietf:wg:oauth:2.0:oob", "http://localhost"],
     }
 
