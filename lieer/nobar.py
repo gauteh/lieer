@@ -39,7 +39,7 @@ class tqdm:
             self.iterable = (i for i in iterable)
 
     def __next__(self):
-        if self.iterable is not None:
+        if getattr(self, "iterable", None) is not None:
             self.update(1)
 
             try:
