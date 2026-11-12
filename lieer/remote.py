@@ -261,9 +261,12 @@ class Remote:
                 .execute()
             )
 
-            if "history" in _results:
+            # Follow the page token of the page we just got, also when it is
+            # empty. Otherwise an ignored empty page is requested forever.
+            results = _results
+
+            if "history" in results:
                 self.__request_done__(True)
-                results = _results
                 yield results["history"]
             else:
                 print("remote: no 'history' when more pages were indicated.")
