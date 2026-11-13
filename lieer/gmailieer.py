@@ -461,7 +461,7 @@ class Gmailieer:
 
         # common options
         if args.path is not None:
-            self.vprint("path: %s" % args.path)
+            self.vprint(f"path: {args.path}")
             if args.action == "init" and not os.path.exists(args.path):
                 os.makedirs(args.path)
 
@@ -470,8 +470,8 @@ class Gmailieer:
                 self.cwd = os.getcwd()
                 os.chdir(args.path)
             else:
-                print("error: %s is not a valid path!" % args.path)
-                raise NotADirectoryError("error: %s is not a valid path!" % args.path)
+                print(f"error: {args.path} is not a valid path!")
+                raise NotADirectoryError(f"error: {args.path} is not a valid path!")
 
         self.dry_run = dry_run
         self.verbose = args.verbose
@@ -534,11 +534,7 @@ class Gmailieer:
                 self.vprint("push: everything is up-to-date.")
                 return
 
-            qry = "path:%s/** and lastmod:%d..%d" % (
-                self.local.nm_relative,
-                self.local.state.lastmod,
-                rev,
-            )
+            qry = f"path:{self.local.nm_relative}/** and lastmod:{self.local.state.lastmod}..{rev}"
 
             messages = [db.get(m.path) for m in db.messages(qry)]
 
@@ -598,7 +594,7 @@ class Gmailieer:
                     self.bar_update(1)
                     changed += 1
                     if not self.args.quiet and self.bar:
-                        self.bar.set_description("pushing, %d changed" % changed)
+                        self.bar.set_description(f"pushing, {changed} changed")
 
                 self.remote.push_changes(actions, cb)
 
@@ -620,8 +616,7 @@ class Gmailieer:
             self.local.state.set_lastmod(rev)
 
         self.vprint(
-            "remote historyId: %d"
-            % self.remote.get_current_history_id(self.local.state.last_historyId)
+            f"remote historyId: {self.remote.get_current_history_id(self.local.state.last_historyId)}"
         )
 
     def pull(self, args, setup=False):
@@ -652,8 +647,7 @@ class Gmailieer:
 
         else:
             self.vprint(
-                "pull: partial synchronization.. (hid: %d)"
-                % self.local.state.last_historyId
+                f"pull: partial synchronization.. (hid: {self.local.state.last_historyId})"
             )
             self.partial_pull()
 
@@ -818,7 +812,7 @@ class Gmailieer:
                     if r:
                         lchanged += 1
                         if not self.args.quiet and self.bar:
-                            self.bar.set_description("updating tags (%d)" % lchanged)
+                            self.bar.set_description(f"updating tags ({lchanged})")
 
                     self.bar_update(1)
                 self.bar_close()
@@ -832,7 +826,7 @@ class Gmailieer:
             self.local.state.set_last_history_id(last_id)
 
         if last_id > 0:
-            self.vprint("current historyId: %d" % last_id)
+            self.vprint(f"current historyId: {last_id}")
 
     def full_pull(self):
         total = 1
@@ -912,8 +906,7 @@ class Gmailieer:
 
             if self.resume:
                 self.vprint(
-                    "pull: resume: skipping metadata for %d messages"
-                    % len(previous.meta_fetched)
+                    f"pull: resume: skipping metadata for {len(previous.meta_fetched)} messages"
                 )
                 needs_update = list(set(needs_update) - set(previous.meta_fetched))
 
@@ -937,7 +930,7 @@ class Gmailieer:
         self.vprint("pull: complete, removing resume file")
         previous.delete()
 
-        self.vprint("current historyId: %d, current revision: %d" % (last_id, rev))
+        self.vprint(f"current historyId: {last_id}, current revision: {rev}")
         if self.resume:
             self.vprint("pull: resume: performing partial pull to complete")
             self.partial_pull()
@@ -1022,7 +1015,7 @@ class Gmailieer:
             try:
                 return ResumePull.load(f)
             except Exception as ex:
-                self.vprint("failed to load resume file, creating new: %s" % ex)
+                self.vprint(f"failed to load resume file, creating new: {ex}")
                 return ResumePull.new(f, lastid)
         else:
             return ResumePull.new(f, lastid)
@@ -1070,11 +1063,11 @@ class Gmailieer:
                 )
             )
 
-        self.vprint("sending message, from: %s.." % (eml.get("From")))
+        self.vprint("sending message, from: {}..".format(eml.get("From")))
 
         if "In-Reply-To" in eml:
             repl = eml["In-Reply-To"].strip().strip("<>")
-            self.vprint("looking for original message: %s" % repl)
+            self.vprint(f"looking for original message: {repl}")
             with notmuch2.Database(mode=notmuch2.Database.MODE.READ_ONLY) as db:
                 try:
                     nmsg = db.find(repl)
@@ -1094,7 +1087,7 @@ class Gmailieer:
                         gmsg = self.remote.get_message(gids[0])
                         threadId = gmsg["threadId"]
                         self.vprint(
-                            "found existing thread for new message: %s" % threadId
+                            f"found existing thread for new message: {threadId}"
                         )
                     else:
                         self.vprint(
@@ -1109,7 +1102,7 @@ class Gmailieer:
             msg = self.remote.send(msg, threadId)
             self.get_content([msg["id"]])
             self.get_meta([msg["id"]])
-            self.vprint("message sent successfully: %s" % msg["id"])
+            self.vprint("message sent successfully: {}".format(msg["id"]))
         else:
             self.vprint("message sent successfully: dry-run")
 
@@ -1166,11 +1159,11 @@ class Gmailieer:
             )
 
         print("Repository information and settings:")
-        print("Account ...........: %s" % self.local.config.account)
-        print("historyId .........: %d" % self.local.state.last_historyId)
-        print("lastmod ...........: %d" % self.local.state.lastmod)
-        print("Timeout ...........: %f" % self.local.config.timeout)
-        print("File extension ....: %s" % self.local.config.file_extension)
+        print(f"Account ...........: {self.local.config.account}")
+        print(f"historyId .........: {self.local.state.last_historyId}")
+        print(f"lastmod ...........: {self.local.state.lastmod}")
+        print(f"Timeout ...........: {self.local.config.timeout:f}")
+        print(f"File extension ....: {self.local.config.file_extension}")
         print("Remove local messages .....:", self.local.config.remove_local_messages)
         print("Drop non existing labels...:", self.local.config.drop_non_existing_label)
         print("Ignore empty history ......:", self.local.config.ignore_empty_history)

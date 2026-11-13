@@ -28,7 +28,7 @@ class tqdm:
         self.kwargs = kwargs
 
         if total is not None:
-            print(desc, "(%d)" % total, "...", end="", flush=True)
+            print(desc, f"({total})", "...", end="", flush=True)
         else:
             print(desc, "...", end="", flush=True)
 
@@ -83,17 +83,17 @@ class tqdm:
         o = ""
         above = False
         if dys > 0:
-            o = "%dd-" % dys
+            o = f"{dys}d-"
             above = True
 
         if above or h > 0:
-            o = o + "%02dh:" % h
+            o = o + f"{h:02d}h:"
             above = True
 
         if above or m > 0:
-            o = o + "%02dm:" % m
+            o = o + f"{m:02d}m:"
             above = True
 
-        o = o + "%06.3fs" % s
+        o = o + f"{s:06.3f}s"
 
         return o

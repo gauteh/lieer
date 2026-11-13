@@ -52,7 +52,7 @@ class Remote:
         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
         "token_uri": "https://accounts.google.com/o/oauth2/token",
         "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        "client_secret": "8oudEG0Tvb7YI2V0ykp2Pzz9",
+        "client_secret": "8oudEG0Tvb7YI2V0ykp2Pzz9",  # pragma: allowlist secret
         "redirect_uris": ["urn:ietf:wg:oauth:2.0:oob", "http://localhost"],
     }
 
@@ -160,17 +160,14 @@ class Remote:
             self._delay_ok = 0
             if self._delay <= self.MAX_DELAY:
                 print(
-                    "remote: request failed, increasing delay between requests to: %d s"
-                    % self._delay
+                    f"remote: request failed, increasing delay between requests to: {self._delay} s"
                 )
             else:
                 print(
-                    "remote: increased delay to more than maximum of %d s."
-                    % self.MAX_DELAY
+                    f"remote: increased delay to more than maximum of {self.MAX_DELAY} s."
                 )
                 raise Remote.GenericException(
-                    "cannot increase delay more to more than maximum %d s"
-                    % self.MAX_DELAY
+                    f"cannot increase delay more to more than maximum {self.MAX_DELAY} s"
                 )
 
     @__require_auth__
@@ -347,9 +344,7 @@ class Remote:
 
         conn_errors = 0
 
-        msg_batch = (
-            []
-        )  # queue up received batch and send in one go to content / db routine
+        msg_batch = []  # queue up received batch and send in one go to content / db routine
 
         def _cb(rid, resp, excep):
             nonlocal j, msg_batch
@@ -360,7 +355,7 @@ class Remote:
                 ):
                     # message could not be found this is probably a deleted message, spam or draft
                     # message since these are not included in the messages.get() query by default.
-                    print("remote: could not find remote message: %s!" % gids[j])
+                    print(f"remote: could not find remote message: {gids[j]}!")
                     j += 1
                     return
 
@@ -370,15 +365,16 @@ class Remote:
                 ):
                     # message id invalid, probably caused by stray files in the mail repo
                     print(
-                        "remote: message id: %s is invalid! are there any non-lieer files created in the lieer repository?"
-                        % gids[j]
+                        f"remote: message id: {gids[j]} is invalid! are there any non-lieer files created in the lieer repository?"
                     )
                     j += 1
                     return
 
-                elif (
-                    type(excep) is googleapiclient.errors.HttpError
-                    and excep.resp.status in (403, 429)
+                elif type(
+                    excep
+                ) is googleapiclient.errors.HttpError and excep.resp.status in (
+                    403,
+                    429,
                 ):
                     raise Remote.UserRateException(excep)
 
@@ -406,7 +402,7 @@ class Remote:
 
             # we wait if there is a user_rate_delay
             if user_rate_delay:
-                print("remote: waiting %.1f seconds.." % user_rate_delay)
+                print(f"remote: waiting {user_rate_delay:.1f} seconds..")
                 time.sleep(user_rate_delay)
 
             try:
@@ -416,28 +412,26 @@ class Remote:
                 user_rate_ok += 1
                 if user_rate_delay > 0 and user_rate_ok > 0:
                     user_rate_delay = user_rate_delay // 2
-                    print("remote: decreasing delay to %s" % user_rate_delay)
+                    print(f"remote: decreasing delay to {user_rate_delay}")
                     user_rate_ok = 0
 
                 # gradually increase batch request size upon every ok request
                 req_ok += 1
                 if max_req < self.BATCH_REQUEST_SIZE and req_ok > 0:
                     max_req = min(max_req * 2, self.BATCH_REQUEST_SIZE)
-                    print("remote: increasing batch request size to: %d" % max_req)
+                    print(f"remote: increasing batch request size to: {max_req}")
                     req_ok = 0
 
                 conn_errors = 0
 
             except Remote.UserRateException:
                 user_rate_delay = user_rate_delay * 2 + 1
-                print(
-                    "remote: user rate error, increasing delay to %s" % user_rate_delay
-                )
+                print(f"remote: user rate error, increasing delay to {user_rate_delay}")
                 user_rate_ok = 0
 
                 # Reduce batch size to decrease concurrency
                 max_req = max(max_req // 2, self.MIN_BATCH_REQUEST_SIZE)
-                print("remote: reducing batch request size to: %d" % max_req)
+                print(f"remote: reducing batch request size to: {max_req}")
                 req_ok = 0
 
                 i = j  # reset
@@ -448,7 +442,7 @@ class Remote:
 
                 if max_req >= self.MIN_BATCH_REQUEST_SIZE:
                     i = j  # reset
-                    print("remote: reducing batch request size to: %d" % max_req)
+                    print(f"remote: reducing batch request size to: {max_req}")
                 else:
                     max_req = self.MIN_BATCH_REQUEST_SIZE
                     raise Remote.BatchException("cannot reduce request any further")
@@ -564,8 +558,7 @@ class Remote:
                 print("auth: using user-provided api id and secret")
                 if not os.path.exists(self.CLIENT_SECRET_FILE):
                     raise Remote.GenericException(
-                        "error: no secret client API key file found for authentication at: %s"
-                        % self.CLIENT_SECRET_FILE
+                        f"error: no secret client API key file found for authentication at: {self.CLIENT_SECRET_FILE}"
                     )
 
                 flow = InstalledAppFlow.from_client_secrets_file(
@@ -620,8 +613,7 @@ class Remote:
         # just skip it and it should be resolved on the next pull.
         if not found:
             print(
-                "update: gid does not match any file name of message, probably a draft, skipping: %s"
-                % gid
+                f"update: gid does not match any file name of message, probably a draft, skipping: {gid}"
             )
             return None
 
@@ -676,8 +668,7 @@ class Remote:
             hist_id = int(gmsg["historyId"])
             if hist_id > last_hist and not force:
                 print(
-                    "update: remote has changed, will not update: %s (add: %s, rem: %s) (%d > %d)"
-                    % (gid, add, rem, hist_id, last_hist)
+                    f"update: remote has changed, will not update: {gid} (add: {add}, rem: {rem}) ({hist_id} > {last_hist})"
                 )
                 self.all_updated = False
                 return None
@@ -693,12 +684,11 @@ class Remote:
                         f"update: {gid}: Trying to add both TRASH and INBOX, dropping INBOX (add: {add}, rem: {rem})"
                     )
                     add.remove("INBOX")
-            elif "SPAM" in add:
-                if "INBOX" in add:
-                    print(
-                        "update: {gid}: Trying to add both SPAM and INBOX, dropping INBOX (add: {add}, rem: {rem})"
-                    )
-                    add.remove("INBOX")
+            elif "SPAM" in add and "INBOX" in add:
+                print(
+                    f"update: {gid}: Trying to add both SPAM and INBOX, dropping INBOX (add: {add}, rem: {rem})"
+                )
+                add.remove("INBOX")
 
             self.print_changes(f"gid: {gid}: add: {str(add)}, remove: {str(rem)}")
             if self.dry_run:
@@ -761,7 +751,7 @@ class Remote:
                 ):
                     # message could not be found this is probably a deleted message, spam or draft
                     # message since these are not included in the messages.get() query by default.
-                    print("remote: could not find remote message: %s!" % resp)
+                    print(f"remote: could not find remote message: {resp}!")
                     j += 1
                     return
 
@@ -771,15 +761,16 @@ class Remote:
                 ):
                     # message id invalid, probably caused by stray files in the mail repo
                     print(
-                        "remote: message id is invalid! are there any non-lieer files created in the lieer repository? %s"
-                        % resp
+                        f"remote: message id is invalid! are there any non-lieer files created in the lieer repository? {resp}"
                     )
                     j += 1
                     return
 
-                elif (
-                    type(excep) is googleapiclient.errors.HttpError
-                    and excep.resp.status in (403, 429)
+                elif type(
+                    excep
+                ) is googleapiclient.errors.HttpError and excep.resp.status in (
+                    403,
+                    429,
                 ):
                     raise Remote.UserRateException(excep)
 
@@ -803,7 +794,7 @@ class Remote:
 
             # we wait if there is a user_rate_delay
             if user_rate_delay:
-                print("remote: waiting %.1f seconds.." % user_rate_delay)
+                print(f"remote: waiting {user_rate_delay:.1f} seconds..")
                 time.sleep(user_rate_delay)
 
             try:
@@ -817,22 +808,20 @@ class Remote:
 
             except Remote.UserRateException:
                 user_rate_delay = user_rate_delay * 2 + 1
-                print(
-                    "remote: user rate error, increasing delay to %s" % user_rate_delay
-                )
+                print(f"remote: user rate error, increasing delay to {user_rate_delay}")
                 user_rate_ok = 0
 
                 # Reduce batch size to decrease concurrency
                 max_req = max(max_req // 2, self.MIN_BATCH_REQUEST_SIZE)
-                print("remote: reducing batch request size to: %d" % max_req)
+                print(f"remote: reducing batch request size to: {max_req}")
 
                 i = j  # reset
 
             except Remote.BatchException:
                 if max_req > self.MIN_BATCH_REQUEST_SIZE:
-                    max_req = max_req / 2
+                    max_req = max_req // 2
                     i = j  # reset
-                    print("reducing batch request size to: %d" % max_req)
+                    print(f"reducing batch request size to: {max_req}")
                 else:
                     raise Remote.BatchException("cannot reduce request any further")
 
@@ -847,7 +836,7 @@ class Remote:
 
         """
 
-        print("push: creating label: %s.." % l)
+        print(f"push: creating label: {l}..")
 
         label = {
             "messageListVisibility": "show",

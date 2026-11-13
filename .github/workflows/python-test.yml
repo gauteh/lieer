@@ -22,11 +22,11 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install notmuch
@@ -35,23 +35,21 @@ jobs:
         sudo apt-get install libnotmuch-dev
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install pytest ruff
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        uv sync
     - name: Lint with ruff
       run: |
-        ruff --output-format=github .
+        uv run ruff check --output-format=github .
     - name: Test with pytest
       run: |
-        pytest -v tests
+        uv run pytest -v tests
 
     - name: Build wheels
       run: |
-        python setup.py sdist
+        uv build --sdist
 
     - name: Upload wheels
       if: matrix.python-version == '3.10'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: wheels
         path: dist
@@ -62,18 +60,13 @@ jobs:
     if: "startsWith(github.ref, 'refs/tags/')"
     needs: [ tests ]
     steps:
-      - uses: actions/download-artifact@v4.1.7
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: wheels
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          python-version: '3.10'
-          miniforge-version: latest
-          miniforge-variant: Mambaforge
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - name: Publish to PyPi
         env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_PASSWORD }}
         run: |
-          pip install --upgrade twine
-          twine upload --skip-existing *
+          uv publish --check-url https://pypi.org/simple/ *

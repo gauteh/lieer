@@ -38,8 +38,7 @@ class ResumePull:
             version = j["version"]
             if version != ResumePull.VERSION:
                 print(
-                    "error: mismatching version in resume file: %d != %d"
-                    % (version, ResumePull.VERSION)
+                    f"error: mismatching version in resume file: {version} != {ResumePull.VERSION}"
                 )
                 raise ValueError()
 

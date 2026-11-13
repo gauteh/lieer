@@ -440,7 +440,7 @@ class Local:
         """
         Sets up a local repository
         """
-        print("initializing repository in: %s.." % self.wd)
+        print(f"initializing repository in: {self.wd}..")
 
         # check if there is a repository here already or if there is anything that will conflict with setting up one
         if os.path.exists(self.config_f):
@@ -529,8 +529,7 @@ class Local:
             return fname[:f]
         else:
             print(
-                "'%s' does not contain valid maildir delimiter, correct file name extension, or does not seem to have a valid GID, ignoring."
-                % fname
+                f"'{fname}' does not contain valid maildir delimiter, correct file name extension, or does not seem to have a valid GID, ignoring."
             )
             return None
 
@@ -565,15 +564,15 @@ class Local:
         """
         Remove message from local store
         """
-        assert (
-            self.config.remove_local_messages
-        ), "tried to remove message when 'remove_local_messages' was set to False"
+        assert self.config.remove_local_messages, (
+            "tried to remove message when 'remove_local_messages' was set to False"
+        )
 
         fname = self.gids.get(gid, None)
         ffname = fname
 
         if fname is None:
-            print("remove: message does not exist in store: %s" % gid)
+            print(f"remove: message does not exist in store: {gid}")
             return
 
         fname = os.path.join(self.md, fname)
@@ -616,11 +615,11 @@ class Local:
         tmp_p = os.path.join(self.md, "tmp", bname)
 
         if os.path.exists(p):
-            raise Local.RepositoryException("local file already exists: %s" % p)
+            raise Local.RepositoryException(f"local file already exists: {p}")
 
         if os.path.exists(tmp_p):
             raise Local.RepositoryException(
-                "local temporary file already exists: %s" % tmp_p
+                f"local temporary file already exists: {tmp_p}"
             )
 
         if not self.dry_run:
@@ -688,10 +687,10 @@ class Local:
 
                 if not os.path.exists(fname):
                     raise Local.RepositoryException(
-                        "tried to update tags on non-existent file: %s" % fname
+                        f"tried to update tags on non-existent file: {fname}"
                     )
 
-            self.print_changes("tried to update tags on non-existent file: %s" % fname)
+            self.print_changes(f"tried to update tags on non-existent file: {fname}")
 
         try:
             nmsg = db.get(fname)
@@ -704,7 +703,7 @@ class Local:
                 try:
                     (nmsg, _) = db.add(fname, sync_flags=True)
                 except notmuch2.FileNotEmailError:
-                    print("%s is not an email" % fname)
+                    print(f"{fname} is not an email")
                     return True
 
                 # adding initial tags
