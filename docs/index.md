@@ -50,17 +50,19 @@ This assumes your root mail folder is in `~/.mail` and that this folder is _alre
    ignore=/.*[.](json|lock|bak)$/
    ```
 
-3. Initialize the mail storage:
+3. Create [your own OAuth 2 client](#using-your-own-oauth-2-client) and download its `client_secret.json`.
+
+4. Initialize the mail storage:
 
    ```sh
-   $ gmi init your.email@gmail.com
+   $ gmi init -c /path/to/client_secret.json your.email@gmail.com
    ```
 
    `gmi init` will now open your browser and request limited access to your e-mail.
 
-   > The access token is stored in `.credentials.gmailieer.json` in the local mail repository. If you wish, you can specify [your own api key](#using-your-own-api-key) that should be used.
+   > The access token is stored in `.credentials.gmailieer.json` in the local mail repository.
 
-4. You're now set up, and you can do the initial pull.
+5. You're now set up, and you can do the initial pull.
 
    > Use `gmi -h` or `gmi command -h` to get more usage information.
 
@@ -245,11 +247,7 @@ The 'trash' local tag can be replaced using the `--local-trash-tag` option.
 
 # Using your own OAuth 2 Client
 
-Lieer ships with a set of OAuth 2 credentials that is shared openly, this shares API quota, but [cannot be used to access data](https://github.com/gauteh/lieer/pull/9) unless access is gained to your private `access_token` or `refresh_token`.
-
-The minor risk of using these public OAuth 2 credentials is that a malicious application running on your computer could pretend to be the lieer application, and gain access to your Gmail account. Since that already involves a malicious application running on your computer, it could likely just read the existing `.credentials.gmailieer.json` file directly, making this attack not particularly interesting.
-
-In any case, you can generate your own OAuth 2 credentials instead. This requires you have a Google account and access to Google Cloud Platform.
+Lieer no longer ships with default OAuth 2 credentials (see [#293](https://github.com/gauteh/lieer/issues/293)), so you need to generate your own. This requires you have a Google account and access to Google Cloud Platform.
 
 1. [Create a project on GCP](https://cloud.google.com/resource-manager/docs/creating-managing-projects), or go to an existing one.
 2. [Enable access to the Gmail API](https://console.developers.google.com/flows/enableapi?apiid=gmail) for that GCP project

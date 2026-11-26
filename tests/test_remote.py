@@ -96,3 +96,18 @@ def test_ignored_empty_page_continues_to_next():
     }
     r = remote_with_pages(pages, True)
     assert list(r.get_history_since(1)) == [[{"id": "1"}], [{"id": "2"}]]
+
+
+def test_auth_without_client_secret_fails(monkeypatch, tmp_path):
+    def flow_started(*args, **kwargs):
+        pytest.fail("oauth flow started without a client secret file")
+
+    monkeypatch.setattr(
+        lieer.remote.InstalledAppFlow, "from_client_config", flow_started
+    )
+
+    g = MockRemoteGmi()
+    g.local.credentials_f = str(tmp_path / ".credentials.gmailieer.json")
+    r = lieer.Remote(g)
+    with pytest.raises(lieer.Remote.GenericException, match="gmi auth -c"):
+        r.authorize()
