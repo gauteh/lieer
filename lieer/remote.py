@@ -36,26 +36,6 @@ class Remote:
     CLIENT_SECRET_FILE = None
     authorized = False
 
-    # nothing to see here, move along..
-    #
-    # no seriously: this is not dangerous to keep here, in order to gain
-    # access to an users account the access_token and/or refresh_token must be
-    # compromised. these are stored locally.
-    #
-    # * https://github.com/gauteh/lieer/pull/9
-    # * https://stackoverflow.com/questions/25957027/oauth-2-installed-application-client-secret-considerationsgoogle-api/43061998#43061998
-    # * https://stackoverflow.com/questions/19615372/client-secret-in-oauth-2-0?rq=1
-    #
-    OAUTH2_CLIENT_SECRET = {
-        "client_id": "753933720722-ju82fu305lii0v9rdo6mf9hj40l5juv0.apps.googleusercontent.com",
-        "project_id": "capable-pixel-160614",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://accounts.google.com/o/oauth2/token",
-        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        "client_secret": "8oudEG0Tvb7YI2V0ykp2Pzz9",
-        "redirect_uris": ["urn:ietf:wg:oauth:2.0:oob", "http://localhost"],
-    }
-
     # Not used, here for documentation purposes
     special_labels = [
         "INBOX",
@@ -575,18 +555,11 @@ class Remote:
                 self.__store_credentials__(credential_path, credentials)
 
             else:
-                # use default id and secret
-                client_config = {
-                    "installed": {
-                        "auth_uri": self.OAUTH2_CLIENT_SECRET["auth_uri"],
-                        "token_uri": self.OAUTH2_CLIENT_SECRET["token_uri"],
-                        "client_id": self.OAUTH2_CLIENT_SECRET["client_id"],
-                        "client_secret": self.OAUTH2_CLIENT_SECRET["client_secret"],
-                    }
-                }
-                flow = InstalledAppFlow.from_client_config(client_config, self.SCOPES)
-                credentials = flow.run_local_server()
-                self.__store_credentials__(credential_path, credentials)
+                raise Remote.GenericException(
+                    "error: no client secret file given, create your own OAuth 2 "
+                    "client and pass it with 'gmi auth -c client_secret.json', see: "
+                    "https://github.com/gauteh/lieer#using-your-own-oauth-2-client"
+                )
 
         return credentials
 
